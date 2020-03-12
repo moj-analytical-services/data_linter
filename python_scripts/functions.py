@@ -8,7 +8,7 @@ from io import BytesIO
 from datetime import datetime
 
 from jsonschema import validate as json_validate
-from gluejobutils import s3
+from dataengineeringutils3 import s3
 import boto3
 
 from goodtables import validate
@@ -17,10 +17,14 @@ s3_client = boto3.client("s3")
 
 
 def load_and_validate_config():
+    """
+    Loads and validates the config
+    """
     # load yaml or json
-    ext = "yaml"
     if os.path.isfile("config.yaml"):
         ext = "yaml"
+    elif os.path.isfile("config.yml"):
+        ext = "yml"
     elif os.path.isfile("config.json"):
         ext = "json"
     else:
@@ -45,21 +49,12 @@ def download_data(s3_path, local_path):
         s3_client.download_fileobj(b, o, f)
 
 
-def validate_data(config):
-
-    utc_ts = int(datetime.utcnow())
+def match_files_in_land_to_config(config):
+    """
+    Takes config and matches files in S3 to the corresponding table list in config.
+    Checks against other config parameters and will raise error if config params not met.
+    """
     land_base_path = config["land-base-path"]
-    all_must_pass = config.get("must-all-pass", False)
-    pass_base_path = config["pass-base-path"]
-    log_base_path = config["log-base-path"]
-    fail_base_path = config.get("fail-base-path")
-
-    #  If all tables must pass before
-    if all_must_pass:
-        pass_base_path += "__tmp__/"
-        log_base_path += "__tmp__/"
-
-    # Check if files exist
     land_files = s3.get_filepaths_from_s3_folder(land_base_path)
 
     if not land_files and config.get("fail-no-files", False):
@@ -69,27 +64,30 @@ def validate_data(config):
         print(f"Found {total_files} in {land_base_path}")
 
     # Check for requrired tables
-    all_matched = set()
-    for k, v in config["tables"].items():
-        if v.get("pattern"):
-            v["matched_files"] = [
+    all_matched = []
+    for table_name, table_params in config["tables"].items():
+        if table_params.get("pattern"):
+            table_params["matched_files"] = [
                 lf
                 for lf in land_files
-                if re.match(v.get("pattern"), lf.replace(land_base_path, ""))
+                if re.match(table_params.get("pattern"), lf.replace(land_base_path, ""))
             ]
         else:
-            v["matched_files"] = [
-                lf for lf in land_files if k in lf.replace(land_base_path, "")
+            table_params["matched_files"] = [
+                lf for lf in land_files if lf.replace(land_base_path, "").startswith(table_name)
             ]
 
-        if not v["matched_files"] and v.get("required"):
-            raise FileNotFoundError("Config states file must exist but not file found.")
+        if not table_params["matched_files"] and table_params.get("required"):
+            raise FileNotFoundError("Config states file must exist but not files matched.")
 
-        all_matched = all_matched.union(v["matched_files"])
+        all_matched = all_matched.extend(table_params["matched_files"])
+
+    if len(all_matched) != len(set(all_matched)):
+       raise FileExistsError("We matched the same files to multiple tables") 
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
-        file_exeptions = config["fail-unknown-files"]
+        file_exeptions = config["fail-unknown-files"].get("exceptions", [])
         land_diff = set(land_files).difference(all_matched)
         land_diff = land_diff.difference(file_exeptions)
         if land_diff:
@@ -97,40 +95,65 @@ def validate_data(config):
                 f"Config states no unknown should exist. The following were unmatched: {land_diff}"
             )
 
+    return config
+
+def convert_meta(meta, to="goodtables"):
+    """
+    Should take our metadata file and convert it to a goodtables schema (by default)
+    Can add more convertions later e.g. jsonschema if we get json
+    """
+    converted_meta = None
+    return converted_meta
+
+def validate_data(config):
+
+    utc_ts = int(datetime.utcnow())
+    land_base_path = config["land-base-path"]
+    all_must_pass = config.get("all-must-pass", False)
+    pass_base_path = config["pass-base-path"]
+    log_base_path = config["log-base-path"]
+    fail_base_path = config.get("fail-base-path")
+
+    #  If all tables must pass before
+    if all_must_pass:
+        pass_base_path += "__tmp__/"
+        log_base_path += "__tmp__/"
+
+    config = match_files_in_land_to_config(config)
+
     # If all the above passes lint each file
     all_table_responses = []
     all_matched_files = []
     overall_pass = True
-    for k, v in config["tables"].items():
-        v["lint-response"] = []
-        if v["matched_files"]:
-            print(f"Linting {k}")
+    for table_name, table_params in config["tables"].items():
+        table_params["lint-response"] = []
+        if table_params["matched_files"]:
+            print(f"Linting {table_name}")
 
-            schema_path = v.get("file-schema")
-            if not schema_path:
-                file_schema_path = os.path.join("file_schemas", f"{k}.json")
+            meta_file_path = table_params.get("metadata", f"metadata/{table_name}.json")
 
-            with open(file_schema_path) as sfile:
-                file_schema = json.load(sfile)
+            with open(meta_file_path) as sfile:
+                metadata = json.load(sfile)
+                schema = convert_meta(metadata)
 
-            for i, matched_file in enumerate(v["matched_files"]):
+            for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
-                print(f"...file {i+1} of {len(v['matched_files'])}")
+                print(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
                 local_path = f"data_tmp/{file_basename}"
                 download_data(matched_file, local_path)
                 response = validate(
-                    local_path, schema=file_schema, **v.get("gt-kwargs")
+                    local_path, schema=schema, **table_params.get("gt-kwargs")
                 )
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
-                table_response["table-name"] = k
+                table_response["table-name"] = table_name
 
                 # Write data to s3 on pass or elsewhere on fail
-                if v["lint-response"]["valid"]:
+                if table_params["lint-response"]["valid"]:
                     final_outpath = get_out_path(
                         config["pass-base-path"],
-                        k,
+                        table_name,
                         utc_ts,
                         file_basename,
                         compress=config["compress-data"],
@@ -139,7 +162,7 @@ def validate_data(config):
                     if all_must_pass:
                         tmp_outpath = get_out_path(
                             pass_base_path,
-                            k,
+                            table_name,
                             utc_ts,
                             file_basename,
                             compress=config["compress-data"],
@@ -171,7 +194,7 @@ def validate_data(config):
                     table_response["archived-path"] = None
 
                 # Write reponse log
-                log_outpath = get_log_path(log_base_path, k, utc_ts, filenum=i)
+                log_outpath = get_log_path(log_base_path, table_name, utc_ts, filenum=i)
 
                 # Write log to s3
                 s3.write_json_to_s3(table_response, log_outpath)
@@ -179,7 +202,7 @@ def validate_data(config):
                 all_table_responses.append(table_response)
 
         else:
-            print(f"SKIPPING {k}. No files found.")
+            print(f"SKIPPING {table_name}. No files found.")
 
     if overall_pass:
         print("All tables passed")
@@ -245,3 +268,12 @@ def local_file_to_s3(local_path, s3_path):
     b, o = s3.s3_path_to_bucket_key(s3_path)
     with open(local_path, "rb") as f:
         s3_client.upload_fileobj(f, b, o)
+
+def generate_iam_config(config, outpath="iam_config.yaml"):
+    """
+    Should take the necessary paths in the config and write out an
+    iam that has access to those s3 paths e.g.
+    write-only to log-base-path
+    read/write to land-base-path
+    """
+    pass

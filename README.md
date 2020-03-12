@@ -10,23 +10,33 @@ This docker image should also output standard logs that are querable via Athena.
 My thinking around the config atm
 
 ```yaml
-land-base-path: s3://land-bucket/my-folder/
-fail-base-path: s3://fail-bucket/my-folder/
-pass-base-path: s3://pass-bucket/my-folder/
-log-base-path: s3://log-bucket/my-folder/
-compress-data: True
-remove-tables-on-pass: True
-must-all-pass: True
+land-base-path: s3://land-bucket/my-folder/ # Where to get the data from
+fail-base-path: s3://fail-bucket/my-folder/ # Where to write the data if failed validation
+pass-base-path: s3://pass-bucket/my-folder/ # Where to write the data if passed validation
+log-base-path: s3://log-bucket/my-folder/ # Where to write logs - necessary should be centralised? based on repo names maybe
+compress-data: True # Compress data when moving elsewhere
+remove-tables-on-pass: True # Delete the tables if pass 
+all-must-pass: True # Only move data if all tables have passed
+fail-unknown-files:
+    exceptions: 
+      - additional_file.txt
+      - another_additional_file.txt
 
+# Tables to validate
 tables:
     - table1:
         kwargs: null
-        required: True
-        pattern: null
-        file-schema: None # May not be necessary could be infered
+        required: True # Does the table have to exist
+        pattern: null # Assumes file is called table1
+        metadata: null # May not be necessary could be infered
+        linter: goodtables # jsonschema?
+        gt-kwargs:
+            # kwargs specific to goodtables - not sure about this. Might be better to 
+            # put into the file shema
+
     - table2:
         kwargs: null
         required: True
-        pattern: null
-        file-schema: None
+        pattern: ^table2
+        metadata: metadata/table2.json # Should be an overwrite the input here is what it should infered as if set to None
 ```
