@@ -276,4 +276,37 @@ def generate_iam_config(config, outpath="iam_config.yaml"):
     write-only to log-base-path
     read/write to land-base-path
     """
-    pass
+
+    expected_keys = [
+        "iam_role_name",
+        "log-base-path",
+        "land-base-path",
+        "pass-base-path",
+        "fail-base-path"
+    ]
+
+    missing_keys = [key for key in expected_keys if key not in config]
+
+    if len(missing_keys) == 0:
+        out_iam = {
+            "iam_role_name": config["iam_role_name"],
+            "athena": {
+                "write": True
+            },
+            "s3": {
+                "write_only": [
+                    f"{config['log-base-path']}/*"
+                ],
+                "read_write": [
+                    f"{config['land-base-path']}/*",
+                    f"{config['fail-base-path']}/*",
+                    f"{config['pass-base-path']}/*"
+                ]
+            }
+        }
+
+        with open(outpath, "w") as file:
+            yaml.dump(out_iam, file)
+    
+    else:
+        raise KeyError(f"Missing the following expected keys: {missing_keys}")
