@@ -125,7 +125,7 @@ def convert_meta_type_to_goodtable_type(meta_type):
     }
 
     if meta_type in lookup:
-        gt_type = lookup(meta_type)
+        gt_type = lookup[meta_type]
     elif meta_type.startswith("array"):
         gt_type = "array"
     elif meta_type.startswith("struct"):
