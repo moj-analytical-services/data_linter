@@ -15,7 +15,6 @@ from goodtables import validate
 
 s3_client = boto3.client("s3")
 
-
 def load_and_validate_config():
     """
     Loads and validates the config
@@ -97,13 +96,105 @@ def match_files_in_land_to_config(config):
 
     return config
 
-def convert_meta(meta, to="goodtables"):
+
+def convert_meta_type_to_goodtable_type(meta_type):
     """
-    Should take our metadata file and convert it to a goodtables schema (by default)
-    Can add more convertions later e.g. jsonschema if we get json
+    Converts string name for etl_manager data type and converts it to a goodtables data type
+
+    Paramaters
+    ----------
+    meta_type: str
+        Column type of the etl_manager metadata
+
+    Returns
+    -------
+    str:
+        Column type of the goodtables_type https://frictionlessdata.io/specs/table-schema/
     """
-    converted_meta = None
-    return converted_meta
+    meta_type = meta_type.lower()
+
+    lookup = {
+        "character": "string",
+        "int": "int",
+        "long": "int",
+        "float": "number",
+        "double": "number",
+        "date": "date",
+        "datetime": "datetime",
+        "boolean": "boolean",
+    }
+
+    if meta_type in lookup:
+        gt_type = lookup(meta_type)
+    elif meta_type.startswith("array"):
+        gt_type = "array"
+    elif meta_type.startswith("struct"):
+        gt_type = "object"
+    else:
+        raise TypeError(f"Given meta_type: {meta_type} but this matches no goodtables equivalent")
+    
+    return gt_type
+
+
+def convert_meta_to_goodtables_schema(meta):
+    """
+    Should take our metadata file and convert it to a goodtables schema
+
+    Paramaters
+    ----------
+    meta: dict
+        Takes a metadata dictionary (see etl_manager) then converts that to a particular schema for linting
+
+    Returns
+    -------
+    dict:
+        A goodtables schema
+    """
+
+    gt_template = {
+        "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
+        "fields": [],
+        "missingValues": [
+            ""
+        ]
+    }
+
+    gt_constraint_names = [
+        "unique",
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+        "pattern",
+        "enum"
+    ]
+    
+    gt_constraints = {}
+
+    for col in meta["columns"]:
+        gt_type = convert_meta_type_to_goodtable_type(col["type"])
+        gt_format = col.get("format", "default")
+
+        if gt_type in ["date", "datetime"] and "format" not in col:
+            gt_format = "any"
+    
+        if "nullable" in col:
+            gt_constraints["required"] = not col["nullable"]
+    
+        contraint_params_in_col = [g for g in gt_constraint_names if g in col]
+        
+        for gt_constraint_name in contraint_params_in_col:
+            gt_constraints[gt_constraint_name] = col["gt_constraint_name"]
+        
+        gt_template["fields"].append({
+            "name": col["name"],
+            "type": gt_type,
+            "format": gt_format,
+            "constraints": gt_constraints
+        })
+
+    return gt_template
+
 
 def validate_data(config):
 
