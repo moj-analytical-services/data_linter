@@ -269,6 +269,8 @@ def local_file_to_s3(local_path, s3_path):
     with open(local_path, "rb") as f:
         s3_client.upload_fileobj(f, b, o)
 
+
+
 def generate_iam_config(config, outpath="iam_config.yaml"):
     """
     Should take the necessary paths in the config and write out an
@@ -278,7 +280,7 @@ def generate_iam_config(config, outpath="iam_config.yaml"):
     """
 
     expected_keys = [
-        "iam_role_name",
+        "iam-role-name",
         "log-base-path",
         "land-base-path",
         "pass-base-path",
@@ -289,18 +291,18 @@ def generate_iam_config(config, outpath="iam_config.yaml"):
 
     if len(missing_keys) == 0:
         out_iam = {
-            "iam_role_name": config["iam_role_name"],
+            "iam-role-name": config["iam-role-name"],
             "athena": {
                 "write": True
             },
             "s3": {
                 "write_only": [
-                    f"{config['log-base-path']}/*"
+                    os.path.join(config['log-base-path'],'*')
                 ],
                 "read_write": [
-                    f"{config['land-base-path']}/*",
-                    f"{config['fail-base-path']}/*",
-                    f"{config['pass-base-path']}/*"
+                    os.path.join(config['land-base-path'],'*'),
+                    os.path.join(config['fail-base-path'],'*'),
+                    os.path.join(config['pass-base-path'],'*'),
                 ]
             }
         }
@@ -310,3 +312,5 @@ def generate_iam_config(config, outpath="iam_config.yaml"):
     
     else:
         raise KeyError(f"Missing the following expected keys: {missing_keys}")
+
+
