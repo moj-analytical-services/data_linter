@@ -1,0 +1,10 @@
+athena:
+  write: true
+iam-role-name: test_iam_policy
+s3:
+  read_write:
+  - s3://land-bucket/my-folder/*
+  - s3://fail-bucket/my-folder/*
+  - s3://pass-bucket/my-folder/*
+  write_only:
+  - s3://log-bucket/my-folder/*

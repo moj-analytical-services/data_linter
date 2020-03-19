@@ -16,23 +16,17 @@ from goodtables import validate
 s3_client = boto3.client("s3")
 
 
-def load_and_validate_config():
+def load_and_validate_config(path):
     """
     Loads and validates the config
     """
     # load yaml or json
-    if os.path.isfile("config.yaml"):
-        ext = "yaml"
-    elif os.path.isfile("config.yml"):
-        ext = "yml"
-    elif os.path.isfile("config.json"):
-        ext = "json"
-    else:
+    if not os.path.isfile(path):
         raise FileNotFoundError(
             "Expecting a file with the name config.json or config.yaml in working dir."
         )
 
-    with open(f"config.{ext}", "r") as f:
+    with open(path, "r") as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     with open("config-schema.json") as f:
