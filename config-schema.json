@@ -1,0 +1,234 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "title": "The Root Schema",
+    "description": "The root schema comprises the entire JSON document.",
+    "required": [
+        "land-base-path",
+        "fail-base-path",
+        "pass-base-path",
+        "log-base-path",
+        "compress-data",
+        "remove-tables-on-pass",
+        "all-must-pass",
+        "fail-unknown-files",
+        "tables"
+    ],
+    "properties": {
+        "land-base-path": {
+            "$id": "#/properties/land-base-path",
+            "type": "string",
+            "title": "The Land-base-path Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://land-bucket/my-folder/"
+            ]
+        },
+        "fail-base-path": {
+            "$id": "#/properties/fail-base-path",
+            "type": "string",
+            "title": "The Fail-base-path Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://fail-bucket/my-folder/"
+            ]
+        },
+        "pass-base-path": {
+            "$id": "#/properties/pass-base-path",
+            "type": "string",
+            "title": "The Pass-base-path Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://pass-bucket/my-folder/"
+            ]
+        },
+        "log-base-path": {
+            "$id": "#/properties/log-base-path",
+            "type": "string",
+            "title": "The Log-base-path Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://log-bucket/my-folder/"
+            ]
+        },
+        "compress-data": {
+            "$id": "#/properties/compress-data",
+            "type": "boolean",
+            "title": "The Compress-data Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "remove-tables-on-pass": {
+            "$id": "#/properties/remove-tables-on-pass",
+            "type": "boolean",
+            "title": "The Remove-tables-on-pass Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "all-must-pass": {
+            "$id": "#/properties/all-must-pass",
+            "type": "boolean",
+            "title": "The All-must-pass Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "fail-unknown-files": {
+            "$id": "#/properties/fail-unknown-files",
+            "type": "object",
+            "title": "The Fail-unknown-files Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": {},
+            "examples": [
+                {
+                    "exceptions": [
+                        "additional_file.txt",
+                        "another_additional_file.txt"
+                    ]
+                }
+            ],
+            "required": [
+                "exceptions"
+            ],
+            "properties": {
+                "exceptions": {
+                    "$id": "#/properties/fail-unknown-files/properties/exceptions",
+                    "type": "array",
+                    "title": "The Exceptions Schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "default": [],
+                    "items": {
+                        "$id": "#/properties/fail-unknown-files/properties/exceptions/items",
+                        "type": "string",
+                        "title": "The Items Schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": "",
+                        "examples": [
+                            "additional_file.txt",
+                            "another_additional_file.txt"
+                        ]
+                    }
+                }
+            }
+        },
+        "tables": {
+            "$id": "#/properties/tables",
+            "type": "array",
+            "minProperties": 1,
+            "title": "The Tables Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": [],
+            "items": {
+                "$id": "#/properties/tables/items",
+                "type": "object",
+                "title": "The Items Schema",
+                "description": "An explanation about the purpose of this instance.",
+                "default": {},
+                "required": [
+                ],
+                "patternProperties": {
+                    "^.*$": {
+                        "$id": "#/properties/tables/items/properties/table1",
+                        "type": "object",
+                        "title": "The Table1 Schema",
+                        "description": "An explanation about the purpose of this instance.",
+                        "default": {},
+                        "examples": [
+                            {
+                                "pattern": null,
+                                "gt-kwargs": null,
+                                "kwargs": null,
+                                "required": true,
+                                "linter": "goodtables",
+                                "metadata": null
+                            }
+                        ],
+                        "required": [
+                            "kwargs",
+                            "required",
+                            "pattern",
+                            "metadata",
+                            "linter",
+                            "gt-kwargs"
+                        ],
+                        "properties": {
+                            "kwargs": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/kwargs",
+                                "title": "The Kwargs Schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": null,
+                                "examples": [
+                                    null
+                                ]
+                            },
+                            "required": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/required",
+                                "type": "boolean",
+                                "title": "The Required Schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": false,
+                                "examples": [
+                                    true
+                                ]
+                            },
+                            "pattern": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/pattern",
+                                "title": "The Pattern Schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": null,
+                                "examples": [
+                                    null
+                                ]
+                            },
+                            "metadata": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/metadata",
+                                "title": "The Metadata Schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": null,
+                                "examples": [
+                                    null
+                                ]
+                            },
+                            "linter": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/linter",
+                                "type": "string",
+                                "title": "The Linter Schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": "",
+                                "examples": [
+                                    "goodtables"
+                                ]
+                            },
+                            "gt-kwargs": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/gt-kwargs",
+                                "title": "The Gt-kwargs Schema",
+                                "description": "An explanation about the purpose of this instance.",
+                                "default": null,
+                                "examples": [
+                                    null
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
