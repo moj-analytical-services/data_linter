@@ -12,7 +12,6 @@
         "compress-data",
         "remove-tables-on-pass",
         "all-must-pass",
-        "fail-unknown-files",
         "tables"
     ],
     "properties": {
@@ -58,6 +57,16 @@
             "pattern": "^s3://",
             "examples": [
                 "s3://log-bucket/my-folder/"
+            ]
+        },
+        "iam-role-name": {
+            "$id": "#/properties/iam-role-name",
+            "type": "string",
+            "title": "The Iam-role-name Schema",
+            "description": "An explanation about the purpose of this instance.",
+            "default": "",
+            "examples": [
+                "role-name"
             ]
         },
         "compress-data": {
@@ -147,13 +156,12 @@
                     "^.*$": {
                         "$id": "#/properties/tables/items/properties/table1",
                         "type": "object",
-                        "title": "The Table1 Schema",
+                        "title": "The Table Schema",
                         "description": "An explanation about the purpose of this instance.",
                         "default": {},
                         "examples": [
                             {
                                 "pattern": null,
-                                "gt-kwargs": null,
                                 "kwargs": null,
                                 "required": true,
                                 "linter": "goodtables",
@@ -161,12 +169,8 @@
                             }
                         ],
                         "required": [
-                            "kwargs",
                             "required",
-                            "pattern",
-                            "metadata",
-                            "linter",
-                            "gt-kwargs"
+                            "metadata"
                         ],
                         "properties": {
                             "kwargs": {
@@ -215,16 +219,8 @@
                                 "examples": [
                                     "goodtables"
                                 ]
-                            },
-                            "gt-kwargs": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/gt-kwargs",
-                                "title": "The Gt-kwargs Schema",
-                                "description": "An explanation about the purpose of this instance.",
-                                "default": null,
-                                "examples": [
-                                    null
-                                ]
                             }
+                            
                         }
                     }
                 }
