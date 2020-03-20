@@ -273,38 +273,23 @@ def generate_iam_config(config, outpath="iam_config.yaml"):
     read/write to land-base-path
     """
 
-    expected_keys = [
-        "iam-role-name",
-        "log-base-path",
-        "land-base-path",
-        "pass-base-path",
-        "fail-base-path"
-    ]
-
-    missing_keys = [key for key in expected_keys if key not in config]
-
-    if len(missing_keys) == 0:
-        out_iam = {
-            "iam-role-name": config["iam-role-name"],
-            "athena": {
-                "write": True
-            },
-            "s3": {
-                "write_only": [
-                    os.path.join(config['log-base-path'],'*')
-                ],
-                "read_write": [
-                    os.path.join(config['land-base-path'],'*'),
-                    os.path.join(config['fail-base-path'],'*'),
-                    os.path.join(config['pass-base-path'],'*'),
-                ]
-            }
+    out_iam = {
+        "iam-role-name": config["iam-role-name"],
+        "athena": {
+            "write": True
+        },
+        "s3": {
+            "write_only": [
+                os.path.join(config['log-base-path'],'*')
+            ],
+            "read_write": [
+                os.path.join(config['land-base-path'],'*'),
+                os.path.join(config['fail-base-path'],'*'),
+                os.path.join(config['pass-base-path'],'*'),
+            ]
         }
+    }
 
-        with open(outpath, "w") as file:
-            yaml.dump(out_iam, file)
-    
-    else:
-        raise KeyError(f"Missing the following expected keys: {missing_keys}")
-
+    with open(outpath, "w") as file:
+        yaml.dump(out_iam, file)
 
