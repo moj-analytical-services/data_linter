@@ -5,13 +5,9 @@ from tableschema import Schema
 
 from python_scripts.functions import convert_meta_to_goodtables_schema
 
-table_schema = Schema("schemas/table_test_data.json")
-table_schema.valid
-
-
 def test_convert_meta_type_to_goodtable_type():
     with open("tests/data/basic_meta_data.json") as f:
-        meta = json.loads(f)
+        meta = json.load(f)
 
     gt_schema = convert_meta_to_goodtables_schema(meta)
     assert Schema(gt_schema).valid == True
