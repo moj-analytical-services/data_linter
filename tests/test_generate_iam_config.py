@@ -5,13 +5,13 @@ from python_scripts.functions import load_and_validate_config, generate_iam_conf
 
 
 def test_generate_iam_config():
-    config = load_and_validate_config("tests/config.yaml")
-    with open("tests/iam_config.yaml") as f:
+    config = load_and_validate_config("tests/data/config.yaml")
+    with open("tests/data/iam_config.yaml") as f:
         expected_output = yaml.safe_load(f)
     
-    generate_iam_config(config,"tests/test_iam.yaml")
+    generate_iam_config(config,"tests/data/test_iam.yaml")
 
-    with open("tests/test_iam.yaml") as f:
+    with open("tests/data/test_iam.yaml") as f:
         test_output = yaml.safe_load(f)
     
     assert expected_output == test_output
