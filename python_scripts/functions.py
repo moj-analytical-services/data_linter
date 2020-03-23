@@ -13,6 +13,8 @@ import boto3
 
 from goodtables import validate
 
+from iam_builder.iam_builder import build_iam_policy
+
 s3_client = boto3.client("s3")
 
 
@@ -265,12 +267,24 @@ def local_file_to_s3(local_path, s3_path):
 
 
 
-def generate_iam_config(config, outpath="iam_config.yaml"):
+def generate_iam_config(config, iam_config_path="iam_config.yaml", iam_policy_path="iam_policy.json"):
     """
-    Should take the necessary paths in the config and write out an
-    iam that has access to those s3 paths e.g.
-    write-only to log-base-path
-    read/write to land-base-path
+    Takes file paths from config and generates an iam_config, and optionally an iam_policy
+
+    Parameters
+    ----------
+
+    config: dict
+        A config loaded from load_and_validate_config()
+    
+    iam_config_path: str
+        Path to where you want to output the iam_config
+    
+    iam_policy_path: str
+        Optional path to output the iam policy json generated from the iam_config just generated
+
+
+
     """
 
     out_iam = {
@@ -290,6 +304,14 @@ def generate_iam_config(config, outpath="iam_config.yaml"):
         }
     }
 
-    with open(outpath, "w") as file:
+    with open(iam_config_path, "w") as file:
         yaml.dump(out_iam, file)
 
+    if iam_policy_path:
+        if iam_policy_path.endwith(".json"):
+            with open(iam_policy_path, "w") as file:
+                iam_policy = build_iam_policy(out_iam)
+                json.dump(iam_policy, iam_policy_path, indent=4, separators=(',', ': '))
+        else:
+            raise ValueError(
+        "iam_policy_path should be a json file")
