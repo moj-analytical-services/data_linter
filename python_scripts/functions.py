@@ -65,15 +65,15 @@ def match_files_in_land_to_config(config):
     for table_name, table_params in config["tables"].items():
         if table_params.get("pattern"):
             table_params["matched_files"] = [
-                lf
-                for lf in land_files
-                if re.match(table_params.get("pattern"), lf.replace(land_base_path, ""))
+                l
+                for l in land_files
+                if re.match(table_params.get("pattern"), l.replace(land_base_path, ""))
             ]
         else:
             table_params["matched_files"] = [
-                lf
-                for lf in land_files
-                if lf.replace(land_base_path, "").startswith(table_name)
+                l
+                for l in land_files
+                if l.replace(land_base_path, "").startswith(table_name)
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
@@ -103,7 +103,7 @@ def convert_meta_type_to_goodtable_type(meta_type):
     """
     Converts string name for etl_manager data type and converts it to a goodtables data type
 
-    Paramaters
+    Parameters
     ----------
     meta_type: str
         Column type of the etl_manager metadata
@@ -144,7 +144,7 @@ def convert_meta_to_goodtables_schema(meta):
     """
     Should take our metadata file and convert it to a goodtables schema
 
-    Paramaters
+    Parameters
     ----------
     meta: dict
         Takes a metadata dictionary (see etl_manager) then converts that to a particular schema for linting
