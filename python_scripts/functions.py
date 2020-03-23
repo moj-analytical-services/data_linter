@@ -70,16 +70,20 @@ def match_files_in_land_to_config(config):
             ]
         else:
             table_params["matched_files"] = [
-                lf for lf in land_files if lf.replace(land_base_path, "").startswith(table_name)
+                lf
+                for lf in land_files
+                if lf.replace(land_base_path, "").startswith(table_name)
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
-            raise FileNotFoundError("Config states file must exist but not files matched.")
+            raise FileNotFoundError(
+                "Config states file must exist but not files matched."
+            )
 
         all_matched = all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
-       raise FileExistsError("We matched the same files to multiple tables") 
+        raise FileExistsError("We matched the same files to multiple tables")
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
@@ -93,6 +97,7 @@ def match_files_in_land_to_config(config):
 
     return config
 
+
 def convert_meta(meta, to="goodtables"):
     """
     Should take our metadata file and convert it to a goodtables schema (by default)
@@ -100,6 +105,7 @@ def convert_meta(meta, to="goodtables"):
     """
     converted_meta = None
     return converted_meta
+
 
 def validate_data(config):
 
@@ -266,8 +272,9 @@ def local_file_to_s3(local_path, s3_path):
         s3_client.upload_fileobj(f, b, o)
 
 
-
-def generate_iam_config(config, iam_config_path="iam_config.yaml", iam_policy_path="iam_policy.json"):
+def generate_iam_config(
+    config, iam_config_path="iam_config.yaml", iam_policy_path="iam_policy.json"
+):
     """
     Takes file paths from config and generates an iam_config, and optionally an iam_policy
 
@@ -289,19 +296,15 @@ def generate_iam_config(config, iam_config_path="iam_config.yaml", iam_policy_pa
 
     out_iam = {
         "iam-role-name": config["iam-role-name"],
-        "athena": {
-            "write": True
-        },
+        "athena": {"write": True},
         "s3": {
-            "write_only": [
-                os.path.join(config['log-base-path'],'*')
-            ],
+            "write_only": [os.path.join(config["log-base-path"], "*")],
             "read_write": [
-                os.path.join(config['land-base-path'],'*'),
-                os.path.join(config['fail-base-path'],'*'),
-                os.path.join(config['pass-base-path'],'*'),
-            ]
-        }
+                os.path.join(config["land-base-path"], "*"),
+                os.path.join(config["fail-base-path"], "*"),
+                os.path.join(config["pass-base-path"], "*"),
+            ],
+        },
     }
 
     with open(iam_config_path, "w") as file:
@@ -311,7 +314,6 @@ def generate_iam_config(config, iam_config_path="iam_config.yaml", iam_policy_pa
         if iam_policy_path.endwith(".json"):
             with open(iam_policy_path, "w") as file:
                 iam_policy = build_iam_policy(out_iam)
-                json.dump(iam_policy, iam_policy_path, indent=4, separators=(',', ': '))
+                json.dump(iam_policy, iam_policy_path, indent=4, separators=(",", ": "))
         else:
-            raise ValueError(
-        "iam_policy_path should be a json file")
+            raise ValueError("iam_policy_path should be a json file")
