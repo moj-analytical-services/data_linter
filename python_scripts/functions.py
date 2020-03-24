@@ -13,27 +13,24 @@ import boto3
 
 from goodtables import validate
 
+from iam_builder.iam_builder import build_iam_policy
+
 s3_client = boto3.client("s3")
 
 
-def load_and_validate_config():
+def load_and_validate_config(path):
     """
     Loads and validates the config
     """
     # load yaml or json
-    if os.path.isfile("config.yaml"):
-        ext = "yaml"
-    elif os.path.isfile("config.yml"):
-        ext = "yml"
-    elif os.path.isfile("config.json"):
-        ext = "json"
-    else:
+    if not os.path.isfile(path):
         raise FileNotFoundError(
             "Expecting a file with the name config.json, config.yaml config.yml) in working dir."
         )
 
     with open(f"config.{ext}", "r") as f:
         config = yaml.safe_load(f)
+
 
     json_validate(config, config_schema)
 
@@ -74,6 +71,7 @@ def match_files_in_land_to_config(config):
                 l
                 for l in land_files
                 if l.replace(land_base_path, "").startswith(table_name)
+
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
@@ -97,6 +95,7 @@ def match_files_in_land_to_config(config):
             )
 
     return config
+
 
 
 def convert_meta_type_to_goodtable_type(meta_type):
@@ -198,6 +197,7 @@ def convert_meta_to_goodtables_schema(meta):
         )
 
     return gt_template
+
 
 
 def validate_data(config):
@@ -365,11 +365,50 @@ def local_file_to_s3(local_path, s3_path):
         s3_client.upload_fileobj(f, b, o)
 
 
-def generate_iam_config(config, outpath="iam_config.yaml"):
+
+def generate_iam_config(
+    config, iam_config_path="iam_config.yaml", iam_policy_path="iam_policy.json"
+):
     """
-    Should take the necessary paths in the config and write out an
-    iam that has access to those s3 paths e.g.
-    write-only to log-base-path
-    read/write to land-base-path
+    Takes file paths from config and generates an iam_config, and optionally an iam_policy
+
+    Parameters
+    ----------
+
+    config: dict
+        A config loaded from load_and_validate_config()
+    
+    iam_config_path: str
+        Path to where you want to output the iam_config
+    
+    iam_policy_path: str
+        Optional path to output the iam policy json generated from the iam_config just generated
+
+
+
     """
-    pass
+
+    out_iam = {
+        "iam-role-name": config["iam-role-name"],
+        "athena": {"write": True},
+        "s3": {
+            "write_only": [os.path.join(config["log-base-path"], "*")],
+            "read_write": [
+                os.path.join(config["land-base-path"], "*"),
+                os.path.join(config["fail-base-path"], "*"),
+                os.path.join(config["pass-base-path"], "*"),
+            ],
+        },
+    }
+
+    with open(iam_config_path, "w") as file:
+        yaml.dump(out_iam, file)
+
+    if iam_policy_path:
+        if iam_policy_path.endwith(".json"):
+            with open(iam_policy_path, "w") as file:
+                iam_policy = build_iam_policy(out_iam)
+                json.dump(iam_policy, iam_policy_path, indent=4, separators=(",", ": "))
+        else:
+            raise ValueError("iam_policy_path should be a json file")
+
