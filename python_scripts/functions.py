@@ -18,19 +18,23 @@ from iam_builder.iam_builder import build_iam_policy
 s3_client = boto3.client("s3")
 
 
-def load_and_validate_config(path):
+
+def load_and_validate_config(path=".", file_name="config.yaml"):
+
     """
     Loads and validates the config
     """
     # load yaml or json
-    if not os.path.isfile(path):
-        raise FileNotFoundError(
-            "Expecting a file with the name config.json, config.yaml config.yml) in working dir."
-        )
+    config_path = os.path.join(path, file_name)
+    if not os.path.isfile(config_path):
+        config_path = config_path.replace("yaml", "yml")
+        if not os.path.isfile(config_path):
+            raise FileNotFoundError(
+                f"Expecting a file in {path} with name {file_name}."
+            )
 
-    with open(f"config.{ext}", "r") as f:
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-
 
     json_validate(config, config_schema)
 
@@ -71,7 +75,6 @@ def match_files_in_land_to_config(config):
                 l
                 for l in land_files
                 if l.replace(land_base_path, "").startswith(table_name)
-
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
@@ -95,7 +98,6 @@ def match_files_in_land_to_config(config):
             )
 
     return config
-
 
 
 def convert_meta_type_to_goodtable_type(meta_type):
@@ -197,6 +199,7 @@ def convert_meta_to_goodtables_schema(meta):
         )
 
     return gt_template
+
 
 
 
