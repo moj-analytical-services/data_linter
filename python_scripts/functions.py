@@ -16,7 +16,7 @@ from goodtables import validate
 s3_client = boto3.client("s3")
 
 
-def load_and_validate_config(file_name="config.yaml", path="."):
+def load_and_validate_config(path=".", file_name="config.yaml"):
     """
     Loads and validates the config
     """
@@ -31,7 +31,7 @@ def load_and_validate_config(file_name="config.yaml", path="."):
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-        
+
     with open("config-schema.json") as f:
         config_schema = json.load(f)
 
@@ -39,7 +39,7 @@ def load_and_validate_config(file_name="config.yaml", path="."):
 
     return config
 
-    
+
 def download_data(s3_path, local_path):
     with open(local_path, "rb") as f:
         b, o = s3.s3_path_to_bucket_key(s3_path)
@@ -71,16 +71,20 @@ def match_files_in_land_to_config(config):
             ]
         else:
             table_params["matched_files"] = [
-                lf for lf in land_files if lf.replace(land_base_path, "").startswith(table_name)
+                lf
+                for lf in land_files
+                if lf.replace(land_base_path, "").startswith(table_name)
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
-            raise FileNotFoundError("Config states file must exist but not files matched.")
+            raise FileNotFoundError(
+                "Config states file must exist but not files matched."
+            )
 
         all_matched = all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
-       raise FileExistsError("We matched the same files to multiple tables") 
+        raise FileExistsError("We matched the same files to multiple tables")
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
@@ -94,6 +98,7 @@ def match_files_in_land_to_config(config):
 
     return config
 
+
 def convert_meta(meta, to="goodtables"):
     """
     Should take our metadata file and convert it to a goodtables schema (by default)
@@ -101,6 +106,7 @@ def convert_meta(meta, to="goodtables"):
     """
     converted_meta = None
     return converted_meta
+
 
 def validate_data(config):
 
@@ -265,6 +271,7 @@ def local_file_to_s3(local_path, s3_path):
     b, o = s3.s3_path_to_bucket_key(s3_path)
     with open(local_path, "rb") as f:
         s3_client.upload_fileobj(f, b, o)
+
 
 def generate_iam_config(config, outpath="iam_config.yaml"):
     """
