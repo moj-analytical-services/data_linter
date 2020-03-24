@@ -13,10 +13,14 @@ import boto3
 
 from goodtables import validate
 
+from iam_builder.iam_builder import build_iam_policy
+
 s3_client = boto3.client("s3")
 
 
+
 def load_and_validate_config(path=".", file_name="config.yaml"):
+
     """
     Loads and validates the config
     """
@@ -31,9 +35,6 @@ def load_and_validate_config(path=".", file_name="config.yaml"):
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-
-    with open("config-schema.json") as f:
-        config_schema = json.load(f)
 
     json_validate(config, config_schema)
 
@@ -65,15 +66,15 @@ def match_files_in_land_to_config(config):
     for table_name, table_params in config["tables"].items():
         if table_params.get("pattern"):
             table_params["matched_files"] = [
-                lf
-                for lf in land_files
-                if re.match(table_params.get("pattern"), lf.replace(land_base_path, ""))
+                l
+                for l in land_files
+                if re.match(table_params.get("pattern"), l.replace(land_base_path, ""))
             ]
         else:
             table_params["matched_files"] = [
-                lf
-                for lf in land_files
-                if lf.replace(land_base_path, "").startswith(table_name)
+                l
+                for l in land_files
+                if l.replace(land_base_path, "").startswith(table_name)
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
@@ -99,13 +100,107 @@ def match_files_in_land_to_config(config):
     return config
 
 
-def convert_meta(meta, to="goodtables"):
+def convert_meta_type_to_goodtable_type(meta_type):
     """
-    Should take our metadata file and convert it to a goodtables schema (by default)
-    Can add more convertions later e.g. jsonschema if we get json
+    Converts string name for etl_manager data type and converts it to a goodtables data type
+
+    Parameters
+    ----------
+    meta_type: str
+        Column type of the etl_manager metadata
+
+    Returns
+    -------
+    str:
+        Column type of the goodtables_type https://frictionlessdata.io/specs/table-schema/
     """
-    converted_meta = None
-    return converted_meta
+    meta_type = meta_type.lower()
+
+    lookup = {
+        "character": "string",
+        "int": "integer",
+        "long": "integer",
+        "float": "number",
+        "double": "number",
+        "date": "date",
+        "datetime": "datetime",
+        "boolean": "boolean",
+    }
+
+    if meta_type in lookup:
+        gt_type = lookup[meta_type]
+    elif meta_type.startswith("array"):
+        gt_type = "array"
+    elif meta_type.startswith("struct"):
+        gt_type = "object"
+    else:
+        raise TypeError(
+            f"Given meta_type: {meta_type} but this matches no goodtables equivalent"
+        )
+
+    return gt_type
+
+
+def convert_meta_to_goodtables_schema(meta):
+    """
+    Should take our metadata file and convert it to a goodtables schema
+
+    Parameters
+    ----------
+    meta: dict
+        Takes a metadata dictionary (see etl_manager) then converts that to a particular schema for linting
+
+    Returns
+    -------
+    dict:
+        A goodtables schema
+    """
+
+    gt_template = {
+        "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
+        "fields": [],
+        "missingValues": [""],
+    }
+
+    gt_constraint_names = [
+        "unique",
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+        "pattern",
+        "enum",
+    ]
+
+    for col in meta["columns"]:
+        gt_constraints = {}
+
+        gt_type = convert_meta_type_to_goodtable_type(col["type"])
+        gt_format = col.get("format", "default")
+
+        if gt_type in ["date", "datetime"] and "format" not in col:
+            gt_format = "any"
+
+        if "nullable" in col:
+            gt_constraints["required"] = not col["nullable"]
+
+        contraint_params_in_col = [g for g in gt_constraint_names if g in col]
+
+        for gt_constraint_name in contraint_params_in_col:
+            gt_constraints[gt_constraint_name] = col[gt_constraint_name]
+
+        gt_template["fields"].append(
+            {
+                "name": col["name"],
+                "type": gt_type,
+                "format": gt_format,
+                "constraints": gt_constraints,
+            }
+        )
+
+    return gt_template
+
+
 
 
 def validate_data(config):
@@ -273,11 +368,50 @@ def local_file_to_s3(local_path, s3_path):
         s3_client.upload_fileobj(f, b, o)
 
 
-def generate_iam_config(config, outpath="iam_config.yaml"):
+
+def generate_iam_config(
+    config, iam_config_path="iam_config.yaml", iam_policy_path="iam_policy.json"
+):
     """
-    Should take the necessary paths in the config and write out an
-    iam that has access to those s3 paths e.g.
-    write-only to log-base-path
-    read/write to land-base-path
+    Takes file paths from config and generates an iam_config, and optionally an iam_policy
+
+    Parameters
+    ----------
+
+    config: dict
+        A config loaded from load_and_validate_config()
+    
+    iam_config_path: str
+        Path to where you want to output the iam_config
+    
+    iam_policy_path: str
+        Optional path to output the iam policy json generated from the iam_config just generated
+
+
+
     """
-    pass
+
+    out_iam = {
+        "iam-role-name": config["iam-role-name"],
+        "athena": {"write": True},
+        "s3": {
+            "write_only": [os.path.join(config["log-base-path"], "*")],
+            "read_write": [
+                os.path.join(config["land-base-path"], "*"),
+                os.path.join(config["fail-base-path"], "*"),
+                os.path.join(config["pass-base-path"], "*"),
+            ],
+        },
+    }
+
+    with open(iam_config_path, "w") as file:
+        yaml.dump(out_iam, file)
+
+    if iam_policy_path:
+        if iam_policy_path.endwith(".json"):
+            with open(iam_policy_path, "w") as file:
+                iam_policy = build_iam_policy(out_iam)
+                json.dump(iam_policy, iam_policy_path, indent=4, separators=(",", ": "))
+        else:
+            raise ValueError("iam_policy_path should be a json file")
+
