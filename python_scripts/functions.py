@@ -29,14 +29,11 @@ def load_and_validate_config():
         ext = "json"
     else:
         raise FileNotFoundError(
-            "Expecting a file with the name config.json or config.yaml in working dir."
+            "Expecting a file with the name config.json, config.yaml config.yml) in working dir."
         )
 
     with open(f"config.{ext}", "r") as f:
-        config = yaml.load(f, Loader=yaml.FullLoader)
-
-    with open("config-schema.json") as f:
-        config_schema = json.load(f)
+        config = yaml.safe_load(f)
 
     json_validate(config, config_schema)
 
@@ -68,22 +65,26 @@ def match_files_in_land_to_config(config):
     for table_name, table_params in config["tables"].items():
         if table_params.get("pattern"):
             table_params["matched_files"] = [
-                lf
-                for lf in land_files
-                if re.match(table_params.get("pattern"), lf.replace(land_base_path, ""))
+                l
+                for l in land_files
+                if re.match(table_params.get("pattern"), l.replace(land_base_path, ""))
             ]
         else:
             table_params["matched_files"] = [
-                lf for lf in land_files if lf.replace(land_base_path, "").startswith(table_name)
+                l
+                for l in land_files
+                if l.replace(land_base_path, "").startswith(table_name)
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
-            raise FileNotFoundError("Config states file must exist but not files matched.")
+            raise FileNotFoundError(
+                "Config states file must exist but not files matched."
+            )
 
         all_matched = all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
-       raise FileExistsError("We matched the same files to multiple tables") 
+        raise FileExistsError("We matched the same files to multiple tables")
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
@@ -97,13 +98,107 @@ def match_files_in_land_to_config(config):
 
     return config
 
-def convert_meta(meta, to="goodtables"):
+
+def convert_meta_type_to_goodtable_type(meta_type):
     """
-    Should take our metadata file and convert it to a goodtables schema (by default)
-    Can add more convertions later e.g. jsonschema if we get json
+    Converts string name for etl_manager data type and converts it to a goodtables data type
+
+    Parameters
+    ----------
+    meta_type: str
+        Column type of the etl_manager metadata
+
+    Returns
+    -------
+    str:
+        Column type of the goodtables_type https://frictionlessdata.io/specs/table-schema/
     """
-    converted_meta = None
-    return converted_meta
+    meta_type = meta_type.lower()
+
+    lookup = {
+        "character": "string",
+        "int": "integer",
+        "long": "integer",
+        "float": "number",
+        "double": "number",
+        "date": "date",
+        "datetime": "datetime",
+        "boolean": "boolean",
+    }
+
+    if meta_type in lookup:
+        gt_type = lookup[meta_type]
+    elif meta_type.startswith("array"):
+        gt_type = "array"
+    elif meta_type.startswith("struct"):
+        gt_type = "object"
+    else:
+        raise TypeError(
+            f"Given meta_type: {meta_type} but this matches no goodtables equivalent"
+        )
+
+    return gt_type
+
+
+def convert_meta_to_goodtables_schema(meta):
+    """
+    Should take our metadata file and convert it to a goodtables schema
+
+    Parameters
+    ----------
+    meta: dict
+        Takes a metadata dictionary (see etl_manager) then converts that to a particular schema for linting
+
+    Returns
+    -------
+    dict:
+        A goodtables schema
+    """
+
+    gt_template = {
+        "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
+        "fields": [],
+        "missingValues": [""],
+    }
+
+    gt_constraint_names = [
+        "unique",
+        "minLength",
+        "maxLength",
+        "minimum",
+        "maximum",
+        "pattern",
+        "enum",
+    ]
+
+    for col in meta["columns"]:
+        gt_constraints = {}
+
+        gt_type = convert_meta_type_to_goodtable_type(col["type"])
+        gt_format = col.get("format", "default")
+
+        if gt_type in ["date", "datetime"] and "format" not in col:
+            gt_format = "any"
+
+        if "nullable" in col:
+            gt_constraints["required"] = not col["nullable"]
+
+        contraint_params_in_col = [g for g in gt_constraint_names if g in col]
+
+        for gt_constraint_name in contraint_params_in_col:
+            gt_constraints[gt_constraint_name] = col[gt_constraint_name]
+
+        gt_template["fields"].append(
+            {
+                "name": col["name"],
+                "type": gt_type,
+                "format": gt_format,
+                "constraints": gt_constraints,
+            }
+        )
+
+    return gt_template
+
 
 def validate_data(config):
 
@@ -268,6 +363,7 @@ def local_file_to_s3(local_path, s3_path):
     b, o = s3.s3_path_to_bucket_key(s3_path)
     with open(local_path, "rb") as f:
         s3_client.upload_fileobj(f, b, o)
+
 
 def generate_iam_config(config, outpath="iam_config.yaml"):
     """
