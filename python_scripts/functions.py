@@ -36,6 +36,9 @@ def load_and_validate_config(path=".", file_name="config.yaml"):
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
+    with open("config-schema.json") as f:
+        config_schema = json.load(f)
+
     json_validate(config, config_schema)
 
     return config
@@ -232,7 +235,7 @@ def validate_data(config):
 
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
-                schema = convert_meta(metadata)
+                schema = convert_meta_to_goodtables_schema(metadata)
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
@@ -279,7 +282,7 @@ def validate_data(config):
                 elif fail_base_path:
                     final_outpath = get_out_path(
                         fail_base_path,
-                        k,
+                        table_name,
                         utc_ts,
                         file_basename,
                         compress=config["compress-data"],
