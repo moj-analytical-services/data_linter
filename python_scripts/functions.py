@@ -3,6 +3,7 @@ import yaml
 import json
 import re
 import gzip
+import logging
 
 from io import BytesIO
 from datetime import datetime
@@ -17,7 +18,7 @@ from iam_builder.iam_builder import build_iam_policy
 
 s3_client = boto3.client("s3")
 
-
+log = logging.getLogger("log.csv")
 
 def load_and_validate_config(path=".", file_name="config.yaml"):
 
@@ -62,7 +63,7 @@ def match_files_in_land_to_config(config):
         raise FileNotFoundError(f"No files found in the s3 path: {land_base_path}")
     else:
         total_files = len(land_files)
-        print(f"Found {total_files} in {land_base_path}")
+        log.info(f"{land_base_path},Found {total_files} in {land_base_path}")
 
     # Check for requrired tables
     all_matched = []
@@ -229,7 +230,7 @@ def validate_data(config):
     for table_name, table_params in config["tables"].items():
         table_params["lint-response"] = []
         if table_params["matched_files"]:
-            print(f"Linting {table_name}")
+            log.info(f"{land_base_path},Linting {table_name}")
 
             meta_file_path = table_params.get("metadata", f"metadata/{table_name}.json")
 
@@ -239,7 +240,7 @@ def validate_data(config):
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
-                print(f"...file {i+1} of {len(table_params['matched_files'])}")
+                log.info(f"{land_base_path},...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
                 local_path = f"data_tmp/{file_basename}"
                 download_data(matched_file, local_path)
@@ -273,7 +274,7 @@ def validate_data(config):
                         tmp_outpath = final_outpath
 
                     table_response["archived-path"] = final_outpath
-                    print(f"...file passed. Writing to {tmp_outpath}")
+                    log.info(f"{land_base_path},...file passed. Writing to {tmp_outpath}")
                     local_file_to_s3(local_path, tmp_outpath)
                     if not all_must_pass:
                         s3.delete_s3_object(matched_file)
@@ -289,7 +290,7 @@ def validate_data(config):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    print(f"...file failed. Writing to {final_outpath}")
+                    logging.error(f"{land_base_path},...file failed. Writing to {final_outpath}")
 
                 else:
                     table_response["archived-path"] = None
@@ -303,37 +304,35 @@ def validate_data(config):
                 all_table_responses.append(table_response)
 
         else:
-            print(f"SKIPPING {table_name}. No files found.")
+            logging.warning(f"{land_base_path},SKIPPING {table_name}. No files found.")
 
     if overall_pass:
-        print("All tables passed")
+        log.info(f"{land_base_path},All tables passed")
         if all_must_pass:
-            print("Moving data from tmp into land-base-path")
+            log.info(f"{land_base_path},Moving data from tmp into land-base-path")
             s3.copy_s3_folder_contents_to_new_folder(
                 land_base_path, config["land-base-path"]
             )
             s3.delete_s3_folder_contents(land_base_path)
 
-            print("Moving data from tmp into log-base-path")
+            log.info(f"{land_base_path},Moving data from tmp into log-base-path")
             s3.copy_s3_folder_contents_to_new_folder(
                 log_base_path, config["log-base-path"]
             )
 
-            print("Removing data in land")
+            log.info(f"{land_base_path},Removing data in land")
             for matched_file in all_matched_files:
                 s3.delete_s3_object(matched_file)
 
     else:
-        print("The following tables failed:")
+        log.error("The following tables failed:")
         for resp in all_table_responses:
             if not resp["valid"]:
-                print(f"... {resp['table-name']}:")
-                print(f"...... original path: {resp['s3-original-path']}")
-                print(f"...... out path: {resp['archived-path']}")
+                log.error(f"{land_base_path},... {resp['table-name']}: \n original path: {resp['s3-original-path']}; \n out path: {resp['archived-path']}")
         if all_must_pass:
-            print(f"Logs that show failed data: {land_base_path}")
-            print(
-                f"Tables that passed but not written due to other table failures are stored here: {log_base_path}"
+            log.info(f"{land_base_path},Logs that show failed data: {land_base_path}")
+            log.info(
+                f"{land_base_path},Tables that passed but not written due to other table failures are stored here: {log_base_path}"
             )
 
     if not overall_pass:
@@ -418,3 +417,5 @@ def generate_iam_config(
         else:
             raise ValueError("iam_policy_path should be a json file")
 
+def upload_logs(bucket, key, body):
+    s3_client.put_object(Body=body, Bucket=bucket, Key=key)
