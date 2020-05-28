@@ -19,12 +19,11 @@
             "$id": "#/properties/land-base-path",
             "type": "string",
             "title": "The Land-base-path Schema",
-            "description": "This is where data should arrive for a pipeline. It should be an s3 bucket and will often be mojap-land.",
+            "description": "This is where data should arrive for a pipeline",
             "default": "",
             "pattern": "^s3://",
             "examples": [
-                "s3://land-bucket/my-folder/",
-                "s3://mojap-land/my-folder/"
+                "s3://land-bucket/my-folder/"
             ]
         },
         "fail-base-path": {
@@ -42,12 +41,11 @@
             "$id": "#/properties/pass-base-path",
             "type": "string",
             "title": "The Pass-base-path Schema",
-            "description": "Data which passes validation will end up here. It will often be mojap-rawhist.",
+            "description": "Data which passes validation will end up here",
             "default": "",
             "pattern": "^s3://",
             "examples": [
-                "s3://pass-bucket/my-folder/",
-                "s3://mojap-rawhist/my-folder/"
+                "s3://pass-bucket/my-folder/"
             ]
         },
         "log-base-path": {
