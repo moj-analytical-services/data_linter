@@ -15,7 +15,7 @@ from goodtables import validate
 
 from iam_builder.iam_builder import build_iam_policy
 
-from constants import config_schema
+from python_scripts.constants import config_schema
 
 s3_client = boto3.client("s3")
 
