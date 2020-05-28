@@ -15,6 +15,8 @@ from goodtables import validate
 
 from iam_builder.iam_builder import build_iam_policy
 
+from python_scripts.constants import config_schema
+
 s3_client = boto3.client("s3")
 
 
@@ -408,10 +410,10 @@ def generate_iam_config(
         yaml.dump(out_iam, file)
 
     if iam_policy_path:
-        if iam_policy_path.endwith(".json"):
-            with open(iam_policy_path, "w") as file:
+        if iam_policy_path.endswith(".json"):
+            with open(iam_policy_path, "w") as f:
                 iam_policy = build_iam_policy(out_iam)
-                json.dump(iam_policy, iam_policy_path, indent=4, separators=(",", ": "))
+                json.dump(iam_policy, f, indent=4, separators=(",", ": "))
         else:
             raise ValueError("iam_policy_path should be a json file")
 
