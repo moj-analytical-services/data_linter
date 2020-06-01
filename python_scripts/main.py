@@ -17,7 +17,7 @@ from functions import (
 def main():
     # set up logging
     log, log_stringio = logging_setup()
-    
+
     log.info("Loading config")
     config = load_and_validate_config()
     log_path = os.path.join(
