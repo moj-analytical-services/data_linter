@@ -223,7 +223,7 @@ def log_validation_result(log, table_resp):
 
 def validate_data(config):
 
-    utc_ts = int(datetime.utcnow())
+    utc_ts = int(datetime.utcnow().timestamp())
     land_base_path = config["land-base-path"]
     all_must_pass = config.get("all-must-pass", False)
     pass_base_path = config["pass-base-path"]
@@ -342,8 +342,8 @@ def validate_data(config):
     else:
         log.error("The following tables failed:")
         for resp in all_table_responses:
-            m1 = f"resp {resp['table-name']}
-            m2 = f"... original path: {resp['s3-original-path']}
+            m1 = f"resp {resp['table-name']}"
+            m2 = f"... original path: {resp['s3-original-path']}"
             m3 = f"... out path: {resp['archived-path']}"
             log.error(m1)
             log.error(m2)

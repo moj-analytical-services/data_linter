@@ -27,7 +27,7 @@ def logging_setup():
     log.setLevel(logging.INFO)
 
     log_formatter = logging.Formatter(
-        fmt="%(asctime)s | %(module)s | %(context)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s | %(module)s | %(levelname)s | %(context)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
     )
     handler.setFormatter(log_formatter)
     log.addHandler(handler)
