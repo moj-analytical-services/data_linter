@@ -1,8 +1,7 @@
 import pytest
 
-from python_scripts.logging_functions import (
-    logging_setup,
-)
+from python_scripts.logging_functions import logging_setup
+
 
 @pytest.mark.parametrize("context", ["", "VALIDATION"])
 def test_logger(context):

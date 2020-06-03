@@ -324,7 +324,7 @@ def validate_data(config):
         log.info("All tables passed")
         if all_must_pass:
             log.info("Moving data from tmp into land-base-path")
-            
+
             s3.copy_s3_folder_contents_to_new_folder(
                 land_base_path, config["land-base-path"]
             )
@@ -351,7 +351,9 @@ def validate_data(config):
 
         if all_must_pass:
             log.info(f"Logs that show failed data: {land_base_path}")
-            log.info(f"Tables that passed but not written due to other table failures are stored here: {log_base_path}")
+            log.info(
+                f"Tables that passed but not written due to other table failures are stored here: {log_base_path}"
+            )
 
     if not overall_pass:
         raise ValueError("Tables did not pass linter. Check logs.")

@@ -7,17 +7,19 @@ import boto3
 s3_client = boto3.client("s3")
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
+
 class ContextFilter(logging.Filter):
     """
     This is just overkill to apply a default context param to the log.
     But it does mean I don't have to define extra everytime I wanna log.
     So keeping it.
     """
-    
+
     def filter(self, record):
         if not getattr(record, "context", None):
             record.context = "PROCESSING"
         return True
+
 
 def logging_setup():
 
@@ -27,7 +29,8 @@ def logging_setup():
     log.setLevel(logging.INFO)
 
     log_formatter = logging.Formatter(
-        fmt="%(asctime)s | %(module)s | %(levelname)s | %(context)s | %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+        fmt="%(asctime)s | %(module)s | %(levelname)s | %(context)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
     handler.setFormatter(log_formatter)
     log.addHandler(handler)
