@@ -1,19 +1,19 @@
-from python_scripts.logging_functions import logging_setup, write_to_log, upload_logs
 import pytest
-import json
-from python_scripts.functions import load_and_validate_config
+
+from python_scripts.logging_functions import logging_setup
 
 
-def test_logging():
-    log = logging_setup()
-    with open("tests/data/expected_pass.json", "r") as f:
-        expected_pass = json.load(f)
-    c = load_and_validate_config(
-        path="tests/data", file_name="example_config_pass.yaml"
-    )
-    assert c == expected_pass
+@pytest.mark.parametrize("context", ["", "VALIDATION"])
+def test_logger(context):
+    log, log_stringio = logging_setup()
+    test_message = "test message"
+    expected_str_end = f"| PROCESSING | {test_message}\n"
+    if context:
+        expected_str_end = expected_str_end.replace("PROCESSING", context)
+        log.info(test_message, extra={"context": context})
+    else:
+        log.info(test_message)
 
-    upload_logs(body=log["log_stringio"].getvalue(),
-        bucket="log-bucket",
-        key=log["log_name_timestamped"],
-    )
+    test_out = log_stringio.getvalue()
+
+    assert test_out.endswith(expected_str_end)

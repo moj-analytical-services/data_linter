@@ -17,12 +17,18 @@ from goodtables import validate
 from iam_builder.iam_builder import build_iam_policy
 
 import logging
-from python_scripts.logging_functions import write_to_log
-
 
 s3_client = boto3.client("s3")
 
-log = logging.getLogger("log.csv")
+log = logging.getLogger("root")
+
+
+def get_validator_name():
+    validator_name = os.getenv("VALIDATOR_NAME")
+    if not validator_name:
+        validator_name = "de-data-validator"
+    validator_name += f"-{int(datetime.utcnow().timestamp())}"
+    return validator_name
 
 
 def load_and_validate_config(path=".", file_name="config.yaml"):
@@ -68,12 +74,7 @@ def match_files_in_land_to_config(config):
         raise FileNotFoundError(f"No files found in the s3 path: {land_base_path}")
     else:
         total_files = len(land_files)
-        write_to_log(
-            log=log,
-            identifier=land_base_path,
-            message=f"Found {total_files} in {land_base_path}",
-            level="INFO",
-        )
+        log.info(f"Found {total_files} in {land_base_path}")
 
     # Check for requrired tables
     all_matched = []
@@ -215,9 +216,14 @@ def convert_meta_to_goodtables_schema(meta):
     return gt_template
 
 
+def log_validation_result(log, table_resp):
+    for e in table_resp["errors"]:
+        log.error(e["msg"], extra={"context": "VALIDATION"})
+
+
 def validate_data(config):
 
-    utc_ts = int(datetime.utcnow())
+    utc_ts = int(datetime.utcnow().timestamp())
     land_base_path = config["land-base-path"]
     all_must_pass = config.get("all-must-pass", False)
     pass_base_path = config["pass-base-path"]
@@ -238,12 +244,7 @@ def validate_data(config):
     for table_name, table_params in config["tables"].items():
         table_params["lint-response"] = []
         if table_params["matched_files"]:
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message=f"Linting {table_name}",
-                level="INFO",
-            )
+            log.info(f"Linting {table_name}")
 
             meta_file_path = table_params.get("metadata", f"metadata/{table_name}.json")
 
@@ -253,12 +254,7 @@ def validate_data(config):
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
-                write_to_log(
-                    log=log,
-                    identifier=land_base_path,
-                    message=f"...file {i+1} of {len(table_params['matched_files'])}",
-                    level="INFO",
-                )
+                log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
                 local_path = f"data_tmp/{file_basename}"
                 download_data(matched_file, local_path)
@@ -269,6 +265,7 @@ def validate_data(config):
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
 
+                log_validation_result(log, table_response)
                 # Write data to s3 on pass or elsewhere on fail
                 if table_params["lint-response"]["valid"]:
                     final_outpath = get_out_path(
@@ -292,12 +289,7 @@ def validate_data(config):
                         tmp_outpath = final_outpath
 
                     table_response["archived-path"] = final_outpath
-                    write_to_log(
-                        log=log,
-                        identifier=land_base_path,
-                        message=f",...file passed. Writing to {tmp_outpath}",
-                        level="INFO",
-                    )
+                    log.info(f"...file passed. Writing to {tmp_outpath}")
                     local_file_to_s3(local_path, tmp_outpath)
                     if not all_must_pass:
                         s3.delete_s3_object(matched_file)
@@ -313,12 +305,7 @@ def validate_data(config):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    write_to_log(
-                        log=log,
-                        identifier=land_base_path,
-                        message=f"...file failed. Writing to {final_outpath}",
-                        level="ERROR",
-                    )
+                    log.warn(f"...file failed. Writing to {final_outpath}")
                 else:
                     table_response["archived-path"] = None
 
@@ -331,78 +318,41 @@ def validate_data(config):
                 all_table_responses.append(table_response)
 
         else:
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message=f"SKIPPING {table_name}. No files found.",
-                level="ERROR",
-            )
+            log.info(f"SKIPPING {table_name}. No files found.")
 
     if overall_pass:
-        write_to_log(
-            log=log,
-            identifier=land_base_path,
-            message="All tables passed",
-            level="INFO",
-        )
+        log.info("All tables passed")
         if all_must_pass:
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message="Moving data from tmp into land-base-path",
-                level="INFO",
-            )
+            log.info("Moving data from tmp into land-base-path")
+
             s3.copy_s3_folder_contents_to_new_folder(
                 land_base_path, config["land-base-path"]
             )
             s3.delete_s3_folder_contents(land_base_path)
 
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message="Moving data from tmp into log-base-path",
-                level="INFO",
-            )
+            log.info("Moving data from tmp into log-base-path")
             s3.copy_s3_folder_contents_to_new_folder(
                 log_base_path, config["log-base-path"]
             )
 
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message="Removing data in land",
-                level="INFO",
-            )
+            log.info("Removing data in land")
             for matched_file in all_matched_files:
                 s3.delete_s3_object(matched_file)
 
     else:
-        write_to_log(
-            log=log,
-            identifier=land_base_path,
-            message="The following tables failed:",
-            level="ERROR",
-        )
+        log.error("The following tables failed:")
         for resp in all_table_responses:
-            if not resp["valid"]:
-                write_to_log(
-                    log=log,
-                    identifier=land_base_path,
-                    message=f"... {resp['table-name']}: \n original path: {resp['s3-original-path']}; \n out path: {resp['archived-path']}",
-                    level="ERROR",
-                )
+            m1 = f"resp {resp['table-name']}"
+            m2 = f"... original path: {resp['s3-original-path']}"
+            m3 = f"... out path: {resp['archived-path']}"
+            log.error(m1)
+            log.error(m2)
+            log.error(m3)
+
         if all_must_pass:
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message=f",Logs that show failed data: {land_base_path}",
-                level="INFO",
-            )
-            write_to_log(
-                log=log,
-                identifier=land_base_path,
-                message=f"Tables that passed but not written due to other table failures are stored here: {log_base_path}",
-                level="INFO",
+            log.info(f"Logs that show failed data: {land_base_path}")
+            log.info(
+                f"Tables that passed but not written due to other table failures are stored here: {log_base_path}"
             )
 
     if not overall_pass:
@@ -457,9 +407,6 @@ def generate_iam_config(
     
     iam_policy_path: str
         Optional path to output the iam policy json generated from the iam_config just generated
-
-
-
     """
 
     out_iam = {

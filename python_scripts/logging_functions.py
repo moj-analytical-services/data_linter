@@ -5,33 +5,42 @@ import io
 import boto3
 
 s3_client = boto3.client("s3")
+from dataengineeringutils3.s3 import s3_path_to_bucket_key
+
+
+class ContextFilter(logging.Filter):
+    """
+    This is just overkill to apply a default context param to the log.
+    But it does mean I don't have to define extra everytime I wanna log.
+    So keeping it.
+    """
+
+    def filter(self, record):
+        if not getattr(record, "context", None):
+            record.context = "PROCESSING"
+        return True
 
 
 def logging_setup():
-    log_name = "log.csv"
-    log_name_timestamped = f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} log.csv"
 
-    log = logging.getLogger(log_name)
+    log = logging.getLogger("root")
     log_stringio = io.StringIO()
     handler = logging.StreamHandler(log_stringio)
-    log.addHandler(handler)
     log.setLevel(logging.INFO)
-    log.formatter = logging.Formatter(
-        fmt="%(levelname)s,%(asctime)s,%(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+
+    log_formatter = logging.Formatter(
+        fmt="%(asctime)s | %(module)s | %(levelname)s | %(context)s | %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
     )
+    handler.setFormatter(log_formatter)
+    log.addHandler(handler)
 
-    output = {
-        "log": log,
-        "log_name_timestamped": log_name_timestamped,
-        "log_stringio": log_stringio,
-    }
+    cf = ContextFilter()
+    log.addFilter(cf)
 
-    return output
-
-
-def upload_logs(bucket, key, body):
-    s3_client.put_object(Body=body, Bucket=bucket, Key=key)
+    return log, log_stringio
 
 
-def write_to_log(log, identifier, message, level="INFO"):
-    log.log(getattr(logging, level), f"{identifier}, {message}")
+def upload_log(body, s3_path):
+    b, k = s3_path_to_bucket_key(s3_path)
+    s3_client.put_object(Body=body, Bucket=b, Key=k)
