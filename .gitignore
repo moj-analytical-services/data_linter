@@ -128,3 +128,12 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# VS Code config
+.vscode
+
+# macOS Finder config
+.DS_Store
+
+# flake8 project level config
+.flake8

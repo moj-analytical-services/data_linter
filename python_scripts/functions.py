@@ -427,8 +427,9 @@ def generate_iam_config(
 
     if iam_policy_path:
         if iam_policy_path.endswith(".json"):
-            with open(iam_policy_path, "w") as file:
+
+            with open(iam_policy_path, "w") as f:
                 iam_policy = build_iam_policy(out_iam)
-                json.dump(iam_policy, file, indent=4, separators=(",", ": "))
+                json.dump(iam_policy, f, indent=4, separators=(",", ": "))
         else:
             raise ValueError("iam_policy_path should be a json file")
