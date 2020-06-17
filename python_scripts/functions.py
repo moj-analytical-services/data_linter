@@ -390,7 +390,10 @@ def local_file_to_s3(local_path, s3_path):
 
 
 def generate_iam_config(
-    config, iam_config_output="iam_config.yaml", iam_policy_output=None, overwrite_config=False
+    config,
+    iam_config_output="iam_config.yaml",
+    iam_policy_output=None,
+    overwrite_config=False,
 ):
     """
     Takes file paths from config and generates an iam_config, and optionally an iam_policy
@@ -408,7 +411,9 @@ def generate_iam_config(
         Optional path to output the iam policy json generated from the iam_config just generated
     """
     if os.path.exists(iam_config_output) and overwrite_config is not True:
-        raise ValueError(f"{iam_config_output} exists: to overwite set overwrite_config=True")
+        raise ValueError(
+            f"{iam_config_output} exists: to overwrite set overwrite_config=True"
+        )
 
     log_path = config["log-base-path"].replace("s3://", "")
     land_path = config["land-base-path"].replace("s3://", "")
@@ -433,7 +438,7 @@ def generate_iam_config(
 
     if iam_policy_output:
         if iam_policy_output.endswith(".json"):
-            
+
             with open(iam_policy_output, "w") as f:
                 iam_policy = build_iam_policy(out_iam)
                 json.dump(iam_policy, f, indent=4, separators=(",", ": "))
