@@ -8,7 +8,7 @@ def test_generate_iam_config():
     with open("tests/data/iam_config.yaml") as f:
         expected_output = yaml.safe_load(f)
 
-    generate_iam_config(config, "tests/data/test_iam.yaml")
+    generate_iam_config(config, "tests/data/test_iam.yaml", overwrite_config=True)
 
     with open("tests/data/test_iam.yaml") as f:
         test_output = yaml.safe_load(f)
