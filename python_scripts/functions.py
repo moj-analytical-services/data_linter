@@ -18,6 +18,8 @@ from iam_builder.iam_builder import build_iam_policy
 
 import logging
 
+from python_scripts.constants import config_schema
+
 s3_client = boto3.client("s3")
 
 log = logging.getLogger("root")
@@ -47,9 +49,6 @@ def load_and_validate_config(path=".", file_name="config.yaml"):
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-
-    with open("config-schema.json") as f:
-        config_schema = json.load(f)
 
     json_validate(config, config_schema)
 
