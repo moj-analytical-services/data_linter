@@ -170,7 +170,6 @@
                         ],
                         "required": [
                             "required",
-                            "metadata",
                             "pattern"
                         ],
                         "properties": {
@@ -205,11 +204,11 @@
                             },
                             "metadata": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/metadata",
+                                "type": "string",
                                 "title": "The Metadata Schema",
                                 "description": "Link to metadata. Needs updating, can this be null?",
-                                "default": null,
                                 "examples": [
-                                    null
+                                    "table1"
                                 ]
                             },
                             "linter": {
