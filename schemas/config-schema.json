@@ -28,7 +28,7 @@
         },
         "fail-base-path": {
             "$id": "#/properties/fail-base-path",
-            "type": "string",
+            "type": ["string", "null"],
             "title": "The Fail-base-path Schema",
             "description": "Data which does not pass validation will end up here.",
             "default": "",
