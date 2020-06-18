@@ -419,23 +419,16 @@ def generate_iam_config(
     log_path = config["log-base-path"].replace("s3://", "")
     land_path = config["land-base-path"].replace("s3://", "")
     pass_path = config["pass-base-path"].replace("s3://", "")
+
+    read_write = [
+            os.path.join(land_path, "*"),
+            os.path.join(pass_path, "*")
+        ]
+
     if config["fail-base-path"]:
         fail_path = config["fail-base-path"].replace("s3://", "")
-    else:
-        fail_path = config["fail-base-path"]
-
-    if fail_path:
-        read_write = [
-                os.path.join(land_path, "*"),
-                os.path.join(pass_path, "*"),
-                os.path.join(fail_path, "*"),
-            ]
-    else:
-        read_write = [
-                os.path.join(land_path, "*"),
-                os.path.join(pass_path, "*")
-            ]
-
+        read_write.append(os.path.join(fail_path, "*"))
+ 
     out_iam = {
         "iam-role-name": config["iam-role-name"],
         "athena": {"write": True},
