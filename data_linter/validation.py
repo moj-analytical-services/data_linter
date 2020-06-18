@@ -244,7 +244,7 @@ def validate_data(config):
         if table_params["matched_files"]:
             log.info(f"Linting {table_name}")
 
-            meta_file_path = table_params.get("metadata", f"metadata/{table_name}.json")
+            meta_file_path = table_params.get("metadata", f"meta_data/{table_name}.json")
 
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
