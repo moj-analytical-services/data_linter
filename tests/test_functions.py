@@ -3,7 +3,7 @@ import jsonschema
 import json
 from tableschema import Schema
 
-from python_scripts.functions import convert_meta_to_goodtables_schema
+from data_linter.validation import convert_meta_to_goodtables_schema
 
 
 def test_convert_meta_type_to_goodtable_type():

@@ -1,4 +1,4 @@
-from python_scripts.functions import load_and_validate_config
+from data_linter.validation import load_and_validate_config
 from jsonschema.exceptions import ValidationError
 import json
 

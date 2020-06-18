@@ -1,6 +1,6 @@
 import pytest
 
-from python_scripts.logging_functions import logging_setup
+from data_linter.logging_functions import logging_setup
 
 
 @pytest.mark.parametrize("context", ["", "VALIDATION"])
