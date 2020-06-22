@@ -16,7 +16,7 @@
                 "kwargs": null,
                 "required": true,
                 "pattern": null,
-                "metadata": null,
+                "metadata": "metadata/table_blah.json",
                 "linter": "goodtables",
                 "gt-kwargs": null
             }

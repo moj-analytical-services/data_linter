@@ -14,11 +14,16 @@ import boto3
 
 from goodtables import validate
 
-from iam_builder.iam_builder import build_iam_policy
-
 import logging
 
-from python_scripts.constants import config_schema
+from data_linter.constants import config_schema
+
+from data_linter.utils import (
+    download_data,
+    get_out_path,
+    local_file_to_s3,
+    get_log_path,
+)
 
 s3_client = boto3.client("s3")
 
@@ -53,12 +58,6 @@ def load_and_validate_config(path=".", file_name="config.yaml"):
     json_validate(config, config_schema)
 
     return config
-
-
-def download_data(s3_path, local_path):
-    with open(local_path, "rb") as f:
-        b, o = s3.s3_path_to_bucket_key(s3_path)
-        s3_client.download_fileobj(b, o, f)
 
 
 def match_files_in_land_to_config(config):
@@ -245,7 +244,7 @@ def validate_data(config):
         if table_params["matched_files"]:
             log.info(f"Linting {table_name}")
 
-            meta_file_path = table_params.get("metadata", f"metadata/{table_name}.json")
+            meta_file_path = table_params.get("metadata", f"meta_data/{table_name}.json")
 
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
@@ -356,91 +355,4 @@ def validate_data(config):
 
     if not overall_pass:
         raise ValueError("Tables did not pass linter. Check logs.")
-
-
-def get_out_path(basepath, table, ts, filename, compress=False, filenum=0):
-    filename_only, ext = filename.split(".", 1)
-    final_filename = f"{filename_only}-{ts}-{filenum}.{ext}"
-    if compress and not ext.endswith(".gz"):
-        final_filename += ".gz"
-
-    out_path = os.path.join(
-        basepath, table, f"mojap_fileland_timestamp={ts}", final_filename
-    )
-    return out_path
-
-
-def get_log_path(basepath, table, ts, filenum=0):
-    final_filename = f"log-{table}-{ts}-{filenum}.json"
-
-    out_path = os.path.join(basepath, table, final_filename)
-    return out_path
-
-
-def local_file_to_s3(local_path, s3_path):
-    if (not local_path.endswith(".gz")) and (s3_path.endswith(".gz")):
-        new_path = local_path + ".gz"
-        with open(local_path, "rb") as f_in, gzip.open(new_path, "wb") as f_out:
-            f_out.writelines(f_in)
-        local_path = new_path
-
-    b, o = s3.s3_path_to_bucket_key(s3_path)
-    with open(local_path, "rb") as f:
-        s3_client.upload_fileobj(f, b, o)
-
-
-def generate_iam_config(
-    config,
-    iam_config_output="iam_config.yaml",
-    iam_policy_output=None,
-    overwrite_config=False,
-):
-    """
-    Takes file paths from config and generates an iam_config, and optionally an iam_policy
-
-    Parameters
-    ----------
-
-    config: dict
-        A config loaded from load_and_validate_config()
-    
-    iam_config_path: str
-        Path to where you want to output the iam_config
-    
-    iam_policy_path: str
-        Optional path to output the iam policy json generated from the iam_config just generated
-    """
-
-    if os.path.exists(iam_config_output) and overwrite_config is not True:
-        raise ValueError(
-            f"{iam_config_output} exists: to overwrite set overwrite_config=True"
-        )
-
-    log_path = config["log-base-path"].replace("s3://", "")
-    land_path = config["land-base-path"].replace("s3://", "")
-    pass_path = config["pass-base-path"].replace("s3://", "")
-
-    read_write = [os.path.join(land_path, "*"), os.path.join(pass_path, "*")]
-
-    if config["fail-base-path"]:
-        fail_path = config["fail-base-path"].replace("s3://", "")
-        read_write.append(os.path.join(fail_path, "*"))
-
-    out_iam = {
-        "iam-role-name": config["iam-role-name"],
-        "athena": {"write": True},
-        "s3": {"write_only": [os.path.join(log_path, "*")], "read_write": read_write},
-    }
-
-    with open(iam_config_output, "w") as f:
-        yaml.dump(out_iam, f)
-
-    if iam_policy_output:
-        if iam_policy_output.endswith(".json"):
-
-            with open(iam_policy_output, "w") as f:
-                iam_policy = build_iam_policy(out_iam)
-                json.dump(iam_policy, f, indent=4, separators=(",", ": "))
-        else:
-            raise ValueError("iam_policy_path should be a json file")
 

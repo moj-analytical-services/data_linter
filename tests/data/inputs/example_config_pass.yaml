@@ -17,7 +17,7 @@ tables:
         kwargs: null
         required: True # Does the table have to exist
         pattern: null # Assumes file is called table1
-        metadata: null # May not be necessary could be infered
+        metadata: metadata/table_blah.json # May not be necessary could be infered
         linter: goodtables # jsonschema?
         gt-kwargs:
             # kwargs specific to goodtables - not sure about this. Might be better to 
