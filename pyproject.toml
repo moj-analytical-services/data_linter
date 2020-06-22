@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "data_linter"
+version = "0.1.0"
+description = "data linter"
+authors = ["Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
+           "George Kelly <george.kelly@digital.justice.gov.uk>",
+           "Tapan Perkins <tapan.perkins@digital.justice.gov.uk>",
+           "Karik Isichei <karik.isichei@digital.justice.gov.uk>"]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+dataengineeringutils3 = "^1.0.1"
+goodtables = "^2.5.0"
+boto3 = "^1.14.7"
+jsonschema = "^3.2.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.4.3"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
