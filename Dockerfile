@@ -1,6 +1,8 @@
 FROM python:3.7-slim-buster
-COPY requirements.txt /
-RUN pip install -r /requirements.txt
+RUN pip install poetry
+COPY poetry.lock pyproject.toml /validator/
+RUN poetry config virtualenvs.create false \
+&& poetry install --no-interaction --no-ansi
 COPY . /validator
 WORKDIR /validator
-ENTRYPOINT pytest
+ENTRYPOINT pytest /tests -vv
