@@ -5,4 +5,4 @@ RUN poetry config virtualenvs.create false \
 && poetry install --no-interaction --no-ansi
 COPY . /validator
 WORKDIR /validator
-ENTRYPOINT pytest /tests -vv
+ENTRYPOINT pytest /validator/tests -vv
