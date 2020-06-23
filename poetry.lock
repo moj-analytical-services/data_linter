@@ -178,6 +178,18 @@ ods = ["ezodf (>=0.3)", "lxml (>=3.0)"]
 
 [[package]]
 category = "main"
+description = "A lil python package to generate iam policies"
+name = "iam-builder"
+optional = false
+python-versions = ">=3.5,<4.0"
+version = "3.7.0"
+
+[package.dependencies]
+PyYAML = ">=5.1,<6.0"
+parameterized = ">=0.7.0,<0.8.0"
+
+[[package]]
+category = "main"
 description = "Internationalized Domain Names in Applications (IDNA)"
 name = "idna"
 optional = false
@@ -321,6 +333,17 @@ version = "20.4"
 [package.dependencies]
 pyparsing = ">=2.0.2"
 six = "*"
+
+[[package]]
+category = "main"
+description = "Parameterized testing with any Python test framework"
+name = "parameterized"
+optional = false
+python-versions = "*"
+version = "0.7.4"
+
+[package.extras]
+dev = ["jinja2"]
 
 [[package]]
 category = "main"
@@ -600,7 +623,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "72e68797bea321d23306152647a2631c1987905006cbdf422a97289e4224138e"
+content-hash = "36d8b9becb2f4b268d90d41ddc380bbc366961b192470713b8cc11c134286d90"
 python-versions = "^3.7"
 
 [metadata.files]
@@ -662,6 +685,10 @@ et-xmlfile = [
 goodtables = [
     {file = "goodtables-2.5.0-py2.py3-none-any.whl", hash = "sha256:d04c48090289585b891684171487dcef2aa0f4ec9b103c73df348ac5fb9f7904"},
     {file = "goodtables-2.5.0.tar.gz", hash = "sha256:c0e79da118520376721dd819e78a7e9b0267c038fb07d6036b1e24cafd430bec"},
+]
+iam-builder = [
+    {file = "iam_builder-3.7.0-py3-none-any.whl", hash = "sha256:b4ff9a51afe14fac770859b9b078c03420c0e691af8d6d84c4588b112c047376"},
+    {file = "iam_builder-3.7.0.tar.gz", hash = "sha256:afb0eea3da2ab45a0d0c2ee07d8b2dbd40c37a98baaf93519fe760089af46f6a"},
 ]
 idna = [
     {file = "idna-2.9-py2.py3-none-any.whl", hash = "sha256:a068a21ceac8a4d63dbfd964670474107f541babbd2250d61922f029858365fa"},
@@ -730,6 +757,10 @@ openpyxl = [
 packaging = [
     {file = "packaging-20.4-py2.py3-none-any.whl", hash = "sha256:998416ba6962ae7fbd6596850b80e17859a5753ba17c32284f67bfff33784181"},
     {file = "packaging-20.4.tar.gz", hash = "sha256:4357f74f47b9c12db93624a82154e9b120fa8293699949152b22065d556079f8"},
+]
+parameterized = [
+    {file = "parameterized-0.7.4-py2.py3-none-any.whl", hash = "sha256:59ab908e31c01505a987a2be78854e19cb1630c047bbab7848169c371d614d56"},
+    {file = "parameterized-0.7.4.tar.gz", hash = "sha256:190f8cc7230eee0b56b30d7f074fd4d165f7c45e6077582d0813c8557e738490"},
 ]
 pluggy = [
     {file = "pluggy-0.13.1-py2.py3-none-any.whl", hash = "sha256:966c145cd83c96502c3c3868f50408687b38434af77734af1e9ca461a4081d2d"},
