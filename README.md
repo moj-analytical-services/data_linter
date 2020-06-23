@@ -45,7 +45,8 @@ tables:
 
 When updating this package, make sure to change the version number in `pyproject.toml` and describe the change in CHANGELOG.md.
 
-If you have changed any dependencies in `pyproject.toml`, run `poetry update` to update `poetry.lock`.
+If you have changed any dependencies in `pyproject.toml`, run `poetry update` to update `poetry.lock`. 
+Then run `poetry export -f requirements.txt -o requirements.txt` to update the requirements.txt to get picked up by the `Dockerfile`.
 
 Once you have created a release in GitHub, to publish the latest version to PyPI, run:
 

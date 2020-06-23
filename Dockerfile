@@ -1,9 +1,6 @@
 FROM python:3.7-slim-buster
-
-RUN pip install poetry
-COPY poetry.lock pyproject.toml /
-RUN poetry install --no-root
+COPY requirements.txt /
+RUN pip install -r /requirements.txt
 COPY . /validator
 WORKDIR /validator
-RUN poetry install
 ENTRYPOINT pytest
