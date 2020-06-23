@@ -5,4 +5,5 @@ COPY poetry.lock pyproject.toml /
 RUN poetry install --no-root
 COPY . /validator
 WORKDIR /validator
+RUN poetry install
 ENTRYPOINT pytest
