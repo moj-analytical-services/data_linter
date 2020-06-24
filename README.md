@@ -43,10 +43,11 @@ tables:
 
 ## How to update
 
+We have tests that run on the current state of the `poetry.lock` file (i.e. the current dependencies). We also run tests based on the most up to date dependencies allowed in `pyproject.toml`. This allows us to see if there will be any issues when updating dependences. These can be run locally in the `tests` folder.
+
 When updating this package, make sure to change the version number in `pyproject.toml` and describe the change in CHANGELOG.md.
 
-If you have changed any dependencies in `pyproject.toml`, run `poetry update` to update `poetry.lock`. 
-Then run `poetry export -f requirements.txt -o requirements.txt` to update the requirements.txt to get picked up by the `Dockerfile`.
+If you have changed any dependencies in `pyproject.toml`, run `poetry update` to update `poetry.lock`.
 
 Once you have created a release in GitHub, to publish the latest version to PyPI, run:
 
