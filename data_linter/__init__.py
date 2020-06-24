@@ -10,12 +10,12 @@ from data_linter.validation import (
 )
 
 
-def run_validation():
+def run_validation(config_path="config.yaml"):
     # set up logging
     log, log_stringio = logging_setup()
 
     log.info("Loading config")
-    config = load_and_validate_config()
+    config = load_and_validate_config(config_path)
     log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
     log.info("Running validation")
     validate_data(config)

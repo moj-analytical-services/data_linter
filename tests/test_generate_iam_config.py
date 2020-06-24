@@ -3,7 +3,7 @@ import yaml
 import tempfile
 from data_linter.validation import load_and_validate_config
 from data_linter.iam import generate_iam_config
-
+import os
 
 @pytest.mark.parametrize(
     "test_input, expected",
@@ -13,7 +13,7 @@ from data_linter.iam import generate_iam_config
     ],
 )
 def test_generate_iam_config(test_input, expected):
-    config = load_and_validate_config("tests/data/inputs", test_input)
+    config = load_and_validate_config(os.path.join("tests/data/inputs", test_input))
     with open(f"tests/data/expected/{expected}") as f:
         expected_output = yaml.safe_load(f)
 
