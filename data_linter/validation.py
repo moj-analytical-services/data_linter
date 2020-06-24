@@ -38,18 +38,17 @@ def get_validator_name():
     return validator_name
 
 
-def load_and_validate_config(path=".", file_name="config.yaml"):
+def load_and_validate_config(config_path="config.yaml"):
 
     """
     Loads and validates the config
     """
     # load yaml or json
-    config_path = os.path.join(path, file_name)
     if not os.path.isfile(config_path):
         config_path = config_path.replace("yaml", "yml")
         if not os.path.isfile(config_path):
             raise FileNotFoundError(
-                f"Expecting a file in {path} with name {file_name}."
+                f"Expecting a file in path given {config_path}."
             )
 
     with open(config_path, "r") as f:

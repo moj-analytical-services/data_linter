@@ -1,0 +1,19 @@
+land-base-path: s3://land/
+fail-base-path: s3://fail/
+pass-base-path: s3://pass/
+log-base-path: s3://log/
+compress-data: True
+remove-tables-on-pass: True
+all-must-pass: False
+
+# Tables to validate
+tables:
+    - table1:
+        required: True
+        metadata: data/end_to_end1/meta_data/table1.json
+
+    - table2:
+        kwargs: null
+        required: True
+        pattern: ^table2
+        metadata: data/end_to_end1/meta_data/table2.json
