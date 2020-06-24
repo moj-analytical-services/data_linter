@@ -40,3 +40,19 @@ tables:
         pattern: ^table2
         metadata: metadata/table2.json # Should be an overwrite the input here is what it should infered as if set to None
 ```
+
+## How to update
+
+When updating this package, make sure to change the version number in `pyproject.toml` and describe the change in CHANGELOG.md.
+
+If you have changed any dependencies in `pyproject.toml`, run `poetry update` to update `poetry.lock`. 
+Then run `poetry export -f requirements.txt -o requirements.txt` to update the requirements.txt to get picked up by the `Dockerfile`.
+
+Once you have created a release in GitHub, to publish the latest version to PyPI, run:
+
+```bash
+poetry build
+poetry publish -u <username>
+```
+
+Here, you should substitute <username> for your PyPI username. In order to publish to PyPI, you must be an owner of the project.
