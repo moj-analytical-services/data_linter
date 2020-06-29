@@ -13,7 +13,7 @@ fail-unknown-files:
 
 # Tables to validate
 tables:
-    - table_blah:
+    table_blah:
         kwargs: null
         required: True # Does the table have to exist
         pattern: null # Assumes file is called table1

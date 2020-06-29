@@ -143,7 +143,7 @@
             "minProperties": 1,
             "title": "The Tables Schema",
             "description": "A list of the tables you expect to see uploaded to land-base-path",
-            "default": [],
+            "default": {},
             "items": {
                 "$id": "#/properties/tables/items",
                 "type": "object",
