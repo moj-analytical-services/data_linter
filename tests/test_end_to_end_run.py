@@ -21,7 +21,9 @@ def set_up_s3(mocked_s3, test_folder, config):
     for b in buckets:
         mocked_s3.meta.client.create_bucket(Bucket=b)
 
-    files = [f for f in os.listdir(test_folder) if f.endswith(".csv") or f.endswith(".jsonl")]
+    files = [
+        f for f in os.listdir(test_folder) if f.endswith(".csv") or f.endswith(".jsonl")
+    ]
     for filename in files:
         full_path = os.path.join(test_folder, filename)
         mocked_s3.meta.client.upload_file(full_path, land_bucket, filename)

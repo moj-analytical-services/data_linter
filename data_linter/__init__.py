@@ -24,7 +24,9 @@ def run_validation(config_path="config.yaml"):
         validate_data(config)
     except Exception as e:
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
-        log_msg = "Unexpected error hit. Uploading log to {log_path}. Before raising error."
+        log_msg = (
+            "Unexpected error hit. Uploading log to {log_path}. Before raising error."
+        )
         error_msg = str(e)
 
         log.error(log_msg)

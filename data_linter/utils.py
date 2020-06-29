@@ -11,6 +11,7 @@ s3_client = boto3.client("s3")
 # import logging
 # log = logging.getLogger("root")
 
+
 def download_data(s3_path, local_path):
     dirname = os.path.dirname(local_path)
     Path(dirname).mkdir(parents=True, exist_ok=True)

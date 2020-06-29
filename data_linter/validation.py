@@ -47,9 +47,7 @@ def load_and_validate_config(config_path="config.yaml"):
     if not os.path.isfile(config_path):
         config_path = config_path.replace("yaml", "yml")
         if not os.path.isfile(config_path):
-            raise FileNotFoundError(
-                f"Expecting a file in path given {config_path}."
-            )
+            raise FileNotFoundError(f"Expecting a file in path given {config_path}.")
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
@@ -219,17 +217,11 @@ def log_validation_result(log, table_resp):
 
 
 def _spoof_onetable_datapackage(name, s3_path, schema, data_format):
-        dummypackage = {
-            "name": "spoof-datapackage-single-table",
-            "resources": [  
-              {
-                "name": name,
-                "path": s3_path,
-                "schema": schema,
-              }
-            ]
-        }
-        return dummypackage
+    dummypackage = {
+        "name": "spoof-datapackage-single-table",
+        "resources": [{"name": name, "path": s3_path, "schema": schema,}],
+    }
+    return dummypackage
 
 
 def validate_data(config):
@@ -257,13 +249,15 @@ def validate_data(config):
         if table_params["matched_files"]:
             log.info(f"Linting {table_name}")
 
-            meta_file_path = table_params.get("metadata", f"meta_data/{table_name}.json")
+            meta_file_path = table_params.get(
+                "metadata", f"meta_data/{table_name}.json"
+            )
 
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
                 schema = convert_meta_to_goodtables_schema(metadata)
                 file_type = metadata["data_format"]
-            
+
             # Assume header is first line if not headerless
             if table_params.get("expect-header", False) or file_type == "json":
                 headers = [c["name"] for c in metadata["columns"]]
@@ -279,7 +273,7 @@ def validate_data(config):
                     matched_file,
                     schema=schema,
                     headers=headers,
-                    **table_params.get("gt-kwargs", {})
+                    **table_params.get("gt-kwargs", {}),
                 )
 
                 log.info(str(response["tables"]))
@@ -380,4 +374,3 @@ def validate_data(config):
 
     if not overall_pass:
         raise ValueError("Tables did not pass linter. Check logs.")
-
