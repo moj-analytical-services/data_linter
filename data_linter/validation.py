@@ -218,6 +218,20 @@ def log_validation_result(log, table_resp):
         log.error(e["message"], extra={"context": "VALIDATION"})
 
 
+def _spoof_onetable_datapackage(name, s3_path, schema, data_format):
+        dummypackage = {
+            "name": "spoof-datapackage-single-table",
+            "resources": [  
+              {
+                "name": name,
+                "path": s3_path,
+                "schema": schema,
+              }
+            ]
+        }
+        return dummypackage
+
+
 def validate_data(config):
 
     utc_ts = int(datetime.utcnow().timestamp())
@@ -248,16 +262,27 @@ def validate_data(config):
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
                 schema = convert_meta_to_goodtables_schema(metadata)
+                file_type = metadata["data_format"]
+            
+            # Assume header is first line if not headerless
+            if table_params.get("expect-header", False) or file_type == "json":
+                headers = [c["name"] for c in metadata["columns"]]
+            else:
+                headers = 1
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
                 log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
-                local_path = f"data_tmp/{file_basename}"
-                download_data(matched_file, local_path)
+
                 response = validate(
-                    local_path, schema=schema, **table_params.get("gt-kwargs", {})
+                    matched_file,
+                    schema=schema,
+                    headers=headers,
+                    **table_params.get("gt-kwargs", {})
                 )
+
+                log.info(str(response["tables"]))
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
@@ -288,7 +313,8 @@ def validate_data(config):
 
                     table_response["archived-path"] = final_outpath
                     log.info(f"...file passed. Writing to {tmp_outpath}")
-                    local_file_to_s3(local_path, tmp_outpath)
+                    s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
+
                     if not all_must_pass:
                         s3.delete_s3_object(matched_file)
 
@@ -312,7 +338,6 @@ def validate_data(config):
 
                 # Write log to s3
                 s3.write_json_to_s3(table_response, log_outpath)
-                os.remove(local_path)
                 all_table_responses.append(table_response)
 
         else:

@@ -4,6 +4,7 @@ import yaml
 
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
+
 def set_up_s3(mocked_s3, test_folder, config):
 
     land_bucket, _ = s3_path_to_bucket_key(config.get("land-base-path", "s3://land/"))
@@ -28,7 +29,7 @@ def set_up_s3(mocked_s3, test_folder, config):
 
 def test_end_to_end(s3):
 
-    import data_linter
+    from data_linter import run_validation
 
     test_folder = "tests/data/end_to_end1/"
     config_path = os.path.join(test_folder, "config.yaml")
@@ -38,4 +39,4 @@ def test_end_to_end(s3):
     land_files = [o.key for o in s3.Bucket("land").objects.all()]
     # assert land_files == ["table1.csv", "table2.csv"] # Testing setup
 
-    data_linter.run_validation(config_path)
+    run_validation(config_path)
