@@ -2,12 +2,19 @@ import os
 import boto3
 import gzip
 
+from pathlib import Path
+
 from dataengineeringutils3 import s3
 
 s3_client = boto3.client("s3")
 
+# import logging
+# log = logging.getLogger("root")
+
 def download_data(s3_path, local_path):
-    with open(local_path, "rb") as f:
+    dirname = os.path.dirname(local_path)
+    Path(dirname).mkdir(parents=True, exist_ok=True)
+    with open(local_path, "wb") as f:
         b, o = s3.s3_path_to_bucket_key(s3_path)
         s3_client.download_fileobj(b, o, f)
 

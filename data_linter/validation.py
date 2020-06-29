@@ -94,7 +94,7 @@ def match_files_in_land_to_config(config):
                 "Config states file must exist but not files matched."
             )
 
-        all_matched = all_matched.extend(table_params["matched_files"])
+        all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
         raise FileExistsError("We matched the same files to multiple tables")
@@ -215,7 +215,7 @@ def convert_meta_to_goodtables_schema(meta):
 
 def log_validation_result(log, table_resp):
     for e in table_resp["errors"]:
-        log.error(e["msg"], extra={"context": "VALIDATION"})
+        log.error(e["message"], extra={"context": "VALIDATION"})
 
 
 def validate_data(config):
@@ -256,7 +256,7 @@ def validate_data(config):
                 local_path = f"data_tmp/{file_basename}"
                 download_data(matched_file, local_path)
                 response = validate(
-                    local_path, schema=schema, **table_params.get("gt-kwargs")
+                    local_path, schema=schema, **table_params.get("gt-kwargs", {})
                 )
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
@@ -264,7 +264,8 @@ def validate_data(config):
 
                 log_validation_result(log, table_response)
                 # Write data to s3 on pass or elsewhere on fail
-                if table_params["lint-response"]["valid"]:
+                # log.info(f"TEST {response}")
+                if table_response["valid"]:
                     final_outpath = get_out_path(
                         config["pass-base-path"],
                         table_name,
@@ -302,7 +303,7 @@ def validate_data(config):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    log.warn(f"...file failed. Writing to {final_outpath}")
+                    log.warning(f"...file failed. Writing to {final_outpath}")
                 else:
                     table_response["archived-path"] = None
 
