@@ -2,11 +2,9 @@ import pytest
 import os
 import yaml
 
-from dataengineeringutils3.s3 import s3_path_to_bucket_key
-
 
 def set_up_s3(mocked_s3, test_folder, config):
-
+    from dataengineeringutils3.s3 import s3_path_to_bucket_key
     land_bucket, _ = s3_path_to_bucket_key(config.get("land-base-path", "s3://land/"))
     fail_bucket, _ = s3_path_to_bucket_key(config.get("fail-base-path", "s3://fail/"))
     pass_bucket, _ = s3_path_to_bucket_key(config.get("pass-base-path", "s3://pass/"))
