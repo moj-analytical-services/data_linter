@@ -13,6 +13,6 @@ fail-unknown-files:
 
 # Tables to validate
 tables:
-    - table_blah:
+    table_blah:
         kwargs: null
 

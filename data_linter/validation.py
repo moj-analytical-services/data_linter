@@ -47,9 +47,7 @@ def load_and_validate_config(config_path="config.yaml"):
     if not os.path.isfile(config_path):
         config_path = config_path.replace("yaml", "yml")
         if not os.path.isfile(config_path):
-            raise FileNotFoundError(
-                f"Expecting a file in path given {config_path}."
-            )
+            raise FileNotFoundError(f"Expecting a file in path given {config_path}.")
 
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
@@ -94,7 +92,7 @@ def match_files_in_land_to_config(config):
                 "Config states file must exist but not files matched."
             )
 
-        all_matched = all_matched.extend(table_params["matched_files"])
+        all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
         raise FileExistsError("We matched the same files to multiple tables")
@@ -215,7 +213,15 @@ def convert_meta_to_goodtables_schema(meta):
 
 def log_validation_result(log, table_resp):
     for e in table_resp["errors"]:
-        log.error(e["msg"], extra={"context": "VALIDATION"})
+        log.error(e["message"], extra={"context": "VALIDATION"})
+
+
+def _spoof_onetable_datapackage(name, s3_path, schema, data_format):
+    dummypackage = {
+        "name": "spoof-datapackage-single-table",
+        "resources": [{"name": name, "path": s3_path, "schema": schema,}],
+    }
+    return dummypackage
 
 
 def validate_data(config):
@@ -243,28 +249,42 @@ def validate_data(config):
         if table_params["matched_files"]:
             log.info(f"Linting {table_name}")
 
-            meta_file_path = table_params.get("metadata", f"meta_data/{table_name}.json")
+            meta_file_path = table_params.get(
+                "metadata", f"meta_data/{table_name}.json"
+            )
 
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
                 schema = convert_meta_to_goodtables_schema(metadata)
+                file_type = metadata["data_format"]
+
+            # Assume header is first line if not headerless
+            if table_params.get("expect-header", False) or file_type == "json":
+                headers = [c["name"] for c in metadata["columns"]]
+            else:
+                headers = 1
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
                 log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
-                local_path = f"data_tmp/{file_basename}"
-                download_data(matched_file, local_path)
+
                 response = validate(
-                    local_path, schema=schema, **table_params.get("gt-kwargs")
+                    matched_file,
+                    schema=schema,
+                    headers=headers,
+                    **table_params.get("gt-kwargs", {}),
                 )
+
+                log.info(str(response["tables"]))
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
 
                 log_validation_result(log, table_response)
                 # Write data to s3 on pass or elsewhere on fail
-                if table_params["lint-response"]["valid"]:
+                # log.info(f"TEST {response}")
+                if table_response["valid"]:
                     final_outpath = get_out_path(
                         config["pass-base-path"],
                         table_name,
@@ -287,7 +307,8 @@ def validate_data(config):
 
                     table_response["archived-path"] = final_outpath
                     log.info(f"...file passed. Writing to {tmp_outpath}")
-                    local_file_to_s3(local_path, tmp_outpath)
+                    s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
+
                     if not all_must_pass:
                         s3.delete_s3_object(matched_file)
 
@@ -302,7 +323,7 @@ def validate_data(config):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    log.warn(f"...file failed. Writing to {final_outpath}")
+                    log.warning(f"...file failed. Writing to {final_outpath}")
                 else:
                     table_response["archived-path"] = None
 
@@ -311,7 +332,6 @@ def validate_data(config):
 
                 # Write log to s3
                 s3.write_json_to_s3(table_response, log_outpath)
-                os.remove(local_path)
                 all_table_responses.append(table_response)
 
         else:
@@ -354,4 +374,3 @@ def validate_data(config):
 
     if not overall_pass:
         raise ValueError("Tables did not pass linter. Check logs.")
-

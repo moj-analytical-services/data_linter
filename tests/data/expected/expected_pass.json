@@ -10,8 +10,8 @@
     "fail-unknown-files": {
         "exceptions": ["additional_file.txt", "another_additional_file.txt"]
     },
-    "tables": [
-        {
+    "tables": {
+        
             "table_blah": {
                 "kwargs": null,
                 "required": true,
@@ -20,6 +20,6 @@
                 "linter": "goodtables",
                 "gt-kwargs": null
             }
-        }
-    ]
+        
+    }
 }

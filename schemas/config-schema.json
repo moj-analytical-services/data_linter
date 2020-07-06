@@ -139,11 +139,11 @@
         },
         "tables": {
             "$id": "#/properties/tables",
-            "type": "array",
+            "type": "object",
             "minProperties": 1,
             "title": "The Tables Schema",
             "description": "A list of the tables you expect to see uploaded to land-base-path",
-            "default": [],
+            "default": {},
             "items": {
                 "$id": "#/properties/tables/items",
                 "type": "object",
@@ -167,10 +167,6 @@
                                 "linter": "goodtables",
                                 "metadata": null
                             }
-                        ],
-                        "required": [
-                            "required",
-                            "pattern"
                         ],
                         "properties": {
                             "kwargs": {

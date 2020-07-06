@@ -22,7 +22,5 @@ def test_load_and_validate_config_fail(test_input, expected):
 def test_load_and_validate_config_pass():
     with open("tests/data/expected/expected_pass.json", "r") as f:
         expected_pass = json.load(f)
-    c = load_and_validate_config(
-        "tests/data/inputs/example_config_pass.yaml"
-    )
+    c = load_and_validate_config("tests/data/inputs/example_config_pass.yaml")
     assert c == expected_pass

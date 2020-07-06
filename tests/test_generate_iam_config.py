@@ -5,6 +5,7 @@ from data_linter.validation import load_and_validate_config
 from data_linter.iam import generate_iam_config
 import os
 
+
 @pytest.mark.parametrize(
     "test_input, expected",
     [

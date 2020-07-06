@@ -1,10 +1,8 @@
 import logging
 from datetime import datetime
 import io
-
 import boto3
 
-s3_client = boto3.client("s3")
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
 
@@ -42,5 +40,6 @@ def logging_setup():
 
 
 def upload_log(body, s3_path):
+    s3_client = boto3.client("s3")
     b, k = s3_path_to_bucket_key(s3_path)
     s3_client.put_object(Body=body, Bucket=b, Key=k)
