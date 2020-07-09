@@ -40,3 +40,4 @@ def test_end_to_end(s3):
     # assert land_files == ["table1.csv", "table2.csv"] # Testing setup
 
     run_validation(config_path)
+    os.system(f"python data_linter/command_line.py --config-path {config_path}")
