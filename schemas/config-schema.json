@@ -220,13 +220,13 @@
                                 "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
                                 "type": "boolean",
                                 "title": "The expect-header Schema",
-                                "description": "If the file is a csv, does it have headers? If true will take header names from the meta data",
+                                "description": "If the file is a csv, does it have headers? If true will take header names from the metadata",
                                 "examples": [
                                     true,
                                     false
                                 ]
                                 }
-                            }                         
+                            }
                         }
                     }
                 }
