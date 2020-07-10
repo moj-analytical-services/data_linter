@@ -30,7 +30,7 @@ s3_client = boto3.client("s3")
 log = logging.getLogger("root")
 
 
-def get_validator_name():
+def get_validator_name() -> str:
     validator_name = os.getenv("VALIDATOR_NAME")
     if not validator_name:
         validator_name = "de-data-validator"
@@ -38,7 +38,7 @@ def get_validator_name():
     return validator_name
 
 
-def load_and_validate_config(config_path="config.yaml"):
+def load_and_validate_config(config_path: str = "config.yaml") -> dict:
 
     """
     Loads and validates the config
@@ -57,7 +57,7 @@ def load_and_validate_config(config_path="config.yaml"):
     return config
 
 
-def match_files_in_land_to_config(config):
+def match_files_in_land_to_config(config) -> dict:
     """
     Takes config and matches files in S3 to the corresponding table list in config.
     Checks against other config parameters and will raise error if config params not met.
@@ -110,7 +110,7 @@ def match_files_in_land_to_config(config):
     return config
 
 
-def convert_meta_type_to_goodtable_type(meta_type):
+def convert_meta_type_to_goodtable_type(meta_type: str) -> str:
     """
     Converts string name for etl_manager data type and converts it to a goodtables data type
 
@@ -151,7 +151,7 @@ def convert_meta_type_to_goodtable_type(meta_type):
     return gt_type
 
 
-def convert_meta_to_goodtables_schema(meta):
+def convert_meta_to_goodtables_schema(meta: dict) -> dict:
     """
     Should take our metadata file and convert it to a goodtables schema
 
@@ -211,7 +211,7 @@ def convert_meta_to_goodtables_schema(meta):
     return gt_template
 
 
-def log_validation_result(log, table_resp):
+def log_validation_result(log: logging.Logger, table_resp: dict):
     for e in table_resp["errors"]:
         log.error(e["message"], extra={"context": "VALIDATION"})
 
@@ -224,7 +224,7 @@ def _spoof_onetable_datapackage(name, s3_path, schema, data_format):
     return dummypackage
 
 
-def validate_data(config):
+def validate_data(config: dict):
 
     utc_ts = int(datetime.utcnow().timestamp())
     land_base_path = config["land-base-path"]
