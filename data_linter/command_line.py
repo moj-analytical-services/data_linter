@@ -1,9 +1,9 @@
-from data_linter import run_validation
+from data_linter import run_validation, __version__
 import poetry_version
 import argparse
 
-__version__ = poetry_version.extract(source_file=__file__)
 def main():
+    __version__ = poetry_version.extract(source_file=__file__)
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",
