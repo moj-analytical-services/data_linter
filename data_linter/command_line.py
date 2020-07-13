@@ -1,9 +1,8 @@
-from data_linter import __version__
-from data_linter.validation import run_validation
-
+from data_linter import run_validation
+import poetry_version
 import argparse
 
-
+__version__ = poetry_version.extract(source_file=__file__)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
