@@ -1,0 +1,236 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "http://example.com/example.json",
+    "type": "object",
+    "title": "The Root Schema",
+    "description": "The root schema comprises the entire JSON document.",
+    "required": [
+        "land-base-path",
+        "fail-base-path",
+        "pass-base-path",
+        "log-base-path",
+        "compress-data",
+        "remove-tables-on-pass",
+        "all-must-pass",
+        "tables"
+    ],
+    "properties": {
+        "land-base-path": {
+            "$id": "#/properties/land-base-path",
+            "type": "string",
+            "title": "The Land-base-path Schema",
+            "description": "This is where data should arrive for a pipeline",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://land-bucket/my-folder/"
+            ]
+        },
+        "fail-base-path": {
+            "$id": "#/properties/fail-base-path",
+            "type": ["string", "null"],
+            "title": "The Fail-base-path Schema",
+            "description": "Data which does not pass validation will end up here.",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://fail-bucket/my-folder/"
+            ]
+        },
+        "pass-base-path": {
+            "$id": "#/properties/pass-base-path",
+            "type": "string",
+            "title": "The Pass-base-path Schema",
+            "description": "Data which passes validation will end up here",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://pass-bucket/my-folder/"
+            ]
+        },
+        "log-base-path": {
+            "$id": "#/properties/log-base-path",
+            "type": "string",
+            "title": "The Log-base-path Schema",
+            "description": "This validation will produce detailed logs. They will be stored here.",
+            "default": "",
+            "pattern": "^s3://",
+            "examples": [
+                "s3://log-bucket/my-folder/"
+            ]
+        },
+        "iam-role-name": {
+            "$id": "#/properties/iam-role-name",
+            "type": "string",
+            "title": "The Iam-role-name Schema",
+            "description": "The name of the iam role",
+            "default": "",
+            "examples": [
+                "role-name"
+            ]
+        },
+        "compress-data": {
+            "$id": "#/properties/compress-data",
+            "type": "boolean",
+            "title": "The Compress-data Schema",
+            "description": "Should data be compressed when moving",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "remove-tables-on-pass": {
+            "$id": "#/properties/remove-tables-on-pass",
+            "type": "boolean",
+            "title": "The Remove-tables-on-pass Schema",
+            "description": "Delete table if it passes validation",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "all-must-pass": {
+            "$id": "#/properties/all-must-pass",
+            "type": "boolean",
+            "title": "The All-must-pass Schema",
+            "description": "Only move data if all tables pass",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "fail-unknown-files": {
+            "$id": "#/properties/fail-unknown-files",
+            "type": "object",
+            "title": "The Fail-unknown-files Schema",
+            "description": "If a file is not expected and not part of the exceptions list, fail validation",
+            "default": {},
+            "examples": [
+                {
+                    "exceptions": [
+                        "additional_file.txt",
+                        "another_additional_file.txt"
+                    ]
+                }
+            ],
+            "required": [
+                "exceptions"
+            ],
+            "properties": {
+                "exceptions": {
+                    "$id": "#/properties/fail-unknown-files/properties/exceptions",
+                    "type": "array",
+                    "title": "The Exceptions Schema",
+                    "description": "Exceptions to unknown files",
+                    "default": [],
+                    "items": {
+                        "$id": "#/properties/fail-unknown-files/properties/exceptions/items",
+                        "type": "string",
+                        "title": "The Items Schema",
+                        "description": "A list of exceptions",
+                        "default": "",
+                        "examples": [
+                            "additional_file.txt",
+                            "another_additional_file.txt"
+                        ]
+                    }
+                }
+            }
+        },
+        "tables": {
+            "$id": "#/properties/tables",
+            "type": "object",
+            "minProperties": 1,
+            "title": "The Tables Schema",
+            "description": "A list of the tables you expect to see uploaded to land-base-path",
+            "default": {},
+            "items": {
+                "$id": "#/properties/tables/items",
+                "type": "object",
+                "title": "The Items Schema",
+                "description": "",
+                "default": {},
+                "required": [
+                ],
+                "patternProperties": {
+                    "^.*$": {
+                        "$id": "#/properties/tables/items/properties/table1",
+                        "type": "object",
+                        "title": "The Table Schema",
+                        "description": "Table arguments",
+                        "default": {},
+                        "examples": [
+                            {
+                                "pattern": null,
+                                "kwargs": null,
+                                "required": true,
+                                "linter": "goodtables",
+                                "metadata": null
+                            }
+                        ],
+                        "properties": {
+                            "kwargs": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/kwargs",
+                                "title": "The Kwargs Schema",
+                                "description": "Kwargs",
+                                "default": null,
+                                "examples": [
+                                    null
+                                ]
+                            },
+                            "required": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/required",
+                                "type": "boolean",
+                                "title": "The Required Schema",
+                                "description": "Is this table required",
+                                "default": false,
+                                "examples": [
+                                    true
+                                ]
+                            },
+                            "pattern": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/pattern",
+                                "title": "The Pattern Schema",
+                                "description": "The name of the file. If null assume file name is the same as the table name",
+                                "default": null,
+                                "examples": [
+                                    null,
+                                    "^table2"
+                                ]
+                            },
+                            "metadata": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/metadata",
+                                "type": "string",
+                                "title": "The Metadata Schema",
+                                "description": "Link to metadata. Needs updating, can this be null?",
+                                "examples": [
+                                    "table1"
+                                ]
+                            },
+                            "linter": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/linter",
+                                "type": "string",
+                                "title": "The Linter Schema",
+                                "description": "Which linter to use. For now only goodtables",
+                                "default": "goodtables",
+                                "examples": [
+                                    "goodtables"
+                                ],
+                            "expect-header": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
+                                "type": "boolean",
+                                "title": "The expect-header Schema",
+                                "description": "If the file is a csv, does it have headers? If true will take header names from the metadata",
+                                "examples": [
+                                    true,
+                                    false
+                                ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

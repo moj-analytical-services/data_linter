@@ -1,0 +1,19 @@
+  
+name: Build and run tests in container
+
+on: pull_request
+
+jobs:
+
+  build-run-tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Build image
+      run: docker build . --file tests/Dockerfile --tag validator-tests
+
+    - name: Run tests
+      run: docker run -t validator-tests

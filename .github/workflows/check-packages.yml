@@ -1,0 +1,21 @@
+  
+name: Build and run tests in container to test dependencies
+
+on:
+    schedule:
+        - cron: '0 0 * * 1'
+
+jobs:
+
+  build-run-tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Build image
+      run: docker build . --file tests/Dockerfile_no_lock --tag package-update-tests
+
+    - name: Run tests
+      run: docker run -t package-update-tests
