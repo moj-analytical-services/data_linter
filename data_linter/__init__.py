@@ -15,7 +15,6 @@ from data_linter.validation import (
     get_validator_name,
 )
 
-
 def run_validation(config_path="config.yaml"):
     # set up logging
     log, log_stringio = logging_setup()
