@@ -4,7 +4,6 @@ import io
 import sys
 
 import poetry_version
-
 from data_linter.validation import run_validation
 
 __version__ = "1.0.0"
