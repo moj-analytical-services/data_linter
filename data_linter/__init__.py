@@ -3,7 +3,11 @@ import atexit
 import io
 import sys
 
+import poetry_version
+
 from data_linter.logging_functions import upload_log, logging_setup
+
+__version__ = poetry_version.extract(source_file=__file__)
 
 from data_linter.validation import (
     load_and_validate_config,
