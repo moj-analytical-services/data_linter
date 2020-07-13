@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 import io
 import boto3
+from typing import Tuple
 
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
@@ -19,7 +20,7 @@ class ContextFilter(logging.Filter):
         return True
 
 
-def logging_setup():
+def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
 
     log = logging.getLogger("root")
     log_stringio = io.StringIO()
@@ -39,7 +40,7 @@ def logging_setup():
     return log, log_stringio
 
 
-def upload_log(body, s3_path):
+def upload_log(body: str, s3_path: str):
     s3_client = boto3.client("s3")
     b, k = s3_path_to_bucket_key(s3_path)
     s3_client.put_object(Body=body, Bucket=b, Key=k)
