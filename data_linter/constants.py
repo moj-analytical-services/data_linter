@@ -1,4 +1,6 @@
 import json
+import pkg_resources
 
-with open("schemas/config-schema.json") as f:
-    config_schema = json.load(f)
+config_schema = json.load(
+    pkg_resources.resource_stream(__name__, "schemas/config-schema.json")
+)
