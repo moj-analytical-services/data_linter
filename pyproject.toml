@@ -23,3 +23,6 @@ moto = "^1.3"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.poetry.scripts]
+data_linter = "data_linter.command_line:main"
