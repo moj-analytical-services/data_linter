@@ -18,6 +18,11 @@ import logging
 
 from data_linter.constants import config_schema
 
+from data_linter.logging_functions import (
+    upload_log,
+    logging_setup,
+)
+
 from data_linter.utils import (
     download_data,
     get_out_path,
@@ -39,10 +44,10 @@ def get_validator_name() -> str:
 
 
 def load_and_validate_config(config_path: str = "config.yaml") -> dict:
-
     """
     Loads and validates the config
     """
+
     # load yaml or json
     if not os.path.isfile(config_path):
         config_path = config_path.replace("yaml", "yml")
@@ -374,3 +379,41 @@ def validate_data(config: dict):
 
     if not overall_pass:
         raise ValueError("Tables did not pass linter. Check logs.")
+
+
+def run_validation(config_path="config.yaml"):
+    """
+    Runs end to end validation based on config.
+
+    Args:
+        config_path (str, optional): [description]. Defaults to "config.yaml".
+
+    Raises:
+        Error: States where log is written if error is hit in validation and then raises
+        traceback.
+    """
+
+    # set up logging
+    log, log_stringio = logging_setup()
+
+    log.info("Loading config")
+    try:
+        config = load_and_validate_config(config_path)
+        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+        log.info("Running validation")
+        validate_data(config)
+    except Exception as e:
+        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+        log_msg = (
+            "Unexpected error hit. Uploading log to {log_path}. Before raising error."
+        )
+        error_msg = str(e)
+
+        log.error(log_msg)
+        log.error(error_msg)
+
+        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+
+        raise type(e)(str(e)).with_traceback(sys.exc_info()[2])
+    else:
+        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
