@@ -3,7 +3,7 @@ import atexit
 import io
 import sys
 
-import poetry_version
+from importlib.metadata import version
 from data_linter.validation import run_validation
 
-__version__ = poetry_version.extract(source_file=__file__)
+__version__ = version("data_linter")
