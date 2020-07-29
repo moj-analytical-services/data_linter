@@ -4,6 +4,7 @@ import json
 import re
 import gzip
 import logging
+import sys
 
 from io import BytesIO
 from datetime import datetime
@@ -252,7 +253,9 @@ def validate_data(config: dict):
     for table_name, table_params in config["tables"].items():
         table_params["lint-response"] = []
         if table_params["matched_files"]:
-            log.info(f"Linting {table_name}")
+            msg1 = f"Linting {table_name}"
+            print(msg1)
+            log.info(msg1)
 
             meta_file_path = table_params.get(
                 "metadata", f"meta_data/{table_name}.json"
@@ -281,7 +284,9 @@ def validate_data(config: dict):
                     **table_params.get("gt-kwargs", {}),
                 )
 
+                print(str(response["tables"]))
                 log.info(str(response["tables"]))
+
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
@@ -311,7 +316,9 @@ def validate_data(config: dict):
                         tmp_outpath = final_outpath
 
                     table_response["archived-path"] = final_outpath
-                    log.info(f"...file passed. Writing to {tmp_outpath}")
+                    msg2 = f"...file passed. Writing to {tmp_outpath}"
+                    print(msg2)
+                    log.info(msg2)
                     s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
 
                     if not all_must_pass:
@@ -328,7 +335,9 @@ def validate_data(config: dict):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    log.warning(f"...file failed. Writing to {final_outpath}")
+                    msg3 = f"...file failed. Writing to {final_outpath}"
+                    print(msg3)
+                    log.warning(msg3)
                 else:
                     table_response["archived-path"] = None
 
@@ -340,7 +349,9 @@ def validate_data(config: dict):
                 all_table_responses.append(table_response)
 
         else:
-            log.info(f"SKIPPING {table_name}. No files found.")
+            msg4 = f"SKIPPING {table_name}. No files found."
+            print(msg4)
+            log.info(msg4)
 
     if overall_pass:
         log.info("All tables passed")
