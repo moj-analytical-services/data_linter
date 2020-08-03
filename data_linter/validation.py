@@ -2,11 +2,9 @@ import os
 import yaml
 import json
 import re
-import gzip
 import logging
 import sys
 
-from io import BytesIO
 from datetime import datetime
 
 from jsonschema import validate as json_validate
@@ -14,8 +12,6 @@ from dataengineeringutils3 import s3
 import boto3
 
 from goodtables import validate
-
-import logging
 
 from data_linter.constants import config_schema
 
@@ -25,11 +21,13 @@ from data_linter.logging_functions import (
 )
 
 from data_linter.utils import (
-    download_data,
     get_out_path,
-    local_file_to_s3,
     get_log_path,
 )
+
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 s3_client = boto3.client("s3")
 
@@ -284,7 +282,7 @@ def validate_data(config: dict):
                     **table_params.get("gt-kwargs", {}),
                 )
 
-                print(str(response["tables"]))
+                pp.pprint(response["tables"])
                 log.info(str(response["tables"]))
 
                 table_response = response["tables"][0]
@@ -326,6 +324,7 @@ def validate_data(config: dict):
 
                 # Failed paths don't need a temp path
                 elif fail_base_path:
+                    overall_pass = False
                     final_outpath = get_out_path(
                         fail_base_path,
                         table_name,
@@ -339,6 +338,7 @@ def validate_data(config: dict):
                     print(msg3)
                     log.warning(msg3)
                 else:
+                    overall_pass = False
                     table_response["archived-path"] = None
 
                 # Write reponse log
