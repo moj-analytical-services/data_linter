@@ -225,6 +225,16 @@
                                     true,
                                     false
                                 ]
+                                },
+                            "headers-are-uppercase": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
+                                "type": "boolean",
+                                "title": "The headers-are-uppercase Schema",
+                                "description": "Are the headings in the raw data uppercase? To be used in conjunction with expect-header = true",
+                                "examples": [
+                                    true,
+                                    false
+                                ]
                                 }
                             }
                         }

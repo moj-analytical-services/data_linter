@@ -267,6 +267,8 @@ def validate_data(config: dict):
             # Assume header is first line if not headerless
             if table_params.get("expect-header", False) or file_type == "json":
                 headers = [c["name"] for c in metadata["columns"]]
+                if table_params.get("headers-are-uppercase", False):
+                    headers = [h.upper() for h in headers]
             else:
                 headers = 1
 
