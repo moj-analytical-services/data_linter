@@ -93,7 +93,7 @@ def match_files_in_land_to_config(config) -> dict:
 
         if not table_params["matched_files"] and table_params.get("required"):
             raise FileNotFoundError(
-                "Config states file must exist but not files matched."
+                f"Config states file for {table_name} must exist but no files matched."
             )
 
         all_matched.extend(table_params["matched_files"])
