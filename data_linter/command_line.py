@@ -1,6 +1,7 @@
 import data_linter as dl
 import argparse
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(

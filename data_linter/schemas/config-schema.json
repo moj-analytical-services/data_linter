@@ -226,11 +226,11 @@
                                     false
                                 ]
                                 },
-                            "headers-are-uppercase": {
+                            "headers-ingore-case": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
                                 "type": "boolean",
-                                "title": "The headers-are-uppercase Schema",
-                                "description": "Are the headings in the raw data uppercase? To be used in conjunction with expect-header = true",
+                                "title": "The headers-ingore-case Schema",
+                                "description": "Set to ingore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
                                 "examples": [
                                     true,
                                     false

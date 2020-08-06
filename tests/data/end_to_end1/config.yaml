@@ -11,6 +11,7 @@ tables:
     table1:
       required: True
       metadata: tests/data/end_to_end1/meta_data/table1.json
+      expect-header: True
 
     table2:
       kwargs: null
