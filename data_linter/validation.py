@@ -2,10 +2,9 @@ import os
 import yaml
 import json
 import re
-import gzip
 import logging
+import sys
 
-from io import BytesIO
 from datetime import datetime
 
 from jsonschema import validate as json_validate
@@ -13,8 +12,6 @@ from dataengineeringutils3 import s3
 import boto3
 
 from goodtables import validate
-
-import logging
 
 from data_linter.constants import config_schema
 
@@ -24,11 +21,13 @@ from data_linter.logging_functions import (
 )
 
 from data_linter.utils import (
-    download_data,
     get_out_path,
-    local_file_to_s3,
     get_log_path,
 )
+
+import pprint
+
+pp = pprint.PrettyPrinter(indent=4)
 
 s3_client = boto3.client("s3")
 
@@ -94,7 +93,7 @@ def match_files_in_land_to_config(config) -> dict:
 
         if not table_params["matched_files"] and table_params.get("required"):
             raise FileNotFoundError(
-                "Config states file must exist but not files matched."
+                f"Config states file for {table_name} must exist but no files matched."
             )
 
         all_matched.extend(table_params["matched_files"])
@@ -252,7 +251,9 @@ def validate_data(config: dict):
     for table_name, table_params in config["tables"].items():
         table_params["lint-response"] = []
         if table_params["matched_files"]:
-            log.info(f"Linting {table_name}")
+            msg1 = f"Linting {table_name}"
+            print(msg1)
+            log.info(msg1)
 
             meta_file_path = table_params.get(
                 "metadata", f"meta_data/{table_name}.json"
@@ -281,7 +282,9 @@ def validate_data(config: dict):
                     **table_params.get("gt-kwargs", {}),
                 )
 
+                pp.pprint(response["tables"])
                 log.info(str(response["tables"]))
+
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
@@ -311,7 +314,9 @@ def validate_data(config: dict):
                         tmp_outpath = final_outpath
 
                     table_response["archived-path"] = final_outpath
-                    log.info(f"...file passed. Writing to {tmp_outpath}")
+                    msg2 = f"...file passed. Writing to {tmp_outpath}"
+                    print(msg2)
+                    log.info(msg2)
                     s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
 
                     if not all_must_pass:
@@ -319,6 +324,7 @@ def validate_data(config: dict):
 
                 # Failed paths don't need a temp path
                 elif fail_base_path:
+                    overall_pass = False
                     final_outpath = get_out_path(
                         fail_base_path,
                         table_name,
@@ -328,8 +334,11 @@ def validate_data(config: dict):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    log.warning(f"...file failed. Writing to {final_outpath}")
+                    msg3 = f"...file failed. Writing to {final_outpath}"
+                    print(msg3)
+                    log.warning(msg3)
                 else:
+                    overall_pass = False
                     table_response["archived-path"] = None
 
                 # Write reponse log
@@ -340,7 +349,9 @@ def validate_data(config: dict):
                 all_table_responses.append(table_response)
 
         else:
-            log.info(f"SKIPPING {table_name}. No files found.")
+            msg4 = f"SKIPPING {table_name}. No files found."
+            print(msg4)
+            log.info(msg4)
 
     if overall_pass:
         log.info("All tables passed")
