@@ -250,9 +250,11 @@ def _read_data_and_validate(
         else:
             headers = [c["name"] for c in metadata["columns"]]
 
-        stream.headers = (
-            headers  # This has to be added for jsonl (not sure why - a bit worrying)
-        )
+        # This has to be added for jsonl
+        # This forces the validator to put the headers in the right order
+        # and inform it ahead of time what all the headers should be.
+        # If not specified the iterator reorders the columns.
+        stream.headers = headers
         response = validate(
             stream.iter,
             schema=schema,
