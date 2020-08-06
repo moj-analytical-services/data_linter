@@ -41,7 +41,7 @@ fail-unknown-files:
 
 # Tables to validate
 tables:
-    - table1:
+    table1:
         kwargs: null
         required: True # Does the table have to exist
         pattern: null # Assumes file is called table1
@@ -50,7 +50,7 @@ tables:
         gt-kwargs:
             # kwargs specific to goodtables
 
-    - table2:
+    table2:
         kwargs: null
         required: True
         pattern: ^table2
