@@ -243,6 +243,12 @@ def _read_data_and_validate(
     """
 
     # Get the first line from the file if expecting a header
+    
+    if metadata["data_format"] == "json":
+        skip_checks = []
+    elif metadata["data_format"] == "csv":
+        skip_checks = []
+    
     with Stream(filepath) as stream:
         if table_params.get("expect-header") and metadata["data_format"] != "json":
             headers = next(stream.iter())
@@ -256,11 +262,16 @@ def _read_data_and_validate(
         # and inform it ahead of time what all the headers should be.
         # If not specified the iterator reorders the columns.
         stream.headers = headers
+        if metadata["data_format"] == "json":
+            skip_checks = ['missing-value']
+        else:
+            skip_checks = []
+
         response = validate(
             stream.iter,
             schema=schema,
             headers=headers,
-            **table_params.get("gt-kwargs", {}),
+            skip_checks=skip_checks
         )
     return response
 
