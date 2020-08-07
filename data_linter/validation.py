@@ -237,9 +237,9 @@ def _read_data_and_validate(
 
     Args:
         filepath (str): String pointing to file path can be S3, local, etc
+        schema (dict): the goodtables schema
         table_params (dict): Table params dictionary
         metadata (dict): The metadata for the table
-        schema (dict): the goodtables schema
     """
 
     # Get the first line from the file if expecting a header
