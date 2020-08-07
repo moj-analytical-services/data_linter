@@ -12,6 +12,7 @@ from dataengineeringutils3 import s3
 import boto3
 
 from goodtables import validate
+from tabulator import Stream
 
 from data_linter.constants import config_schema
 
@@ -57,6 +58,13 @@ def load_and_validate_config(config_path: str = "config.yaml") -> dict:
         config = yaml.safe_load(f)
 
     json_validate(config, config_schema)
+
+    for table_name, params in config["tables"].items():
+        if (not params.get("expect-header")) and params.get("headers-ignore-case"):
+            log.warning(
+                f"Table '{table_name}' has a 'headers-ignore-case' parameter but no 'expect-header'. Setting 'expect-header' to True."
+            )
+            params["expect-header"] = True
 
     return config
 
@@ -220,12 +228,41 @@ def log_validation_result(log: logging.Logger, table_resp: dict):
         log.error(e["message"], extra={"context": "VALIDATION"})
 
 
-def _spoof_onetable_datapackage(name, s3_path, schema, data_format):
-    dummypackage = {
-        "name": "spoof-datapackage-single-table",
-        "resources": [{"name": name, "path": s3_path, "schema": schema,}],
-    }
-    return dummypackage
+def _read_data_and_validate(
+    filepath: str, schema: dict, table_params: dict, metadata: dict
+):
+    """
+    Internal function just to create a stream run the goodtables validate and return a response.
+    Seperated out for testing and will probably grow over time.
+
+    Args:
+        filepath (str): String pointing to file path can be S3, local, etc
+        schema (dict): the goodtables schema
+        table_params (dict): Table params dictionary
+        metadata (dict): The metadata for the table
+    """
+
+    # Get the first line from the file if expecting a header
+    with Stream(filepath) as stream:
+        if table_params.get("expect-header") and metadata["data_format"] != "json":
+            headers = next(stream.iter())
+            if table_params.get("headers-ignore-case"):
+                headers = [h.lower() for h in headers]
+        else:
+            headers = [c["name"] for c in metadata["columns"]]
+
+        # This has to be added for jsonl
+        # This forces the validator to put the headers in the right order
+        # and inform it ahead of time what all the headers should be.
+        # If not specified the iterator reorders the columns.
+        stream.headers = headers
+        response = validate(
+            stream.iter,
+            schema=schema,
+            headers=headers,
+            **table_params.get("gt-kwargs", {}),
+        )
+    return response
 
 
 def validate_data(config: dict):
@@ -262,24 +299,14 @@ def validate_data(config: dict):
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
                 schema = convert_meta_to_goodtables_schema(metadata)
-                file_type = metadata["data_format"]
-
-            # Assume header is first line if not headerless
-            if table_params.get("expect-header", False) or file_type == "json":
-                headers = [c["name"] for c in metadata["columns"]]
-            else:
-                headers = 1
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
                 log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
 
-                response = validate(
-                    matched_file,
-                    schema=schema,
-                    headers=headers,
-                    **table_params.get("gt-kwargs", {}),
+                response = _read_data_and_validate(
+                    matched_file, schema, table_params, metadata
                 )
 
                 pp.pprint(response["tables"])
