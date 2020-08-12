@@ -242,6 +242,8 @@ def _read_data_and_validate(
         metadata (dict): The metadata for the table
     """
     print(f"Reading and validating: {filepath}")
+    if " " in filepath:
+        raise ValueError("The filepath must not contain a space")
     with Stream(filepath) as stream:
         if table_params.get("expect-header") and metadata["data_format"] != "json":
             # Get the first line from the file if expecting a header
