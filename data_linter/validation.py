@@ -241,7 +241,7 @@ def _read_data_and_validate(
         table_params (dict): Table params dictionary
         metadata (dict): The metadata for the table
     """
-
+    print(f"Reading and validating: {filepath}")
     with Stream(filepath) as stream:
         if table_params.get("expect-header") and metadata["data_format"] != "json":
             # Get the first line from the file if expecting a header
