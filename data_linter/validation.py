@@ -277,6 +277,7 @@ def validate_data(config: dict):
     pass_base_path = config["pass-base-path"]
     log_base_path = config["log-base-path"]
     fail_base_path = config.get("fail-base-path")
+    remove_on_pass = config.get("remove-tables-on-pass")
 
     #  If all tables must pass before
     if all_must_pass:
@@ -350,7 +351,7 @@ def validate_data(config: dict):
                     log.info(msg2)
                     s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
 
-                    if not all_must_pass:
+                    if not all_must_pass and remove_on_pass:
                         s3.delete_s3_object(matched_file)
 
                 # Failed paths don't need a temp path
@@ -383,7 +384,7 @@ def validate_data(config: dict):
             msg4 = f"SKIPPING {table_name}. No files found."
             print(msg4)
             log.info(msg4)
-
+            
     if overall_pass:
         log.info("All tables passed")
         if all_must_pass:
@@ -403,7 +404,7 @@ def validate_data(config: dict):
             for matched_file in all_matched_files:
                 s3.delete_s3_object(matched_file)
 
-    else:
+    elif not overall_pass and all_must_pass:
         log.error("The following tables failed:")
         for resp in all_table_responses:
             m1 = f"resp {resp['table-name']}"
@@ -413,14 +414,15 @@ def validate_data(config: dict):
             log.error(m2)
             log.error(m3)
 
-        if all_must_pass:
-            log.info(f"Logs that show failed data: {land_base_path}")
+            log.info(f"Logs that show failed data: {log_base_path}")
             log.info(
-                f"Tables that passed but not written due to other table failures are stored here: {log_base_path}"
+                f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
             )
-
-    if not overall_pass:
         raise ValueError("Tables did not pass linter. Check logs.")
+
+    elif not overall_pass and not all_must_pass:
+        log.info("Some tables failed but all_must_pass set to false. Check logs for details")    
+       
 
 
 def run_validation(config_path="config.yaml"):
@@ -447,7 +449,7 @@ def run_validation(config_path="config.yaml"):
     except Exception as e:
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
         log_msg = (
-            "Unexpected error hit. Uploading log to {log_path}. Before raising error."
+            f"Unexpected error hit. Uploading log to {log_path}. Before raising error."
         )
         error_msg = str(e)
 
