@@ -404,7 +404,7 @@ def validate_data(config: dict):
             for matched_file in all_matched_files:
                 s3.delete_s3_object(matched_file)
 
-    elif not overall_pass and all_must_pass:
+    elif all_must_pass:
         log.error("The following tables failed:")
         for resp in all_table_responses:
             m1 = f"resp {resp['table-name']}"
@@ -420,7 +420,7 @@ def validate_data(config: dict):
             )
         raise ValueError("Tables did not pass linter. Check logs.")
 
-    elif not overall_pass and not all_must_pass:
+    else:
         log.info("Some tables failed but all_must_pass set to false. Check logs for details")    
        
 
