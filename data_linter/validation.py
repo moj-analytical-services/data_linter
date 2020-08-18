@@ -423,10 +423,8 @@ def validate_data(config: dict):
         m5 = f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
         print(m4)
         print(m5)
-        log.info(f"Logs that show failed data: {log_base_path}")
-        log.info(
-            f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
-        )
+        log.info(m4)
+        log.info(m5)
         raise ValueError("Tables did not pass linter. Check logs.")
 
     else:
