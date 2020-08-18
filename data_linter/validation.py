@@ -400,9 +400,11 @@ def validate_data(config: dict):
                 log_base_path, config["log-base-path"]
             )
 
-            log.info("Removing data in land")
-            for matched_file in all_matched_files:
-                s3.delete_s3_object(matched_file)
+            
+            if remove_on_pass:
+                log.info("Removing data in land")
+                for matched_file in all_matched_files:
+                    s3.delete_s3_object(matched_file)
 
     elif all_must_pass:
         log.error("The following tables failed:")
@@ -410,18 +412,27 @@ def validate_data(config: dict):
             m1 = f"resp {resp['table-name']}"
             m2 = f"... original path: {resp['s3-original-path']}"
             m3 = f"... out path: {resp['archived-path']}"
+            print(m1)
+            print(m2)
+            print(m3)
             log.error(m1)
             log.error(m2)
             log.error(m3)
 
-            log.info(f"Logs that show failed data: {log_base_path}")
-            log.info(
-                f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
-            )
+        m4 = f"Logs that show failed data: {log_base_path}"
+        m5 = f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
+        print(m4)
+        print(m5)
+        log.info(f"Logs that show failed data: {log_base_path}")
+        log.info(
+            f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
+        )
         raise ValueError("Tables did not pass linter. Check logs.")
 
     else:
-        log.info("Some tables failed but all_must_pass set to false. Check logs for details")    
+        m6 = "Some tables failed but all_must_pass set to false. Check logs for details"
+        print(m6)
+        log.info(m6)    
        
 
 
