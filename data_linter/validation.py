@@ -328,7 +328,7 @@ def validate_data(config: dict):
                         compress=config["compress-data"],
                         filenum=i,
                     )
-
+                    
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:
                         msg2 = f"...file passed. Writing to {final_outpath}"
@@ -336,7 +336,7 @@ def validate_data(config: dict):
                         log.info(msg2)
                         s3.copy_s3_object(matched_file, final_outpath)
                         if remove_on_pass:
-                            log.info(f"Removing file from {land_base_path}")
+                            log.info(f"Removing {matched_file}")
                             s3.delete_s3_object(matched_file)
                     else:
                         log.info("File passed")
@@ -387,25 +387,26 @@ def validate_data(config: dict):
                     s3.delete_s3_object(resp["s3-original-path"])
 
     elif all_must_pass:
-        log.error("The following tables failed:")
         if fail_base_path:
             m0 = f"Copying files to {fail_base_path}"
             print(m0)
             log.info(m0)
+        log.error("The following tables failed:")
         for resp in all_table_responses:
             if fail_base_path:
                 s3.copy_s3_object(
                     resp["s3-original-path"], resp["archived_path"]
                 )
-            m1 = f"resp {resp['table-name']}"
-            m2 = f"... original path: {resp['s3-original-path']}"
-            m3 = f"... out path: {resp['archived-path']}"
-            print(m1)
-            print(m2)
-            print(m3)
-            log.error(m1)
-            log.error(m2)
-            log.error(m3)
+            if not resp["valid"]:
+                m1 = f"{resp['table-name'] failed}"
+                m2 = f"... original path: {resp['s3-original-path']}"
+                m3 = f"... out path: {resp['archived-path']}"
+                print(m1)
+                print(m2)
+                print(m3)
+                log.error(m1)
+                log.error(m2)
+                log.error(m3)
 
         m4 = f"Logs that show failed data: {log_base_path}"
         m5 = f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
@@ -413,7 +414,7 @@ def validate_data(config: dict):
         print(m5)
         log.info(m4)
         log.info(m5)
-        raise ValueError("Tables did not pass linter. Check logs.")
+        raise ValueError("Tables did not pass linter")
 
     else:
         m6 = "Some tables failed but all_must_pass set to false. Check logs for details"
