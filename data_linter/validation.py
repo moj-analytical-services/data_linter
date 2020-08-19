@@ -398,7 +398,7 @@ def validate_data(config: dict):
                     resp["s3-original-path"], resp["archived_path"]
                 )
             if not resp["valid"]:
-                m1 = f"{resp['table-name'] failed}"
+                m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
                 m3 = f"... out path: {resp['archived-path']}"
                 print(m1)
