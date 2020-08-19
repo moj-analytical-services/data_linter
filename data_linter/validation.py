@@ -279,11 +279,6 @@ def validate_data(config: dict):
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
 
-    #  If all tables must pass before
-    if all_must_pass:
-        pass_base_path += "__tmp__/"
-        log_base_path += "__tmp__/"
-
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -326,34 +321,26 @@ def validate_data(config: dict):
                 # log.info(f"TEST {response}")
                 if table_response["valid"]:
                     final_outpath = get_out_path(
-                        config["pass-base-path"],
+                        pass_base_path,
                         table_name,
                         utc_ts,
                         file_basename,
                         compress=config["compress-data"],
                         filenum=i,
                     )
-                    if all_must_pass:
-                        tmp_outpath = get_out_path(
-                            pass_base_path,
-                            table_name,
-                            utc_ts,
-                            file_basename,
-                            compress=config["compress-data"],
-                            filenum=i,
-                        )
-                    else:
-                        tmp_outpath = final_outpath
 
                     table_response["archived-path"] = final_outpath
-                    msg2 = f"...file passed. Writing to {tmp_outpath}"
-                    print(msg2)
-                    log.info(msg2)
-                    s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
-
-                    if not all_must_pass and remove_on_pass:
-                        s3.delete_s3_object(matched_file)
-
+                    if not all_must_pass:
+                        msg2 = f"...file passed. Writing to {final_outpath}"
+                        print(msg2)
+                        log.info(msg2)
+                        s3.copy_s3_object(matched_file, final_outpath)
+                        if remove_on_pass:
+                            log.info(f"Removing file from {land_base_path}")
+                            s3.delete_s3_object(matched_file)
+                    else:
+                        log.info("File passed")
+                
                 # Failed paths don't need a temp path
                 elif fail_base_path:
                     overall_pass = False
@@ -366,9 +353,10 @@ def validate_data(config: dict):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    msg3 = f"...file failed. Writing to {final_outpath}"
-                    print(msg3)
-                    log.warning(msg3)
+                    if not all_must_pass:
+                        msg3 = f"...file failed. Writing to {final_outpath}"
+                        print(msg3)
+                        log.warning(msg3)
                 else:
                     overall_pass = False
                     table_response["archived-path"] = None
@@ -388,27 +376,27 @@ def validate_data(config: dict):
     if overall_pass:
         log.info("All tables passed")
         if all_must_pass:
-            log.info("Moving data from tmp into land-base-path")
+            log.info(f"Copying data from {land_base_path} to {pass_base_path}")
+            for resp in all_table_responses:
+                s3.copy_s3_object(
+                    resp["s3-original-path"], resp["archived_path"]
+                )
 
-            s3.copy_s3_folder_contents_to_new_folder(
-                land_base_path, config["land-base-path"]
-            )
-            s3.delete_s3_folder_contents(land_base_path)
-
-            log.info("Moving data from tmp into log-base-path")
-            s3.copy_s3_folder_contents_to_new_folder(
-                log_base_path, config["log-base-path"]
-            )
-
-            
-            if remove_on_pass:
-                log.info("Removing data in land")
-                for matched_file in all_matched_files:
-                    s3.delete_s3_object(matched_file)
+                if remove_on_pass:
+                    log.info("Removing data in land")
+                    s3.delete_s3_object(resp["s3-original-path"])
 
     elif all_must_pass:
         log.error("The following tables failed:")
+        if fail_base_path:
+            m0 = f"Copying files to {fail_base_path}"
+            print(m0)
+            log.info(m0)
         for resp in all_table_responses:
+            if fail_base_path:
+                s3.copy_s3_object(
+                    resp["s3-original-path"], resp["archived_path"]
+                )
             m1 = f"resp {resp['table-name']}"
             m2 = f"... original path: {resp['s3-original-path']}"
             m3 = f"... out path: {resp['archived-path']}"
