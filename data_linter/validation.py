@@ -381,7 +381,7 @@ def validate_data(config: dict):
                 s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
 
                 if remove_on_pass:
-                    log.info("Removing data in land")
+                    log.info(f"Removing data in land: {resp["s3-original-path"]}")
                     s3.delete_s3_object(resp["s3-original-path"])
 
     elif all_must_pass:
