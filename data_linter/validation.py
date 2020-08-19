@@ -328,7 +328,7 @@ def validate_data(config: dict):
                         compress=config["compress-data"],
                         filenum=i,
                     )
-                    
+
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:
                         msg2 = f"...file passed. Writing to {final_outpath}"
@@ -340,7 +340,7 @@ def validate_data(config: dict):
                             s3.delete_s3_object(matched_file)
                     else:
                         log.info("File passed")
-                
+
                 # Failed paths don't need a temp path
                 elif fail_base_path:
                     overall_pass = False
@@ -372,15 +372,13 @@ def validate_data(config: dict):
             msg4 = f"SKIPPING {table_name}. No files found."
             print(msg4)
             log.info(msg4)
-            
+
     if overall_pass:
         log.info("All tables passed")
         if all_must_pass:
             log.info(f"Copying data from {land_base_path} to {pass_base_path}")
             for resp in all_table_responses:
-                s3.copy_s3_object(
-                    resp["s3-original-path"], resp["archived_path"]
-                )
+                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
 
                 if remove_on_pass:
                     log.info("Removing data in land")
@@ -394,9 +392,7 @@ def validate_data(config: dict):
         log.error("The following tables failed:")
         for resp in all_table_responses:
             if fail_base_path:
-                s3.copy_s3_object(
-                    resp["s3-original-path"], resp["archived_path"]
-                )
+                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
@@ -419,8 +415,7 @@ def validate_data(config: dict):
     else:
         m6 = "Some tables failed but all_must_pass set to false. Check logs for details"
         print(m6)
-        log.info(m6)    
-       
+        log.info(m6)
 
 
 def run_validation(config_path="config.yaml"):
