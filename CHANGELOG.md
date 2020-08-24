@@ -1,0 +1,24 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+## v1.1.0
+
+## Changed
+
+- Fixed dependency tests (#47)
+- Add print statements to supplement logging, so you can see it working in real time
+- Fix logic of main script (#52)
+- Add support for upper case headers (#53)
+- Better handling of missing values for jsonl (#61)
+- Fix command line tool (#45)
+- Add flake8 linting Github Action (#58)
+- Actually compresses data when `compress-data = true` (#35)
+
+## v1.0.0 - 2020-07-14
+
+### Added
+
+- Initial release, repurposed repo to use Goodtables
