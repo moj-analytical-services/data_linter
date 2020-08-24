@@ -341,8 +341,7 @@ def validate_data(config: dict):
                     else:
                         print("File passed")
                         log.info("File passed")
-                        
-                # Failed paths don't need a temp path
+
                 elif fail_base_path:
                     overall_pass = False
                     final_outpath = get_out_path(
