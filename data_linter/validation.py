@@ -339,8 +339,9 @@ def validate_data(config: dict):
                             log.info(f"Removing {matched_file}")
                             s3.delete_s3_object(matched_file)
                     else:
+                        print("File passed")
                         log.info("File passed")
-
+                        
                 # Failed paths don't need a temp path
                 elif fail_base_path:
                     overall_pass = False
