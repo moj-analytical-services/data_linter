@@ -73,3 +73,10 @@ poetry publish -u <username>
 ```
 
 Here, you should substitute <username> for your PyPI username. In order to publish to PyPI, you must be an owner of the project.
+
+
+## Process Diagram
+
+How logic works
+
+![](images/data_linter_process.png)

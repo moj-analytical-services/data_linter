@@ -241,7 +241,9 @@ def _read_data_and_validate(
         table_params (dict): Table params dictionary
         metadata (dict): The metadata for the table
     """
-
+    print(f"Reading and validating: {filepath}")
+    if " " in filepath:
+        raise ValueError("The filepath must not contain a space")
     with Stream(filepath) as stream:
         if table_params.get("expect-header") and metadata["data_format"] != "json":
             # Get the first line from the file if expecting a header
@@ -275,11 +277,7 @@ def validate_data(config: dict):
     pass_base_path = config["pass-base-path"]
     log_base_path = config["log-base-path"]
     fail_base_path = config.get("fail-base-path")
-
-    #  If all tables must pass before
-    if all_must_pass:
-        pass_base_path += "__tmp__/"
-        log_base_path += "__tmp__/"
+    remove_on_pass = config.get("remove-tables-on-pass")
 
     config = match_files_in_land_to_config(config)
 
@@ -323,35 +321,27 @@ def validate_data(config: dict):
                 # log.info(f"TEST {response}")
                 if table_response["valid"]:
                     final_outpath = get_out_path(
-                        config["pass-base-path"],
+                        pass_base_path,
                         table_name,
                         utc_ts,
                         file_basename,
                         compress=config["compress-data"],
                         filenum=i,
                     )
-                    if all_must_pass:
-                        tmp_outpath = get_out_path(
-                            pass_base_path,
-                            table_name,
-                            utc_ts,
-                            file_basename,
-                            compress=config["compress-data"],
-                            filenum=i,
-                        )
-                    else:
-                        tmp_outpath = final_outpath
 
                     table_response["archived-path"] = final_outpath
-                    msg2 = f"...file passed. Writing to {tmp_outpath}"
-                    print(msg2)
-                    log.info(msg2)
-                    s3.copy_s3_object(table_response["s3-original-path"], tmp_outpath)
-
                     if not all_must_pass:
-                        s3.delete_s3_object(matched_file)
+                        msg2 = f"...file passed. Writing to {final_outpath}"
+                        print(msg2)
+                        log.info(msg2)
+                        s3.copy_s3_object(matched_file, final_outpath)
+                        if remove_on_pass:
+                            log.info(f"Removing {matched_file}")
+                            s3.delete_s3_object(matched_file)
+                    else:
+                        print("File passed")
+                        log.info("File passed")
 
-                # Failed paths don't need a temp path
                 elif fail_base_path:
                     overall_pass = False
                     final_outpath = get_out_path(
@@ -363,9 +353,10 @@ def validate_data(config: dict):
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
-                    msg3 = f"...file failed. Writing to {final_outpath}"
-                    print(msg3)
-                    log.warning(msg3)
+                    if not all_must_pass:
+                        msg3 = f"...file failed. Writing to {final_outpath}"
+                        print(msg3)
+                        log.warning(msg3)
                 else:
                     overall_pass = False
                     table_response["archived-path"] = None
@@ -385,40 +376,46 @@ def validate_data(config: dict):
     if overall_pass:
         log.info("All tables passed")
         if all_must_pass:
-            log.info("Moving data from tmp into land-base-path")
+            log.info(f"Copying data from {land_base_path} to {pass_base_path}")
+            for resp in all_table_responses:
+                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
 
-            s3.copy_s3_folder_contents_to_new_folder(
-                land_base_path, config["land-base-path"]
-            )
-            s3.delete_s3_folder_contents(land_base_path)
+                if remove_on_pass:
+                    log.info(f"Removing data in land: {resp['s3-original-path']}")
+                    s3.delete_s3_object(resp["s3-original-path"])
 
-            log.info("Moving data from tmp into log-base-path")
-            s3.copy_s3_folder_contents_to_new_folder(
-                log_base_path, config["log-base-path"]
-            )
-
-            log.info("Removing data in land")
-            for matched_file in all_matched_files:
-                s3.delete_s3_object(matched_file)
-
-    else:
+    elif all_must_pass:
+        if fail_base_path:
+            m0 = f"Copying files to {fail_base_path}"
+            print(m0)
+            log.info(m0)
         log.error("The following tables failed:")
         for resp in all_table_responses:
-            m1 = f"resp {resp['table-name']}"
-            m2 = f"... original path: {resp['s3-original-path']}"
-            m3 = f"... out path: {resp['archived-path']}"
-            log.error(m1)
-            log.error(m2)
-            log.error(m3)
+            if fail_base_path:
+                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+            if not resp["valid"]:
+                m1 = f"{resp['table-name']} failed"
+                m2 = f"... original path: {resp['s3-original-path']}"
+                m3 = f"... out path: {resp['archived-path']}"
+                print(m1)
+                print(m2)
+                print(m3)
+                log.error(m1)
+                log.error(m2)
+                log.error(m3)
 
-        if all_must_pass:
-            log.info(f"Logs that show failed data: {land_base_path}")
-            log.info(
-                f"Tables that passed but not written due to other table failures are stored here: {log_base_path}"
-            )
+        m4 = f"Logs that show failed data: {log_base_path}"
+        m5 = f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
+        print(m4)
+        print(m5)
+        log.info(m4)
+        log.info(m5)
+        raise ValueError("Tables did not pass linter")
 
-    if not overall_pass:
-        raise ValueError("Tables did not pass linter. Check logs.")
+    else:
+        m6 = "Some tables failed but all_must_pass set to false. Check logs for details"
+        print(m6)
+        log.info(m6)
 
 
 def run_validation(config_path="config.yaml"):
@@ -445,7 +442,7 @@ def run_validation(config_path="config.yaml"):
     except Exception as e:
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
         log_msg = (
-            "Unexpected error hit. Uploading log to {log_path}. Before raising error."
+            f"Unexpected error hit. Uploading log to {log_path}. Before raising error."
         )
         error_msg = str(e)
 
