@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime
 import io
 import boto3
 from typing import Tuple
