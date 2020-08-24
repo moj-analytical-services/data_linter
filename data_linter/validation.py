@@ -62,7 +62,8 @@ def load_and_validate_config(config_path: str = "config.yaml") -> dict:
     for table_name, params in config["tables"].items():
         if (not params.get("expect-header")) and params.get("headers-ignore-case"):
             log.warning(
-                f"Table '{table_name}' has a 'headers-ignore-case' parameter but no 'expect-header'. Setting 'expect-header' to True."
+                f"Table '{table_name}' has a 'headers-ignore-case' parameter "
+                "but no 'expect-header'. Setting 'expect-header' to True."
             )
             params["expect-header"] = True
 
@@ -72,7 +73,7 @@ def load_and_validate_config(config_path: str = "config.yaml") -> dict:
 def match_files_in_land_to_config(config) -> dict:
     """
     Takes config and matches files in S3 to the corresponding table list in config.
-    Checks against other config parameters and will raise error if config params not met.
+    Checks against other config parameters and raise error if config params not met.
     """
     land_base_path = config["land-base-path"]
     land_files = s3.get_filepaths_from_s3_folder(land_base_path)
@@ -88,15 +89,17 @@ def match_files_in_land_to_config(config) -> dict:
     for table_name, table_params in config["tables"].items():
         if table_params.get("pattern"):
             table_params["matched_files"] = [
-                l
-                for l in land_files
-                if re.match(table_params.get("pattern"), l.replace(land_base_path, ""))
+                land_file
+                for land_file in land_files
+                if re.match(
+                    table_params.get("pattern"), land_file.replace(land_base_path, "")
+                )
             ]
         else:
             table_params["matched_files"] = [
-                l
-                for l in land_files
-                if l.replace(land_base_path, "").startswith(table_name)
+                land_file
+                for land_file in land_files
+                if land_file.replace(land_base_path, "").startswith(table_name)
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
@@ -116,7 +119,8 @@ def match_files_in_land_to_config(config) -> dict:
         land_diff = land_diff.difference(file_exeptions)
         if land_diff:
             raise FileExistsError(
-                f"Config states no unknown should exist. The following were unmatched: {land_diff}"
+                "Config states no unknown should exist. "
+                f"The following were unmatched: {land_diff}"
             )
 
     return config
@@ -124,7 +128,8 @@ def match_files_in_land_to_config(config) -> dict:
 
 def convert_meta_type_to_goodtable_type(meta_type: str) -> str:
     """
-    Converts string name for etl_manager data type and converts it to a goodtables data type
+    Converts string name for etl_manager data type
+    and converts it to a goodtables data type
 
     Parameters
     ----------
@@ -134,7 +139,8 @@ def convert_meta_type_to_goodtable_type(meta_type: str) -> str:
     Returns
     -------
     str:
-        Column type of the goodtables_type https://frictionlessdata.io/specs/table-schema/
+        Column type of the goodtables_type
+        https://frictionlessdata.io/specs/table-schema/
     """
     meta_type = meta_type.lower()
 
@@ -170,7 +176,8 @@ def convert_meta_to_goodtables_schema(meta: dict) -> dict:
     Parameters
     ----------
     meta: dict
-        Takes a metadata dictionary (see etl_manager) then converts that to a particular schema for linting
+        Takes a metadata dictionary (see etl_manager)
+        then converts that to a particular schema for linting
 
     Returns
     -------
@@ -232,7 +239,8 @@ def _read_data_and_validate(
     filepath: str, schema: dict, table_params: dict, metadata: dict
 ):
     """
-    Internal function just to create a stream run the goodtables validate and return a response.
+    Internal function just to create a stream,
+    run the goodtables validate, and return a response.
     Seperated out for testing and will probably grow over time.
 
     Args:
@@ -405,7 +413,10 @@ def validate_data(config: dict):
                 log.error(m3)
 
         m4 = f"Logs that show failed data: {log_base_path}"
-        m5 = f"Tables that passed but not written due to other table failures are stored here: {land_base_path}"
+        m5 = (
+            "Tables that passed but not written due to other table failures"
+            f"are stored here: {land_base_path}"
+        )
         print(m4)
         print(m5)
         log.info(m4)
