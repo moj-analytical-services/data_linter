@@ -16,4 +16,4 @@ tables:
   table2:
     required: true
     pattern: ^table2
-    metadata: tests/data/end_to_end1/meta_data/table2.
+    metadata: tests/data/end_to_end1/meta_data/table2.json
