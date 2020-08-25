@@ -3,8 +3,8 @@ athena:
 iam-role-name: test_iam_policy
 s3:
   read_write:
-  - land-bucket/my-folder/*
-  - pass-bucket/my-folder/*
-  - fail-bucket/my-folder/*
+    - land-bucket/my-folder/*
+    - pass-bucket/my-folder/*
+    - fail-bucket/my-folder/*
   write_only:
-  - log-bucket/my-folder/*
+    - log-bucket/my-folder/*
