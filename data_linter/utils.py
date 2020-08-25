@@ -1,12 +1,15 @@
 import os
+import shutil
 import boto3
 import gzip
+import tempfile
 
 from pathlib import Path
 
 from dataengineeringutils3 import s3
 
 s3_client = boto3.client("s3")
+
 
 # import logging
 # log = logging.getLogger("root")
@@ -18,6 +21,17 @@ def download_data(s3_path: str, local_path: str):
     with open(local_path, "wb") as f:
         b, o = s3.s3_path_to_bucket_key(s3_path)
         s3_client.download_fileobj(b, o, f)
+
+
+def download_and_compress_data(s3_download_path: str, s3_upload_path: str):
+    with tempfile.TemporaryDirectory() as temp_dir:
+        bucket, key = s3.s3_path_to_bucket_key(s3_download_path)
+        temp_file = os.path.join(temp_dir, key.split("/")[-1])
+        with open(temp_file, "wb") as opened_temp_file:
+            s3_client.download_fileobj(bucket, key, opened_temp_file)
+        with open(temp_file, "rb") as f_in, gzip.open(temp_file+".gz", "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+        s3.write_local_file_to_s3(temp_file+".gz", s3_upload_path, overwrite=True)
 
 
 def get_out_path(
