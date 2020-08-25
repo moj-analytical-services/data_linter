@@ -42,19 +42,15 @@ fail-unknown-files:
 # Tables to validate
 tables:
     table1:
-        kwargs: null
         required: True # Does the table have to exist
         pattern: null # Assumes file is called table1
-        metadata: metadata/table1.json 
+        metadata: meta_data/table1.json 
         linter: goodtables
-        gt-kwargs:
-            # kwargs specific to goodtables
 
     table2:
-        kwargs: null
         required: True
         pattern: ^table2
-        metadata: metadata/table2.json
+        metadata: meta_data/table2.json
 ```
 
 ## How to update

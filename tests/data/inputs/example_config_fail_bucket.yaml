@@ -14,10 +14,6 @@ fail-unknown-files:
 # Tables to validate
 tables:
     - table_blah:
-        kwargs: null
         required: True # Does the table have to exist
         pattern: null # Assumes file is called table1
         linter: goodtables # jsonschema?
-        gt-kwargs:
-            # kwargs specific to goodtables - not sure about this. Might be better to 
-            # put into the file shema
