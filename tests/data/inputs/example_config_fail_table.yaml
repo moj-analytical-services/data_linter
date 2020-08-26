@@ -14,3 +14,4 @@ fail-unknown-files:
 # Tables to validate
 tables:
     table_blah:
+        pattern: null
