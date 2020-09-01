@@ -13,6 +13,7 @@ expected_linting_result = {
     "table1_strict_headers": False,
     "table1_no_header": True,
     "table2_missing_keys": True,
+    "table2_wrong_headers": False,
     "table2_mixed_headers": True,
 }
 
