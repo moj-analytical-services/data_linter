@@ -39,3 +39,10 @@ tables:
         metadata: tests/data/headers/meta_data/table2.json
         expect-header: true
         headers-ignore-case: true
+
+    table2_wrong_headers:
+        required: true
+        pattern: ^table2_wrong_headers
+        metadata: tests/data/headers/meta_data/table2.json
+        expect-header: true
+        headers-ignore-case: true
