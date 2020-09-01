@@ -1,0 +1,41 @@
+land-base-path: s3://land/
+fail-base-path: s3://fail/
+pass-base-path: s3://pass/
+log-base-path: s3://log/
+compress-data: true
+remove-tables-on-pass: true
+all-must-pass: false
+
+# Tables to validate
+tables:
+    table1_mixed_headers:
+        required: true
+        metadata: tests/data/headers/meta_data/table1.json
+        pattern: ^table1_mixed_headers
+        expect-header: true
+        headers-ignore-case: true
+    
+    table1_strict_headers:
+        required: true
+        metadata: tests/data/headers/meta_data/table1.json
+        pattern: ^table1_strict_headers
+        expect-header: true
+        headers-ignore-case: false
+    
+    table1_no_header:
+        required: true
+        metadata: tests/data/headers/meta_data/table1.json
+        pattern: ^table1_no_header
+        expect-header: false
+
+    table2_missing_keys:
+        required: true
+        pattern: ^table2_missing_keys
+        metadata: tests/data/headers/meta_data/table2.json
+    
+    table2_mixed_headers:
+        required: true
+        pattern: ^table2_mixed_headers
+        metadata: tests/data/headers/meta_data/table2.json
+        expect-header: true
+        headers-ignore-case: true
