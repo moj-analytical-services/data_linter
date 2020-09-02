@@ -11,19 +11,21 @@ def generate_iam_config(
     overwrite_config=False,
 ):
     """
-    Takes file paths from config and generates an iam_config, and optionally an iam_policy
+    Takes file paths from config and generates an iam_config,
+    and optionally an iam_policy
 
     Parameters
     ----------
 
     config: dict
         A config loaded from load_and_validate_config()
-    
+
     iam_config_path: str
         Path to where you want to output the iam_config
-    
+
     iam_policy_path: str
-        Optional path to output the iam policy json generated from the iam_config just generated
+        Optional path to output the iam policy json generated from the
+        iam_config just generated
     """
 
     if os.path.exists(iam_config_output) and overwrite_config is not True:

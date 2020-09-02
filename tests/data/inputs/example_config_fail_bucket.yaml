@@ -1,23 +1,19 @@
-land-base-path: s4://land-bucket/my-folder/ # Where to get the data from
-fail-base-path: s3://fail-bucket/my-folder/ # Where to write the data if failed validation
-pass-base-path: s3://pass-bucket/my-folder/ # Where to write the data if passed validation
-log-base-path: s3://log-bucket/my-folder/ # Where to write logs - necessary should be centralised? based on repo names maybe
+land-base-path: s4://land-bucket/my-folder/  # Where to get the data from
+fail-base-path: s3://fail-bucket/my-folder/  # Where to write the data if failed
+pass-base-path: s3://pass-bucket/my-folder/  # Where to write the data if passed
+log-base-path: s3://log-bucket/my-folder/  # Where to write logs
 iam-role-name: role-name
-compress-data: True # Compress data when moving elsewhere
-remove-tables-on-pass: True # Delete the tables if pass 
-all-must-pass: True # Only move data if all tables have passed
+compress-data: true  # Compress data when moving elsewhere
+remove-tables-on-pass: true  # Delete the tables if pass
+all-must-pass: true  # Only move data if all tables have passed
 fail-unknown-files:
-    exceptions: 
-      - additional_file.txt
-      - another_additional_file.txt
+    exceptions:
+        - additional_file.txt
+        - another_additional_file.txt
 
 # Tables to validate
 tables:
     - table_blah:
-        kwargs: null
-        required: True # Does the table have to exist
-        pattern: null # Assumes file is called table1
-        linter: goodtables # jsonschema?
-        gt-kwargs:
-            # kwargs specific to goodtables - not sure about this. Might be better to 
-            # put into the file shema
+          required: true  # Does the table have to exist
+          pattern: null  # Assumes file is called table1
+          linter: goodtables  # jsonschema?

@@ -162,22 +162,12 @@
                         "examples": [
                             {
                                 "pattern": null,
-                                "kwargs": null,
                                 "required": true,
                                 "linter": "goodtables",
                                 "metadata": null
                             }
                         ],
                         "properties": {
-                            "kwargs": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/kwargs",
-                                "title": "The Kwargs Schema",
-                                "description": "Kwargs",
-                                "default": null,
-                                "examples": [
-                                    null
-                                ]
-                            },
                             "required": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/required",
                                 "type": "boolean",

@@ -134,6 +134,3 @@ dmypy.json
 
 # macOS Finder config
 .DS_Store
-
-# flake8 project level config
-.flake8
