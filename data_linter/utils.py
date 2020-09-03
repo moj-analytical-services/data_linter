@@ -23,7 +23,7 @@ def download_data(s3_path: str, local_path: str):
         s3_client.download_fileobj(b, o, f)
 
 
-def download_and_compress_data(s3_download_path: str, s3_upload_path: str):
+def compress_data(s3_download_path: str, s3_upload_path: str):
     with tempfile.TemporaryDirectory() as temp_dir:
         bucket, key = s3.s3_path_to_bucket_key(s3_download_path)
         temp_file = os.path.join(temp_dir, key.split("/")[-1])

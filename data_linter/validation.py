@@ -24,6 +24,7 @@ from data_linter.logging_functions import (
 from data_linter.utils import (
     get_out_path,
     get_log_path,
+    compress_data,
 )
 
 import pprint
@@ -286,6 +287,7 @@ def validate_data(config: dict):
     log_base_path = config["log-base-path"]
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
+    compress = config["compress-data"]
 
     config = match_files_in_land_to_config(config)
 
@@ -333,7 +335,7 @@ def validate_data(config: dict):
                         table_name,
                         utc_ts,
                         file_basename,
-                        compress=config["compress-data"],
+                        compress=compress,
                         filenum=i,
                     )
 
@@ -342,7 +344,10 @@ def validate_data(config: dict):
                         msg2 = f"...file passed. Writing to {final_outpath}"
                         print(msg2)
                         log.info(msg2)
-                        s3.copy_s3_object(matched_file, final_outpath)
+                        if compress:
+                            compress_data(matched_file, final_outpath)
+                        else:
+                            s3.copy_s3_object(matched_file, final_outpath)
                         if remove_on_pass:
                             log.info(f"Removing {matched_file}")
                             s3.delete_s3_object(matched_file)
@@ -357,7 +362,7 @@ def validate_data(config: dict):
                         table_name,
                         utc_ts,
                         file_basename,
-                        compress=config["compress-data"],
+                        compress=compress,
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
@@ -365,6 +370,11 @@ def validate_data(config: dict):
                         msg3 = f"...file failed. Writing to {final_outpath}"
                         print(msg3)
                         log.warning(msg3)
+                        if compress:
+                            compress_data(matched_file, final_outpath)
+                        else:
+                            s3.copy_s3_object(matched_file, final_outpath)
+                
                 else:
                     overall_pass = False
                     table_response["archived-path"] = None
@@ -386,7 +396,10 @@ def validate_data(config: dict):
         if all_must_pass:
             log.info(f"Copying data from {land_base_path} to {pass_base_path}")
             for resp in all_table_responses:
-                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+                if compress:
+                    compress_data(resp["s3-original-path"], resp["archived_path"])
+                else:
+                    s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
 
                 if remove_on_pass:
                     log.info(f"Removing data in land: {resp['s3-original-path']}")
@@ -400,7 +413,10 @@ def validate_data(config: dict):
         log.error("The following tables failed:")
         for resp in all_table_responses:
             if fail_base_path:
-                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+                if compress:
+                    compress_data(resp["s3-original-path"], resp["archived_path"])
+                else:
+                    s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
