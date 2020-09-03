@@ -29,9 +29,9 @@ def compress_data(s3_download_path: str, s3_upload_path: str):
         temp_file = os.path.join(temp_dir, key.split("/")[-1])
         with open(temp_file, "wb") as opened_temp_file:
             s3_client.download_fileobj(bucket, key, opened_temp_file)
-        with open(temp_file, "rb") as f_in, gzip.open(temp_file+".gz", "wb") as f_out:
+        with open(temp_file, "rb") as f_in, gzip.open(temp_file + ".gz", "wb") as f_out:
             shutil.copyfileobj(f_in, f_out)
-        s3.write_local_file_to_s3(temp_file+".gz", s3_upload_path, overwrite=True)
+        s3.write_local_file_to_s3(temp_file + ".gz", s3_upload_path, overwrite=True)
 
 
 def get_out_path(

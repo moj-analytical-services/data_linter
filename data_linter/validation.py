@@ -374,7 +374,7 @@ def validate_data(config: dict):
                             compress_data(matched_file, final_outpath)
                         else:
                             s3.copy_s3_object(matched_file, final_outpath)
-                
+
                 else:
                     overall_pass = False
                     table_response["archived-path"] = None
