@@ -33,7 +33,6 @@ def set_up_s3(mocked_s3, test_folder, config):
 def test_end_to_end(s3):
 
     from data_linter.validation import run_validation
-    from dataengineeringutils3.s3 import check_for_s3_file, get_filepaths_from_s3_folder
 
     test_folder = "tests/data/end_to_end1/"
     config_path = os.path.join(test_folder, "config.yaml")
@@ -54,14 +53,18 @@ def test_compression(s3):
     set_up_s3(s3, test_folder, config)
     test_file_uncompressed = "table2.jsonl"
     test_file_compressed = "table2.jsonl.gz"
-    uncompressed_location = os.path.join(config["land-base-path"], test_file_uncompressed)
+    uncompressed_location = os.path.join(
+        config["land-base-path"], test_file_uncompressed
+    )
     compressed_location = os.path.join(config["pass-base-path"], test_file_compressed)
 
     compress_data(uncompressed_location, compressed_location)
     with tempfile.TemporaryDirectory() as d:
         with open(os.path.join(d, test_file_compressed), "wb") as file1:
             s3.meta.client.download_fileobj("pass", test_file_compressed, file1)
-        with gzip.GzipFile(os.path.join(d, test_file_compressed), "r") as compressed_json:
+        with gzip.GzipFile(
+            os.path.join(d, test_file_compressed), "r"
+        ) as compressed_json:
             json_bytes = compressed_json.read()
 
     compressed_json_str = json_bytes.decode("utf-8")
@@ -70,5 +73,4 @@ def test_compression(s3):
         assert (
             compressed_json_str == uncompressed_json.read()
         ), "uncompressed json doesn't contain the same data as compressed json"
-
 

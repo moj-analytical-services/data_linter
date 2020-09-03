@@ -287,7 +287,7 @@ def validate_data(config: dict):
     log_base_path = config["log-base-path"]
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
-    compress = config["compress-data"]
+    compress = config.get("compress-data")
 
     config = match_files_in_land_to_config(config)
 
