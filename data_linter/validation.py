@@ -397,9 +397,9 @@ def validate_data(config: dict):
             log.info(f"Copying data from {land_base_path} to {pass_base_path}")
             for resp in all_table_responses:
                 if compress:
-                    compress_data(resp["s3-original-path"], resp["archived_path"])
+                    compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
-                    s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+                    s3.copy_s3_object(resp["s3-original-path"], resp["archived-path"])
 
                 if remove_on_pass:
                     log.info(f"Removing data in land: {resp['s3-original-path']}")
@@ -414,9 +414,9 @@ def validate_data(config: dict):
         for resp in all_table_responses:
             if fail_base_path:
                 if compress:
-                    compress_data(resp["s3-original-path"], resp["archived_path"])
+                    compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
-                    s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+                    s3.copy_s3_object(resp["s3-original-path"], resp["archived-path"])
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
