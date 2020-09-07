@@ -1,7 +1,6 @@
 import os
 import yaml
 import gzip
-import json
 import tempfile
 
 
@@ -73,4 +72,3 @@ def test_compression(s3):
         assert (
             compressed_json_str == uncompressed_json.read()
         ), "uncompressed json doesn't contain the same data as compressed json"
-
