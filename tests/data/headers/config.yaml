@@ -14,14 +14,14 @@ tables:
         pattern: ^table1_mixed_headers
         expect-header: true
         headers-ignore-case: true
-    
+
     table1_strict_headers:
         required: true
         metadata: tests/data/headers/meta_data/table1.json
         pattern: ^table1_strict_headers
         expect-header: true
         headers-ignore-case: false
-    
+
     table1_no_header:
         required: true
         metadata: tests/data/headers/meta_data/table1.json
@@ -32,7 +32,7 @@ tables:
         required: true
         pattern: ^table2_missing_keys
         metadata: tests/data/headers/meta_data/table2.json
-    
+
     table2_mixed_headers:
         required: true
         pattern: ^table2_mixed_headers
