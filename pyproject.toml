@@ -6,6 +6,7 @@ authors = ["Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
            "Tapan Perkins <tapan.perkins@digital.justice.gov.uk>",
            "Karik Isichei <karik.isichei@digital.justice.gov.uk>"]
+readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.7"
