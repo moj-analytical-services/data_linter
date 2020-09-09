@@ -3,12 +3,18 @@ import yaml
 import json
 import re
 import logging
-import sys
 
 from datetime import datetime
 
 from jsonschema import validate as json_validate
-from dataengineeringutils3 import s3
+
+from dataengineeringutils3.s3 import (
+    get_filepaths_from_s3_folder,
+    copy_s3_object,
+    delete_s3_object,
+    write_json_to_s3,
+)
+
 import boto3
 
 from goodtables import validate
@@ -24,6 +30,7 @@ from data_linter.logging_functions import (
 from data_linter.utils import (
     get_out_path,
     get_log_path,
+    compress_data,
 )
 
 import pprint
@@ -76,7 +83,7 @@ def match_files_in_land_to_config(config) -> dict:
     Checks against other config parameters and raise error if config params not met.
     """
     land_base_path = config["land-base-path"]
-    land_files = s3.get_filepaths_from_s3_folder(land_base_path)
+    land_files = get_filepaths_from_s3_folder(land_base_path)
 
     if not land_files and config.get("fail-no-files", False):
         raise FileNotFoundError(f"No files found in the s3 path: {land_base_path}")
@@ -286,6 +293,7 @@ def validate_data(config: dict):
     log_base_path = config["log-base-path"]
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
+    compress = config.get("compress-data")
 
     config = match_files_in_land_to_config(config)
 
@@ -333,7 +341,7 @@ def validate_data(config: dict):
                         table_name,
                         utc_ts,
                         file_basename,
-                        compress=config["compress-data"],
+                        compress=compress,
                         filenum=i,
                     )
 
@@ -342,10 +350,13 @@ def validate_data(config: dict):
                         msg2 = f"...file passed. Writing to {final_outpath}"
                         print(msg2)
                         log.info(msg2)
-                        s3.copy_s3_object(matched_file, final_outpath)
+                        if compress:
+                            compress_data(matched_file, final_outpath)
+                        else:
+                            copy_s3_object(matched_file, final_outpath)
                         if remove_on_pass:
                             log.info(f"Removing {matched_file}")
-                            s3.delete_s3_object(matched_file)
+                            delete_s3_object(matched_file)
                     else:
                         print("File passed")
                         log.info("File passed")
@@ -357,7 +368,7 @@ def validate_data(config: dict):
                         table_name,
                         utc_ts,
                         file_basename,
-                        compress=config["compress-data"],
+                        compress=compress,
                         filenum=i,
                     )
                     table_response["archived-path"] = final_outpath
@@ -365,6 +376,11 @@ def validate_data(config: dict):
                         msg3 = f"...file failed. Writing to {final_outpath}"
                         print(msg3)
                         log.warning(msg3)
+                        if compress:
+                            compress_data(matched_file, final_outpath)
+                        else:
+                            copy_s3_object(matched_file, final_outpath)
+
                 else:
                     overall_pass = False
                     table_response["archived-path"] = None
@@ -373,7 +389,7 @@ def validate_data(config: dict):
                 log_outpath = get_log_path(log_base_path, table_name, utc_ts, filenum=i)
 
                 # Write log to s3
-                s3.write_json_to_s3(table_response, log_outpath)
+                write_json_to_s3(table_response, log_outpath)
                 all_table_responses.append(table_response)
 
         else:
@@ -386,11 +402,14 @@ def validate_data(config: dict):
         if all_must_pass:
             log.info(f"Copying data from {land_base_path} to {pass_base_path}")
             for resp in all_table_responses:
-                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+                if compress:
+                    compress_data(resp["s3-original-path"], resp["archived-path"])
+                else:
+                    copy_s3_object(resp["s3-original-path"], resp["archived-path"])
 
                 if remove_on_pass:
                     log.info(f"Removing data in land: {resp['s3-original-path']}")
-                    s3.delete_s3_object(resp["s3-original-path"])
+                    delete_s3_object(resp["s3-original-path"])
 
     elif all_must_pass:
         if fail_base_path:
@@ -400,7 +419,10 @@ def validate_data(config: dict):
         log.error("The following tables failed:")
         for resp in all_table_responses:
             if fail_base_path:
-                s3.copy_s3_object(resp["s3-original-path"], resp["archived_path"])
+                if compress:
+                    compress_data(resp["s3-original-path"], resp["archived-path"])
+                else:
+                    copy_s3_object(resp["s3-original-path"], resp["archived-path"])
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
@@ -462,6 +484,6 @@ def run_validation(config_path="config.yaml"):
 
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
 
-        raise type(e)(str(e)).with_traceback(sys.exc_info()[2])
+        raise e.with_traceback(e.__traceback__)
     else:
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
