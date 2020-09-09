@@ -3,6 +3,7 @@ import yaml
 import gzip
 import tempfile
 
+import pytest
 
 def set_up_s3(mocked_s3, test_folder, config):
     from dataengineeringutils3.s3 import s3_path_to_bucket_key
@@ -40,6 +41,19 @@ def test_end_to_end(s3):
     set_up_s3(s3, test_folder, config)
     run_validation(config_path)
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
+
+
+def test_end_to_end_no_creds_error():
+
+    from data_linter.validation import run_validation
+    from botocore.exceptions import ClientError
+
+    test_folder = "tests/data/end_to_end1/"
+    config_path = os.path.join(test_folder, "config.yaml")
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+    with pytest.raises(ClientError):
+        run_validation(config_path)
 
 
 def test_compression(s3):

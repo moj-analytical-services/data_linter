@@ -485,6 +485,6 @@ def run_validation(config_path="config.yaml"):
 
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
 
-        raise type(e)(str(e)).with_traceback(sys.exc_info()[2])
+        raise e.with_traceback(e.__traceback__)
     else:
         upload_log(body=log_stringio.getvalue(), s3_path=log_path)
