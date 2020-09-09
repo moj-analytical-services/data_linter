@@ -1,7 +1,7 @@
 import os
 
 
-def test_create_bucket(s3_client):
+def test_download_fileobj(s3_client):
     # s3 is a fixture defined above that yields a boto3 s3 client.
     from dataengineeringutils3.s3 import s3_path_to_bucket_key
     s3_client.create_bucket(Bucket="somebucket")
