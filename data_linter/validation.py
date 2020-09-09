@@ -3,7 +3,6 @@ import yaml
 import json
 import re
 import logging
-import sys
 
 from datetime import datetime
 

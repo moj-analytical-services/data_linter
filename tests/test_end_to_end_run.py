@@ -51,8 +51,7 @@ def test_end_to_end_no_creds_error():
 
     test_folder = "tests/data/end_to_end1/"
     config_path = os.path.join(test_folder, "config.yaml")
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
+
     with pytest.raises(ClientError):
         run_validation(config_path)
 
