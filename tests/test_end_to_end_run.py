@@ -29,7 +29,7 @@ def set_up_s3(mocked_s3, test_folder, config):
         mocked_s3.meta.client.upload_file(full_path, land_bucket, filename)
 
 
-def test_end_to_end(s3):
+def test_end_to_end(s3, s3_client):
 
     from data_linter.validation import run_validation
 
@@ -42,7 +42,7 @@ def test_end_to_end(s3):
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
 
 
-def test_compression(s3):
+def test_compression(s3, s3_client):
     from data_linter.utils import compress_data
 
     test_folder = "tests/data/end_to_end1/"
