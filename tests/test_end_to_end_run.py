@@ -5,6 +5,7 @@ import tempfile
 
 import pytest
 
+
 def set_up_s3(mocked_s3, test_folder, config):
     from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
