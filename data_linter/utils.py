@@ -11,14 +11,12 @@ from dataengineeringutils3.s3 import (
     write_local_file_to_s3,
 )
 
-s3_client = boto3.client("s3")
-
-
 # import logging
 # log = logging.getLogger("root")
 
 
 def download_data(s3_path: str, local_path: str):
+    s3_client = boto3.client("s3")
     dirname = os.path.dirname(local_path)
     Path(dirname).mkdir(parents=True, exist_ok=True)
     with open(local_path, "wb") as f:
@@ -27,6 +25,7 @@ def download_data(s3_path: str, local_path: str):
 
 
 def compress_data(s3_download_path: str, s3_upload_path: str):
+    s3_client = boto3.client("s3")
     with tempfile.TemporaryDirectory() as temp_dir:
         bucket, key = s3_path_to_bucket_key(s3_download_path)
         temp_file = os.path.join(temp_dir, key.split("/")[-1])
@@ -64,6 +63,8 @@ def get_log_path(basepath: str, table: str, ts: str, filenum: int = 0) -> str:
 
 
 def local_file_to_s3(local_path: str, s3_path: str):
+    s3_client = boto3.client("s3")
+
     if (not local_path.endswith(".gz")) and (s3_path.endswith(".gz")):
         new_path = local_path + ".gz"
         with open(local_path, "rb") as f_in, gzip.open(new_path, "wb") as f_out:

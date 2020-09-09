@@ -17,7 +17,6 @@ def aws_credentials():
 @pytest.fixture(scope="function")
 def s3(aws_credentials):
     with mock_s3():
-        boto3.setup_default_session()
         yield boto3.resource("s3", region_name="eu-west-1")
 
 
