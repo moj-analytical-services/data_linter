@@ -400,8 +400,13 @@ def validate_data(config: dict):
     if overall_pass:
         log.info("All tables passed")
         if all_must_pass:
-            log.info(f"Copying data from {land_base_path} to {pass_base_path}")
+            msg5 = f"Copying data from {land_base_path} to {pass_base_path}"
+            log.info(msg5)
+            print(msg5)
             for resp in all_table_responses:
+                msg6 = f"Copying {resp['s3-original-path']} to {resp['archived-path']}"
+                print(msg6)
+                log.info(msg6)
                 if compress:
                     compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
