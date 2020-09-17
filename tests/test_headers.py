@@ -34,7 +34,9 @@ def set_up_s3(mocked_s3, test_folder, config):
         log_bucket,
     ]
     for b in buckets:
-        mocked_s3.meta.client.create_bucket(Bucket=b)
+        mocked_s3.meta.client.create_bucket(
+            Bucket=b, CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+        )
 
     files = [
         f for f in os.listdir(test_folder) if f.endswith(".csv") or f.endswith(".jsonl")
