@@ -50,7 +50,7 @@ def get_out_path(
         final_filename += ".gz"
 
     out_path = os.path.join(
-        basepath, table, f"mojap_fileland_timestamp={ts}", final_filename
+        basepath, table, f"mojap_file_land_timestamp={ts}", final_filename
     )
     return out_path
 
