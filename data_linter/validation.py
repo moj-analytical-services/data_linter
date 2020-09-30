@@ -16,6 +16,7 @@ from dataengineeringutils3.s3 import (
 )
 
 import boto3
+from botocore.client import Config
 
 from goodtables import validate
 from tabulator import Stream
@@ -37,7 +38,8 @@ import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
 
-s3_client = boto3.client("s3")
+config = Config(read_timeout=120)
+s3_client = boto3.client("s3", config=config)
 
 log = logging.getLogger("root")
 
