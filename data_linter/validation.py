@@ -17,8 +17,7 @@ from dataengineeringutils3.s3 import (
 
 import boto3
 
-from goodtables import validate
-from tabulator import Stream
+from frictionless import validate, Table
 
 from data_linter.constants import config_schema
 
@@ -259,10 +258,10 @@ def _read_data_and_validate(
     print(f"Reading and validating: {filepath}")
     if " " in filepath:
         raise ValueError("The filepath must not contain a space")
-    with Stream(filepath) as stream:
+    with Table(filepath) as stream:
         if table_params.get("expect-header") and metadata["data_format"] != "json":
             # Get the first line from the file if expecting a header
-            headers = next(stream.iter())
+            headers = stream.header
             if table_params.get("headers-ignore-case"):
                 headers = [h.lower() for h in headers]
         else:
@@ -279,7 +278,7 @@ def _read_data_and_validate(
             skip_checks = []
 
         response = validate(
-            stream.iter, schema=schema, headers=headers, skip_checks=skip_checks
+            stream.row_stream, schema=schema, headers=headers, skip_errors=skip_checks
         )
     return response
 
@@ -324,6 +323,7 @@ def validate_data(config: dict):
                 response = _read_data_and_validate(
                     matched_file, schema, table_params, metadata
                 )
+                pp.pprint(response)
 
                 pp.pprint(response["tables"])
                 log.info(str(response["tables"]))
