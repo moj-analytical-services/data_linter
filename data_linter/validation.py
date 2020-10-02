@@ -420,10 +420,9 @@ def validate_data(config: dict):
 
     elif all_must_pass:
         if fail_base_path:
-            m0 = f"Copying files to {fail_base_path}"
+            m0 = "Copying files"
             print(m0)
             log.info(m0)
-        log.error("The following tables failed:")
         for resp in all_table_responses:
             if resp["archived-path"]:
                 if compress:
@@ -434,6 +433,7 @@ def validate_data(config: dict):
                     print(f"Copying file from {resp['s3-original-path']} to {resp['archived-path']}")
                     log.info(f"Copying file from {resp['s3-original-path']} to {resp['archived-path']}")
                     copy_s3_object(resp["s3-original-path"], resp["archived-path"])
+            log.error("The following tables failed:")
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
