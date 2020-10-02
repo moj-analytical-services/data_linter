@@ -427,18 +427,22 @@ def validate_data(config: dict):
             if resp["archived-path"]:
                 if compress:
                     print(
-                        f"Compressing file from {resp['s3-original-path']} to {resp['archived-path']}"
+                        f"Compressing file from {resp['s3-original-path']} \
+                             to {resp['archived-path']}"
                     )
                     log.info(
-                        f"Compressing file from {resp['s3-original-path']} to {resp['archived-path']}"
+                        f"Compressing file from {resp['s3-original-path']} to \
+                            {resp['archived-path']}"
                     )
                     compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
                     print(
-                        f"Copying file from {resp['s3-original-path']} to {resp['archived-path']}"
+                        f"Copying file from {resp['s3-original-path']} to \
+                            {resp['archived-path']}"
                     )
                     log.info(
-                        f"Copying file from {resp['s3-original-path']} to {resp['archived-path']}"
+                        f"Copying file from {resp['s3-original-path']} to \
+                            {resp['archived-path']}"
                     )
                     copy_s3_object(resp["s3-original-path"], resp["archived-path"])
             log.error("The following tables failed:")
