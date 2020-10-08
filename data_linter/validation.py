@@ -72,7 +72,7 @@ def load_and_validate_config(config_path: str = "config.yaml") -> dict:
 
 
 def validate_and_clean_config(config: dict) -> dict:
-    """Validates a config as a dict. And adds default 
+    """Validates a config as a dict. And adds default
     properties to that config.
 
     Args:
