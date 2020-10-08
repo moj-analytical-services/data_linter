@@ -66,6 +66,13 @@ def load_and_validate_config(config_path: str = "config.yaml") -> dict:
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
+    config = validate_and_clean_config(config)
+    json_validate(config, config_schema)
+
+    return config
+
+
+def validate_and_clean_config(config: dict) -> dict:
     json_validate(config, config_schema)
 
     for table_name, params in config["tables"].items():
