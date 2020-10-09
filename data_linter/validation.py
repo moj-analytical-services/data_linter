@@ -137,7 +137,9 @@ def match_files_in_land_to_config(config) -> dict:
         large_error_traceback = ""
         for table_name, table_params in config["tables"].items():
             large_error_traceback += f"{table_name}: {table_params['matched_files']} \n"
-        raise FileExistsError(f"We matched the same files to multiple tables.\n{large_error_traceback}")
+        raise FileExistsError(
+            f"We matched the same files to multiple tables.\n{large_error_traceback}"
+        )
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
