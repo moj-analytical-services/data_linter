@@ -134,7 +134,10 @@ def match_files_in_land_to_config(config) -> dict:
         all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
-        raise FileExistsError("We matched the same files to multiple tables")
+        large_error_traceback = ""
+        for table_name, table_params in config["tables"].items():
+            large_error_traceback += f"{table_name}: {table_params['matched_files']} \n"
+        raise FileExistsError(f"We matched the same files to multiple tables.\n{large_error_traceback}")
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
@@ -311,7 +314,7 @@ def validate_data(config: dict):
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
     compress = config.get("compress-data")
-
+    partition_by_timestamp = config.get("partition-by-timestamp")
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -360,6 +363,7 @@ def validate_data(config: dict):
                         file_basename,
                         compress=compress,
                         filenum=i,
+                        partition_by_timestamp=partition_by_timestamp,
                     )
 
                     table_response["archived-path"] = final_outpath
@@ -387,6 +391,7 @@ def validate_data(config: dict):
                         file_basename,
                         compress=compress,
                         filenum=i,
+                        partition_by_timestamp=partition_by_timestamp,
                     )
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:

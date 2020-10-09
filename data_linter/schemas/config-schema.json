@@ -15,6 +15,17 @@
         "tables"
     ],
     "properties": {
+        "partition-by-timestamp": {
+            "$id": "#/properties/partition-by-timestamp",
+            "type": "string",
+            "title": "The partition-by-timestamp Schema",
+            "description": "If you want to write your data out to be partitioned by timestamp give the name of partition column. Otherwise if null data is not partitioned by timestamp.",
+            "default": null,
+            "examples": [
+                "mojap_land_time_stamp",
+                "run_timestamp"
+            ]
+        },
         "land-base-path": {
             "$id": "#/properties/land-base-path",
             "type": "string",
