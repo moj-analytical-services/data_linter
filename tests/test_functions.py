@@ -29,7 +29,10 @@ def test_get_out_path():
         filenum=20,
         partition_by_timestamp="mojap_file_land_timestamp",
     )
-    e2 = "base_path/two/table1/mojap_file_land_timestamp=1234567/file-20-1234567.jsonl.gz"
+    e2 = (
+        "base_path/two/table1/mojap_file_land_timestamp=1234567/"
+        "file-20-1234567.jsonl.gz"
+    )
     assert o2 == e2
 
     o3 = get_out_path(
@@ -41,5 +44,8 @@ def test_get_out_path():
         filenum=20,
         partition_by_timestamp="mojap_file_land_timestamp",
     )
-    e3 = "base_path/two/table1/mojap_file_land_timestamp=1234567/file-20-1234567.other-ext.jsonl.gz"
+    e3 = (
+        "base_path/two/table1/mojap_file_land_timestamp=1234567/"
+        "file-20-1234567.other-ext.jsonl.gz"
+    )
     assert o3 == e3
