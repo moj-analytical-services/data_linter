@@ -316,7 +316,7 @@ def validate_data(config: dict):
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
     compress = config.get("compress-data")
-    partition_by_timestamp = config.get("partition-by-timestamp")
+    timestamp_partition_name = config.get("timestamp-partition-name")
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -365,7 +365,7 @@ def validate_data(config: dict):
                         file_basename,
                         compress=compress,
                         filenum=i,
-                        partition_by_timestamp=partition_by_timestamp,
+                        timestamp_partition_name=timestamp_partition_name,
                     )
 
                     table_response["archived-path"] = final_outpath
@@ -393,7 +393,7 @@ def validate_data(config: dict):
                         file_basename,
                         compress=compress,
                         filenum=i,
-                        partition_by_timestamp=partition_by_timestamp,
+                        timestamp_partition_name=timestamp_partition_name,
                     )
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:

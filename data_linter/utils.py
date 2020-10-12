@@ -44,16 +44,16 @@ def get_out_path(
     filename: str,
     compress: bool = False,
     filenum: int = 0,
-    partition_by_timestamp: Union[str, None] = None,
+    timestamp_partition_name: Union[str, None] = None,
 ) -> str:
     filename_only, ext = filename.split(".", 1)
     final_filename = f"{filename_only}-{filenum}-{ts}.{ext}"
     if compress and not ext.endswith(".gz"):
         final_filename += ".gz"
 
-    if partition_by_timestamp:
+    if timestamp_partition_name:
         out_path = os.path.join(
-            basepath, table, f"{partition_by_timestamp}={ts}", final_filename
+            basepath, table, f"{timestamp_partition_name}={ts}", final_filename
         )
     else:
         out_path = os.path.join(

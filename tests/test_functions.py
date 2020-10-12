@@ -27,7 +27,7 @@ def test_get_out_path():
         filename="file.jsonl",
         compress=True,
         filenum=20,
-        partition_by_timestamp="mojap_file_land_timestamp",
+        timestamp_partition_name="mojap_file_land_timestamp",
     )
     e2 = (
         "base_path/two/table1/mojap_file_land_timestamp=1234567/"
@@ -42,7 +42,7 @@ def test_get_out_path():
         filename="file.other-ext.jsonl",
         compress=True,
         filenum=20,
-        partition_by_timestamp="mojap_file_land_timestamp",
+        timestamp_partition_name="mojap_file_land_timestamp",
     )
     e3 = (
         "base_path/two/table1/mojap_file_land_timestamp=1234567/"

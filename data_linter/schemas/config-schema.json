@@ -15,10 +15,10 @@
         "tables"
     ],
     "properties": {
-        "partition-by-timestamp": {
-            "$id": "#/properties/partition-by-timestamp",
+        "timestamp-partition-name": {
+            "$id": "#/properties/timestamp-partition-name",
             "type": "string",
-            "title": "The partition-by-timestamp Schema",
+            "title": "The timestamp-partition-name Schema",
             "description": "If you want to write your data out to be partitioned by timestamp give the name of partition column. Otherwise if null data is not partitioned by timestamp.",
             "default": null,
             "examples": [
