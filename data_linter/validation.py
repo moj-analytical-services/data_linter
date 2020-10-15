@@ -18,7 +18,7 @@ from dataengineeringutils3.s3 import (
 import boto3
 from botocore.client import Config
 
-from frictionless import validate, Table
+from frictionless import validate, Table, dialects
 
 from data_linter.constants import config_schema
 
@@ -258,29 +258,28 @@ def _read_data_and_validate(
         metadata (dict): The metadata for the table
     """
     print(f"Reading and validating: {filepath}")
+    dialect = dialects.Dialect()
+    skip_checks = []
+
     if " " in filepath:
         raise ValueError("The filepath must not contain a space")
-    with Table(filepath) as stream:
+    with Table(filepath) as table:
         if table_params.get("expect-header") and metadata["data_format"] != "json":
             # Get the first line from the file if expecting a header
-            headers = stream.header
             if table_params.get("headers-ignore-case"):
-                headers = [h.lower() for h in headers]
+                dialect = dialects.Dialect(header_case=False)
         else:
-            headers = [c["name"] for c in metadata["columns"]]
+            skip_checks.append("#head")
 
         # This has to be added for jsonl
         # This forces the validator to put the headers in the right order
         # and inform it ahead of time what all the headers should be.
         # If not specified the iterator reorders the columns.
-        stream.headers = headers
         if metadata["data_format"] == "json":
-            skip_checks = ["missing-value"]
-        else:
-            skip_checks = []
+            skip_checks.append("missing-value")
 
         response = validate(
-            stream.row_stream, schema=schema, headers=headers, skip_errors=skip_checks
+            table.row_stream, schema=schema, dialect=dialect, skip_errors=skip_checks
         )
     return response
 

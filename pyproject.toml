@@ -11,7 +11,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.7"
 dataengineeringutils3 = "^1.0.1"
-frictionless = "^3.0.0"
+frictionless = "^3.23.3"
 boto3 = "^1.14.7"
 jsonschema = "^3.2.0"
 pyyaml = "^5.3.1"
