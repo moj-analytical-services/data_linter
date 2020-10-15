@@ -4,6 +4,8 @@ import json
 import re
 import logging
 
+from typing import Union
+
 from datetime import datetime
 
 from jsonschema import validate as json_validate
@@ -37,8 +39,8 @@ import pprint
 
 pp = pprint.PrettyPrinter(indent=4)
 
-config = Config(read_timeout=120)
-s3_client = boto3.client("s3", config=config)
+boto3_config = Config(read_timeout=120)
+s3_client = boto3.client("s3", config=boto3_config)
 
 log = logging.getLogger("root")
 
@@ -65,6 +67,19 @@ def load_and_validate_config(config_path: str = "config.yaml") -> dict:
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
 
+    return validate_and_clean_config(config)
+
+
+def validate_and_clean_config(config: dict) -> dict:
+    """Validates a config as a dict. And adds default
+    properties to that config.
+
+    Args:
+        config (dict): Config for data linter validation run.
+
+    Returns:
+        dict: The same config but with default params added.
+    """
     json_validate(config, config_schema)
 
     for table_name, params in config["tables"].items():
@@ -419,16 +434,32 @@ def validate_data(config: dict):
 
     elif all_must_pass:
         if fail_base_path:
-            m0 = f"Copying files to {fail_base_path}"
+            m0 = "Copying files"
             print(m0)
             log.info(m0)
-        log.error("The following tables failed:")
         for resp in all_table_responses:
-            if fail_base_path:
+            if resp["archived-path"]:
                 if compress:
+                    print(
+                        f"Compressing file from {resp['s3-original-path']} \
+                             to {resp['archived-path']}"
+                    )
+                    log.info(
+                        f"Compressing file from {resp['s3-original-path']} to \
+                            {resp['archived-path']}"
+                    )
                     compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
+                    print(
+                        f"Copying file from {resp['s3-original-path']} to \
+                            {resp['archived-path']}"
+                    )
+                    log.info(
+                        f"Copying file from {resp['s3-original-path']} to \
+                            {resp['archived-path']}"
+                    )
                     copy_s3_object(resp["s3-original-path"], resp["archived-path"])
+            log.error("The following tables failed:")
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
@@ -457,12 +488,13 @@ def validate_data(config: dict):
         log.info(m6)
 
 
-def run_validation(config_path="config.yaml"):
+def run_validation(config: Union[str, dict] = "config.yaml"):
     """
     Runs end to end validation based on config.
 
     Args:
-        config_path (str, optional): [description]. Defaults to "config.yaml".
+        config (Union[str, dict], optional): Either a string specifying the path to a
+        config yaml. Or a dict of a config in memory. Defaults to "config.yaml".
 
     Raises:
         Error: States where log is written if error is hit in validation and then raises
@@ -474,7 +506,13 @@ def run_validation(config_path="config.yaml"):
 
     log.info("Loading config")
     try:
-        config = load_and_validate_config(config_path)
+        if isinstance(config, str):
+            config = load_and_validate_config(config)
+        elif isinstance(config, dict):
+            config = validate_and_clean_config(config)
+        else:
+            raise TypeError("Input 'config' must be a str or dict.")
+
         log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
         validate_data(config)
