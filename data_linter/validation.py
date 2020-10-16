@@ -339,9 +339,7 @@ def validate_data(config: dict):
                 response = _read_data_and_validate(
                     matched_file, schema, table_params, metadata
                 )
-                pp.pprint(response)
 
-                pp.pprint(response["tables"])
                 log.info(str(response["tables"]))
 
                 table_response = response["tables"][0]
