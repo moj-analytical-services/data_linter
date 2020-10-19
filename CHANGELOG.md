@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## v2.0.0 - 2020-10-19
+
+- Upgrade from `goodtables` to `frictionless` package (#57)
+- (Hopefully) address aws read timeout issue (#79)
+- Review printing and logging (#86)
+- Separating out functionality so that users can provide a config stored in memory rather than a file (#84)
+- Add option for defining the timestamp partition name (#85)
+
 ## v1.1.4 - 2020-10-05
 
 - Minor logic change when all_must_pass is set to True
