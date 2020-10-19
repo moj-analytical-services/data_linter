@@ -36,10 +36,6 @@ from data_linter.utils import (
     compress_data,
 )
 
-import pprint
-
-pp = pprint.PrettyPrinter(indent=4)
-
 boto3_config = Config(read_timeout=120)
 s3_client = boto3.client("s3", config=boto3_config)
 
@@ -278,7 +274,7 @@ def _read_data_and_validate(
         table_params (dict): Table params dictionary
         metadata (dict): The metadata for the table
     """
-    print(f"Reading and validating: {filepath}")
+    log.info(f"Reading and validating: {filepath}")
     if " " in filepath:
         raise ValueError("The filepath must not contain a space")
     with Stream(filepath) as stream:
@@ -327,7 +323,7 @@ def validate_data(config: dict):
         table_params["lint-response"] = []
         if table_params["matched_files"]:
             msg1 = f"Linting {table_name}"
-            print(msg1)
+
             log.info(msg1)
 
             meta_file_path = table_params.get(
@@ -347,16 +343,17 @@ def validate_data(config: dict):
                     matched_file, schema, table_params, metadata
                 )
 
-                pp.pprint(response["tables"])
-                log.info(str(response["tables"]))
+                # Only write out response to inmemory log that goes to s3
+                # i.e. send to debug rather than info
+                log.debug(str(response["tables"]))
 
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
 
                 log_validation_result(log, table_response)
+
                 # Write data to s3 on pass or elsewhere on fail
-                # log.info(f"TEST {response}")
                 if table_response["valid"]:
                     final_outpath = get_out_path(
                         pass_base_path,
@@ -371,7 +368,6 @@ def validate_data(config: dict):
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:
                         msg2 = f"...file passed. Writing to {final_outpath}"
-                        print(msg2)
                         log.info(msg2)
                         if compress:
                             compress_data(matched_file, final_outpath)
@@ -381,7 +377,6 @@ def validate_data(config: dict):
                             log.info(f"Removing {matched_file}")
                             delete_s3_object(matched_file)
                     else:
-                        print("File passed")
                         log.info("File passed")
 
                 elif fail_base_path:
@@ -398,7 +393,6 @@ def validate_data(config: dict):
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:
                         msg3 = f"...file failed. Writing to {final_outpath}"
-                        print(msg3)
                         log.warning(msg3)
                         if compress:
                             compress_data(matched_file, final_outpath)
@@ -418,7 +412,6 @@ def validate_data(config: dict):
 
         else:
             msg4 = f"SKIPPING {table_name}. No files found."
-            print(msg4)
             log.info(msg4)
 
     if overall_pass:
@@ -426,10 +419,9 @@ def validate_data(config: dict):
         if all_must_pass:
             msg5 = f"Copying data from {land_base_path} to {pass_base_path}"
             log.info(msg5)
-            print(msg5)
+
             for resp in all_table_responses:
                 msg6 = f"Copying {resp['s3-original-path']} to {resp['archived-path']}"
-                print(msg6)
                 log.info(msg6)
                 if compress:
                     compress_data(resp["s3-original-path"], resp["archived-path"])
@@ -443,25 +435,16 @@ def validate_data(config: dict):
     elif all_must_pass:
         if fail_base_path:
             m0 = "Copying files"
-            print(m0)
             log.info(m0)
         for resp in all_table_responses:
             if resp["archived-path"]:
                 if compress:
-                    print(
-                        f"Compressing file from {resp['s3-original-path']} \
-                             to {resp['archived-path']}"
-                    )
                     log.info(
                         f"Compressing file from {resp['s3-original-path']} to \
                             {resp['archived-path']}"
                     )
                     compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
-                    print(
-                        f"Copying file from {resp['s3-original-path']} to \
-                            {resp['archived-path']}"
-                    )
                     log.info(
                         f"Copying file from {resp['s3-original-path']} to \
                             {resp['archived-path']}"
@@ -472,9 +455,6 @@ def validate_data(config: dict):
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
                 m3 = f"... out path: {resp['archived-path']}"
-                print(m1)
-                print(m2)
-                print(m3)
                 log.error(m1)
                 log.error(m2)
                 log.error(m3)
@@ -484,15 +464,12 @@ def validate_data(config: dict):
             "Tables that passed but not written due to other table failures"
             f"are stored here: {land_base_path}"
         )
-        print(m4)
-        print(m5)
         log.info(m4)
         log.info(m5)
         raise ValueError("Tables did not pass linter")
 
     else:
         m6 = "Some tables failed but all_must_pass set to false. Check logs for details"
-        print(m6)
         log.info(m6)
 
 
