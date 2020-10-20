@@ -282,7 +282,7 @@ def _read_data_and_validate(
         dialect = dialects.JsonDialect(keys=expected_headers)
     else: # assumes CSV
         dialect = dialects.Dialect(header_case=table_params.get("headers-ignore-case", False))
-        if table_params.get("expect-header"):
+        if not table_params.get("expect-header"):
             skip_errors.append("#head")
 
     if " " in filepath:

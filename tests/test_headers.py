@@ -51,12 +51,12 @@ def set_up_s3(mocked_s3, test_folder, config):
 @pytest.mark.parametrize(
     "file_name,expected_result",
     [
-        ("table1.csv", [False, True, True]),
-        ("table1_mixed_headers.csv", [False, False, True]),
+        ("table1.csv", [True, True, True]),
+        ("table1_mixed_headers.csv", [True, False, True]),
         ("table1_no_header.csv", [True, False, False]),
         ("table2.jsonl", [True, True, True]),
         ("table2_missing_keys.jsonl", [True, True, True]),
-        ("table2_mixed_headers.jsonl", [True, False, True]),
+        ("table2_mixed_headers.jsonl", [False, False, False]),
         ("table2_wrong_headers.jsonl", [False, False, False])
     ]
 )
