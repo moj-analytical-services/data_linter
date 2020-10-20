@@ -273,15 +273,28 @@ def _read_data_and_validate(
         metadata (dict): The metadata for the table
     """
     print(f"Reading and validating: {filepath}")
-    
+
     skip_errors = []
-    
+
     # assert the correct dialect and checks
+
+    header_case = not table_params.get("headers-ignore-case", False)
     if metadata["data_format"] == "json":
-        expected_headers = [c["name"] for c in metadata["columns"] if c not in metadata.get("partitions", [])]
+        expected_headers = [
+            c["name"]
+            for c in metadata["columns"]
+            if c not in metadata.get("partitions", [])
+        ]
         dialect = dialects.JsonDialect(keys=expected_headers)
-    else: # assumes CSV
-        dialect = dialects.Dialect(header_case=table_params.get("headers-ignore-case", False))
+        if "headers-ignore-case" in table_params or "expect-header" in table_params:
+            conf_warn = (
+                "jsonl files do not support header options. If keys "
+                "in json lines do not match up exactly (i.e. case sensitive) "
+                "with meta columns then keys will be nulled"
+            )
+            log.warning(conf_warn)
+    else:  # assumes CSV
+        dialect = dialects.Dialect(header_case=header_case)
         if not table_params.get("expect-header"):
             skip_errors.append("#head")
 
