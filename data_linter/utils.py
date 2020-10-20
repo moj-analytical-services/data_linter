@@ -4,6 +4,7 @@ import boto3
 import gzip
 import tempfile
 
+from typing import Union
 from pathlib import Path
 
 from dataengineeringutils3.s3 import (
@@ -40,20 +41,26 @@ def get_out_path(
     filename: str,
     compress: bool = False,
     filenum: int = 0,
+    timestamp_partition_name: Union[str, None] = None,
 ) -> str:
     filename_only, ext = filename.split(".", 1)
-    final_filename = f"{filename_only}-{ts}-{filenum}.{ext}"
+    final_filename = f"{filename_only}-{filenum}-{ts}.{ext}"
     if compress and not ext.endswith(".gz"):
         final_filename += ".gz"
 
-    out_path = os.path.join(
-        basepath, table, f"mojap_file_land_timestamp={ts}", final_filename
-    )
+    if timestamp_partition_name:
+        out_path = os.path.join(
+            basepath, table, f"{timestamp_partition_name}={ts}", final_filename
+        )
+    else:
+        out_path = os.path.join(
+            basepath, table, final_filename
+        )
     return out_path
 
 
 def get_log_path(basepath: str, table: str, ts: str, filenum: int = 0) -> str:
-    final_filename = f"log-{table}-{ts}-{filenum}.json"
+    final_filename = f"log-{table}-{filenum}-{ts}.json"
 
     out_path = os.path.join(basepath, table, final_filename)
     return out_path

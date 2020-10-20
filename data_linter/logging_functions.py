@@ -22,9 +22,10 @@ class ContextFilter(logging.Filter):
 def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
 
     log = logging.getLogger("root")
+    log.setLevel(logging.DEBUG)
+
     log_stringio = io.StringIO()
     handler = logging.StreamHandler(log_stringio)
-    log.setLevel(logging.INFO)
 
     log_formatter = logging.Formatter(
         fmt="%(asctime)s | %(module)s | %(levelname)s | %(context)s | %(message)s",
@@ -32,6 +33,12 @@ def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
     )
     handler.setFormatter(log_formatter)
     log.addHandler(handler)
+
+    # Add console output
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    console.setFormatter(log_formatter)
+    log.addHandler(console)
 
     cf = ContextFilter()
     log.addFilter(cf)
