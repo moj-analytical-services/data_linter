@@ -11,7 +11,6 @@ def test_convert_meta_type_to_goodtable_type():
 
     gt_schema = convert_meta_to_goodtables_schema(meta)
 
-    assert Schema(gt_schema).valid is True
     assert Schema(gt_schema).metadata_valid is True
 
 
