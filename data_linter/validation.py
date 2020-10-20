@@ -211,7 +211,7 @@ def convert_meta_to_goodtables_schema(meta: dict) -> dict:
     gt_template = {
         "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
         "fields": [],
-        "missingValues": [""],
+        "missingValues": [],
     }
 
     gt_constraint_names = [
@@ -273,28 +273,24 @@ def _read_data_and_validate(
         metadata (dict): The metadata for the table
     """
     print(f"Reading and validating: {filepath}")
-    dialect = dialects.Dialect()
-    skip_checks = []
+    
+    skip_errors = []
+    
+    # assert the correct dialect and checks
+    if metadata["data_format"] == "json":
+        expected_headers = [c["name"] for c in metadata["columns"] if c not in metadata.get("partitions", [])]
+        dialect = dialects.JsonDialect(keys=expected_headers)
+    else: # assumes CSV
+        dialect = dialects.Dialect(header_case=table_params.get("headers-ignore-case", False))
+        if table_params.get("expect-header"):
+            skip_errors.append("#head")
 
     if " " in filepath:
         raise ValueError("The filepath must not contain a space")
-    with Table(filepath) as table:
-        if table_params.get("expect-header") and metadata["data_format"] != "json":
-            # Get the first line from the file if expecting a header
-            if table_params.get("headers-ignore-case"):
-                dialect = dialects.Dialect(header_case=False)
-        else:
-            skip_checks.append("#head")
 
-        # This has to be added for jsonl
-        # This forces the validator to put the headers in the right order
-        # and inform it ahead of time what all the headers should be.
-        # If not specified the iterator reorders the columns.
-        if metadata["data_format"] == "json":
-            skip_checks.append("missing-value")
-
+    with Table(filepath, dialect=dialect) as table:
         response = validate(
-            table.row_stream, schema=schema, dialect=dialect, skip_errors=skip_checks
+            table.row_stream, schema=schema, dialect=dialect, skip_errors=skip_errors
         )
     return response
 

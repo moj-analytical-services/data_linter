@@ -2,6 +2,7 @@ import os
 import json
 import yaml
 from pprint import pprint
+import pytest
 
 from data_linter.validation import (
     _read_data_and_validate,
@@ -14,7 +15,7 @@ expected_linting_result = {
     "table1_mixed_headers": True,
     "table1_strict_headers": False,
     "table1_no_header": True,
-    "table2_missing_keys": False,
+    "table2_missing_keys": True,
     "table2_wrong_headers": False,
     "table2_mixed_headers": True,
 }
@@ -47,41 +48,56 @@ def set_up_s3(mocked_s3, test_folder, config):
         full_path = os.path.join(test_folder, filename)
         mocked_s3.meta.client.upload_file(full_path, land_bucket, filename)
 
+@pytest.mark.parametrize(
+    "file_name,expected_result",
+    [
+        ("table1.csv", [False, True, True]),
+        ("table1_mixed_headers.csv", [False, False, True]),
+        ("table1_no_header.csv", [True, False, False]),
+        ("table2.jsonl", [True, True, True]),
+        ("table2_missing_keys.jsonl", [True, True, True]),
+        ("table2_mixed_headers.jsonl", [True, False, True]),
+        ("table2_wrong_headers.jsonl", [False, False, False])
+    ]
+)
+def test_headers(file_name, expected_result):
+    """
+    Tests files against the _read_data_and_validate function.
 
-def test_headers(s3):
+    runs each file and corresponding meta (table1 or table2).
+    Against the additional table config params:
+    - expected-headers is False
+    - expected-headers is True and ignore-case is False
+    - expected-headers is True and ignore-case is True
+
+    In that order
+
+    Args:
+        file_name ([str]): The filename in the dir tests/data/headers/
+        expected_results ([Tuple(bool)]): expected results for the 3 different config params listed above
+    """
     test_folder = "tests/data/headers/"
-    config_path = os.path.join(test_folder, "config.yaml")
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-    set_up_s3(s3, test_folder, config)
+    full_file_path = os.path.join(test_folder, file_name)
 
-    config = load_and_validate_config(config_path)
-    config = match_files_in_land_to_config(config)
+    table_name = file_name.split(".")[0].split("_")[0]
+    with open(os.path.join(test_folder, f"meta_data/{table_name}.json")) as f:
+        metadata = json.load(f)
+    
+    schema = convert_meta_to_goodtables_schema(metadata)
 
-    all_responses = {}
 
-    for table_name, table_params in config["tables"].items():
-        table_params["lint-response"] = []
-        if table_params["matched_files"]:
-            msg1 = f"Linting {table_name}"
-            print(msg1)
+    table_params = [
+        {"expect-header": False},
+        {"expect-header": True, "headers-ignore-case": False},
+        {"expect-header": True, "headers-ignore-case": True},
+    ]
 
-            meta_file_path = table_params.get(
-                "metadata", f"meta_data/{table_name}.json"
-            )
+    all_tests = []
+    for table_param in table_params:
+        response = _read_data_and_validate(
+            full_file_path, schema, table_param, metadata
+        )
+        table_response = response["tables"][0]
+        all_tests.append(table_response["valid"])
 
-            with open(meta_file_path) as sfile:
-                metadata = json.load(sfile)
-                schema = convert_meta_to_goodtables_schema(metadata)
-
-            for i, matched_file in enumerate(table_params["matched_files"]):
-
-                response = _read_data_and_validate(
-                    matched_file, schema, table_params, metadata
-                )
-
-                table_response = response["tables"][0]
-
-                all_responses[table_name] = table_response["valid"]
-                pprint(all_responses)
-    assert all_responses == expected_linting_result
+    assert expected_result == all_tests
