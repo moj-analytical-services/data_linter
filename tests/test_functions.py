@@ -14,6 +14,7 @@ def test_convert_meta_type_to_goodtable_type():
     assert Schema(gt_schema).valid is True
     assert Schema(gt_schema).metadata_valid is True
 
+
 def test_get_out_path():
     o1 = get_out_path(
         basepath="base_path/", table="table1", ts=1000, filename="file.csv"
