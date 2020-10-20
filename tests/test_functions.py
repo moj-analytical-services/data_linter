@@ -1,5 +1,5 @@
 import json
-from tableschema import Schema
+from frictionless import Schema
 
 from data_linter.validation import convert_meta_to_goodtables_schema
 from data_linter.utils import get_out_path
@@ -10,8 +10,9 @@ def test_convert_meta_type_to_goodtable_type():
         meta = json.load(f)
 
     gt_schema = convert_meta_to_goodtables_schema(meta)
-    assert Schema(gt_schema).valid is True
 
+    assert Schema(gt_schema).valid is True
+    assert Schema(gt_schema).metadata_valid is True
 
 def test_get_out_path():
     o1 = get_out_path(

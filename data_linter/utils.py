@@ -12,9 +12,6 @@ from dataengineeringutils3.s3 import (
     write_local_file_to_s3,
 )
 
-# import logging
-# log = logging.getLogger("root")
-
 
 def download_data(s3_path: str, local_path: str):
     s3_client = boto3.client("s3")
