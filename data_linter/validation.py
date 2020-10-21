@@ -510,25 +510,18 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
         validate_data(config)
+
     except Exception as e:
-        if log_path:
-            log_msg = (
-                f"Unexpected error. Uploading log to {log_path} before raising error."
-            )
-            error_msg = str(e)
+        log_msg = (
+            f"Unexpected error. Uploading log to {log_path} before raising error."
+        )
+        error_msg = str(e)
 
-            log.error(log_msg)
-            log.error(error_msg)
+        log.error(log_msg)
+        log.error(error_msg)
 
-            upload_log(body=log_stringio.getvalue(), s3_path=log_path)
-        else:
-            log.error("An error occurred but no log path registered, "
-                      "so cannot upload to log S3.")
+        upload_log(log, log_stringio, log_path)
 
         raise e.with_traceback(e.__traceback__)
     else:
-        if log_path:
-            upload_log(body=log_stringio.getvalue(), s3_path=log_path)
-        else:
-            log.error("Something went wrong but no log path was given, "
-                      "so log won't be uploaded")
+        upload_log(log, log_stringio, log_path)
