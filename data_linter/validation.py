@@ -495,32 +495,40 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
     """
 
     # set up logging
-
-    if isinstance(config, str):
-        config = load_and_validate_config(config)
-    elif isinstance(config, dict):
-        config = validate_and_clean_config(config)
-    else:
-        raise TypeError("Input 'config' must be a str or dict.")
     log, log_stringio = logging_setup()
-    log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
-    log.info("Loading config")
 
+    log.info("Loading config")
+    log_path = None
     try:
+        if isinstance(config, str):
+            config = load_and_validate_config(config)
+        elif isinstance(config, dict):
+            config = validate_and_clean_config(config)
+        else:
+            raise TypeError("Input 'config' must be a str or dict.")
+
+        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
         validate_data(config)
     except Exception as e:
-        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
-        log_msg = (
-            f"Unexpected error hit. Uploading log to {log_path}. Before raising error."
-        )
-        error_msg = str(e)
+        if log_path:
+            log_msg = (
+                f"Unexpected error. Uploading log to {log_path} before raising error."
+            )
+            error_msg = str(e)
 
-        log.error(log_msg)
-        log.error(error_msg)
+            log.error(log_msg)
+            log.error(error_msg)
 
-        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+            upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+        else:
+            log.error("An error occurred but no log path registered, "
+                      "so cannot upload to log S3.")
 
         raise e.with_traceback(e.__traceback__)
     else:
-        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+        if log_path:
+            upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+        else:
+            log.error("Something went wrong but no log path was given, "
+                      "so log won't be uploaded")
