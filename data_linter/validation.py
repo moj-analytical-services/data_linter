@@ -496,7 +496,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
 
     # set up logging
     log, log_stringio = logging_setup()
-
+    log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
     log.info("Loading config")
     try:
         if isinstance(config, str):
@@ -506,7 +506,6 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         else:
             raise TypeError("Input 'config' must be a str or dict.")
 
-        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
         validate_data(config)
     except Exception as e:

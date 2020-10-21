@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "data_linter"
-version = "2.0.0"
+version = "2.0.1"
 description = "data linter"
 authors = ["Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
