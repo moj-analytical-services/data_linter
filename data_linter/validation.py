@@ -498,6 +498,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
     log, log_stringio = logging_setup()
 
     log.info("Loading config")
+    log_path = None
     try:
         if isinstance(config, str):
             config = load_and_validate_config(config)
@@ -509,18 +510,18 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
         validate_data(config)
+
     except Exception as e:
-        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
         log_msg = (
-            f"Unexpected error hit. Uploading log to {log_path}. Before raising error."
+            f"Unexpected error. Uploading log to {log_path} before raising error."
         )
         error_msg = str(e)
 
         log.error(log_msg)
         log.error(error_msg)
 
-        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+        upload_log(log, log_stringio, log_path)
 
         raise e.with_traceback(e.__traceback__)
     else:
-        upload_log(body=log_stringio.getvalue(), s3_path=log_path)
+        upload_log(log, log_stringio, log_path)
