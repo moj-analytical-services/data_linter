@@ -20,8 +20,7 @@ from dataengineeringutils3.s3 import (
 import boto3
 from botocore.client import Config
 
-from goodtables import validate
-from tabulator import Stream
+from frictionless import validate, Table, dialects
 
 from data_linter.constants import config_schema
 
@@ -35,10 +34,6 @@ from data_linter.utils import (
     get_log_path,
     compress_data,
 )
-
-import pprint
-
-pp = pprint.PrettyPrinter(indent=4)
 
 boto3_config = Config(read_timeout=120)
 s3_client = boto3.client("s3", config=boto3_config)
@@ -134,7 +129,12 @@ def match_files_in_land_to_config(config) -> dict:
         all_matched.extend(table_params["matched_files"])
 
     if len(all_matched) != len(set(all_matched)):
-        raise FileExistsError("We matched the same files to multiple tables")
+        large_error_traceback = ""
+        for table_name, table_params in config["tables"].items():
+            large_error_traceback += f"{table_name}: {table_params['matched_files']} \n"
+        raise FileExistsError(
+            f"We matched the same files to multiple tables.\n{large_error_traceback}"
+        )
 
     # Fail if expecting no unknown files
     if "fail-unknown-files" in config:
@@ -212,7 +212,7 @@ def convert_meta_to_goodtables_schema(meta: dict) -> dict:
     gt_template = {
         "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
         "fields": [],
-        "missingValues": [""],
+        "missingValues": [],
     }
 
     gt_constraint_names = [
@@ -273,30 +273,39 @@ def _read_data_and_validate(
         table_params (dict): Table params dictionary
         metadata (dict): The metadata for the table
     """
-    print(f"Reading and validating: {filepath}")
+
+    log.info(f"Reading and validating: {filepath}")
+
+    skip_errors = []
+
+    # assert the correct dialect and checks
+
+    header_case = not table_params.get("headers-ignore-case", False)
+    if metadata["data_format"] == "json":
+        expected_headers = [
+            c["name"]
+            for c in metadata["columns"]
+            if c not in metadata.get("partitions", [])
+        ]
+        dialect = dialects.JsonDialect(keys=expected_headers)
+        if "headers-ignore-case" in table_params or "expect-header" in table_params:
+            conf_warn = (
+                "jsonl files do not support header options. If keys "
+                "in json lines do not match up exactly (i.e. case sensitive) "
+                "with meta columns then keys will be nulled"
+            )
+            log.warning(conf_warn)
+    else:  # assumes CSV
+        dialect = dialects.Dialect(header_case=header_case)
+        if not table_params.get("expect-header"):
+            skip_errors.append("#head")
+
     if " " in filepath:
         raise ValueError("The filepath must not contain a space")
-    with Stream(filepath) as stream:
-        if table_params.get("expect-header") and metadata["data_format"] != "json":
-            # Get the first line from the file if expecting a header
-            headers = next(stream.iter())
-            if table_params.get("headers-ignore-case"):
-                headers = [h.lower() for h in headers]
-        else:
-            headers = [c["name"] for c in metadata["columns"]]
 
-        # This has to be added for jsonl
-        # This forces the validator to put the headers in the right order
-        # and inform it ahead of time what all the headers should be.
-        # If not specified the iterator reorders the columns.
-        stream.headers = headers
-        if metadata["data_format"] == "json":
-            skip_checks = ["missing-value"]
-        else:
-            skip_checks = []
-
+    with Table(filepath, dialect=dialect) as table:
         response = validate(
-            stream.iter, schema=schema, headers=headers, skip_checks=skip_checks
+            table.row_stream, schema=schema, dialect=dialect, skip_errors=skip_errors
         )
     return response
 
@@ -311,7 +320,7 @@ def validate_data(config: dict):
     fail_base_path = config.get("fail-base-path")
     remove_on_pass = config.get("remove-tables-on-pass")
     compress = config.get("compress-data")
-
+    timestamp_partition_name = config.get("timestamp-partition-name")
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -322,7 +331,7 @@ def validate_data(config: dict):
         table_params["lint-response"] = []
         if table_params["matched_files"]:
             msg1 = f"Linting {table_name}"
-            print(msg1)
+
             log.info(msg1)
 
             meta_file_path = table_params.get(
@@ -342,16 +351,17 @@ def validate_data(config: dict):
                     matched_file, schema, table_params, metadata
                 )
 
-                pp.pprint(response["tables"])
-                log.info(str(response["tables"]))
+                # Only write out response to inmemory log that goes to s3
+                # i.e. send to debug rather than info
+                log.debug(str(response["tables"]))
 
                 table_response = response["tables"][0]
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
 
                 log_validation_result(log, table_response)
+
                 # Write data to s3 on pass or elsewhere on fail
-                # log.info(f"TEST {response}")
                 if table_response["valid"]:
                     final_outpath = get_out_path(
                         pass_base_path,
@@ -360,12 +370,12 @@ def validate_data(config: dict):
                         file_basename,
                         compress=compress,
                         filenum=i,
+                        timestamp_partition_name=timestamp_partition_name,
                     )
 
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:
                         msg2 = f"...file passed. Writing to {final_outpath}"
-                        print(msg2)
                         log.info(msg2)
                         if compress:
                             compress_data(matched_file, final_outpath)
@@ -375,7 +385,6 @@ def validate_data(config: dict):
                             log.info(f"Removing {matched_file}")
                             delete_s3_object(matched_file)
                     else:
-                        print("File passed")
                         log.info("File passed")
 
                 elif fail_base_path:
@@ -387,11 +396,11 @@ def validate_data(config: dict):
                         file_basename,
                         compress=compress,
                         filenum=i,
+                        timestamp_partition_name=timestamp_partition_name,
                     )
                     table_response["archived-path"] = final_outpath
                     if not all_must_pass:
                         msg3 = f"...file failed. Writing to {final_outpath}"
-                        print(msg3)
                         log.warning(msg3)
                         if compress:
                             compress_data(matched_file, final_outpath)
@@ -411,7 +420,6 @@ def validate_data(config: dict):
 
         else:
             msg4 = f"SKIPPING {table_name}. No files found."
-            print(msg4)
             log.info(msg4)
 
     if overall_pass:
@@ -419,10 +427,9 @@ def validate_data(config: dict):
         if all_must_pass:
             msg5 = f"Copying data from {land_base_path} to {pass_base_path}"
             log.info(msg5)
-            print(msg5)
+
             for resp in all_table_responses:
                 msg6 = f"Copying {resp['s3-original-path']} to {resp['archived-path']}"
-                print(msg6)
                 log.info(msg6)
                 if compress:
                     compress_data(resp["s3-original-path"], resp["archived-path"])
@@ -436,25 +443,16 @@ def validate_data(config: dict):
     elif all_must_pass:
         if fail_base_path:
             m0 = "Copying files"
-            print(m0)
             log.info(m0)
         for resp in all_table_responses:
             if resp["archived-path"]:
                 if compress:
-                    print(
-                        f"Compressing file from {resp['s3-original-path']} \
-                             to {resp['archived-path']}"
-                    )
                     log.info(
                         f"Compressing file from {resp['s3-original-path']} to \
                             {resp['archived-path']}"
                     )
                     compress_data(resp["s3-original-path"], resp["archived-path"])
                 else:
-                    print(
-                        f"Copying file from {resp['s3-original-path']} to \
-                            {resp['archived-path']}"
-                    )
                     log.info(
                         f"Copying file from {resp['s3-original-path']} to \
                             {resp['archived-path']}"
@@ -465,9 +463,6 @@ def validate_data(config: dict):
                 m1 = f"{resp['table-name']} failed"
                 m2 = f"... original path: {resp['s3-original-path']}"
                 m3 = f"... out path: {resp['archived-path']}"
-                print(m1)
-                print(m2)
-                print(m3)
                 log.error(m1)
                 log.error(m2)
                 log.error(m3)
@@ -477,15 +472,12 @@ def validate_data(config: dict):
             "Tables that passed but not written due to other table failures"
             f"are stored here: {land_base_path}"
         )
-        print(m4)
-        print(m5)
         log.info(m4)
         log.info(m5)
         raise ValueError("Tables did not pass linter")
 
     else:
         m6 = "Some tables failed but all_must_pass set to false. Check logs for details"
-        print(m6)
         log.info(m6)
 
 
