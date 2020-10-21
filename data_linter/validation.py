@@ -495,17 +495,18 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
     """
 
     # set up logging
+
+    if isinstance(config, str):
+        config = load_and_validate_config(config)
+    elif isinstance(config, dict):
+        config = validate_and_clean_config(config)
+    else:
+        raise TypeError("Input 'config' must be a str or dict.")
     log, log_stringio = logging_setup()
     log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
     log.info("Loading config")
-    try:
-        if isinstance(config, str):
-            config = load_and_validate_config(config)
-        elif isinstance(config, dict):
-            config = validate_and_clean_config(config)
-        else:
-            raise TypeError("Input 'config' must be a str or dict.")
 
+    try:
         log.info("Running validation")
         validate_data(config)
     except Exception as e:
