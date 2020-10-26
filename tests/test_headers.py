@@ -1,6 +1,7 @@
 import os
 import json
 import pytest
+from pprint import pprint
 
 from data_linter.validation import (
     _read_data_and_validate,
@@ -11,8 +12,8 @@ from data_linter.validation import (
 @pytest.mark.parametrize(
     "file_name,expected_result",
     [
-        ("table1.csv", [True, True, True]),
-        ("table1_mixed_headers.csv", [True, False, True]),
+        ("table1.csv", [False, True, True]),
+        ("table1_mixed_headers.csv", [False, False, True]),
         ("table1_no_header.csv", [True, False, False]),
         ("table2.jsonl", [True, True, True]),
         ("table2_missing_keys.jsonl", [True, True, True]),
@@ -58,6 +59,7 @@ def test_headers(file_name, expected_result):
             full_file_path, schema, table_param, metadata
         )
         table_response = response["tables"][0]
+        pprint(table_response)
         all_tests.append(table_response["valid"])
 
     assert expected_result == all_tests
