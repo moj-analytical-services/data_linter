@@ -36,6 +36,8 @@ from data_linter.utils import (
     compress_data,
 )
 
+from data_linter.ge_validator import _ge_read_data_and_validate
+
 boto3_config = Config(read_timeout=120)
 s3_client = boto3.client("s3", config=boto3_config)
 
@@ -301,6 +303,7 @@ def validate_data(config: dict):
     remove_on_pass = config.get("remove-tables-on-pass")
     compress = config.get("compress-data")
     timestamp_partition_name = config.get("timestamp-partition-name")
+    validator_engine = config.get("validator-engine", "goodtables")
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -327,19 +330,29 @@ def validate_data(config: dict):
                 log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
 
-                response = _read_data_and_validate(
-                    matched_file, schema, table_params, metadata
-                )
+                if validator_engine == "goodtables":
+                    response = _read_data_and_validate(
+                        matched_file, schema, table_params, metadata
+                    )
+                    # Only write out response to inmemory log that goes to s3
+                    # i.e. send to debug rather than info
+                    log.debug(str(response["tables"]))
+                    table_response = response["tables"][0]
+                    log_validation_result(log, table_response)
 
-                # Only write out response to inmemory log that goes to s3
-                # i.e. send to debug rather than info
-                log.debug(str(response["tables"]))
+                elif validator_engine == "great-expectations":
+                    response = _ge_read_data_and_validate(
+                        matched_file, table_params, metadata
+                    )
+                    log.debug(str(response))
+                    table_response = response
 
-                table_response = response["tables"][0]
+                else:
+                    raise ValueError(f"Unkown validator-engine: {validator_engine} provided")
+
                 table_response["s3-original-path"] = matched_file
                 table_response["table-name"] = table_name
 
-                log_validation_result(log, table_response)
 
                 # Write data to s3 on pass or elsewhere on fail
                 if table_response["valid"]:
