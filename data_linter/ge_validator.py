@@ -150,9 +150,9 @@ def ge_type_test(dfe, colname, coltype, dt_fmt=None):
     if coltype in ["date", "datetime"]:
         if dt_fmt is None:
             dt_fmt = "%Y-%m-%d" if coltype == "date" else "%Y-%m-%d %H:%M:%S" 
-        result = dfe.expect_column_values_to_match_strftime_format(colname, strftime_format=dt_fmt)
+        result = dfe.expect_column_values_to_match_strftime_format(colname, strftime_format=dt_fmt, result_format="SUMMARY")
     else:
-        result = dfe.expect_column_values_to_be_of_type(colname, pd_conversion.get(coltype, coltype))
+        result = dfe.expect_column_values_to_be_of_type(colname, pd_conversion.get(coltype, coltype), result_format="SUMMARY")
 
     if not result.success:
         log.error(f"col: {colname} was not of the expected type", extra={"context": "VALIDATION"})
@@ -163,7 +163,8 @@ def ge_min_max_length_test(dfe, colname, min_length, max_length):
     result = dfe.expect_column_value_lengths_to_be_between(
         colname,
         min_value=min_length,
-        max_value=max_length
+        max_value=max_length,
+        result_format="SUMMARY"
     )
     if not result.success:
         log.error(f"col: {colname} not between min/max length values", extra={"context": "VALIDATION"})
@@ -173,7 +174,8 @@ def ge_min_max_length_test(dfe, colname, min_length, max_length):
 def ge_enum_test(dfe, colname, enum):
     result = dfe.expect_column_values_to_be_in_set(
         colname,
-        value_set=enum
+        value_set=enum,
+        result_format="SUMMARY"
     )
     if not result.success:
         log.error(f"col: {colname} has values outside of enum set", extra={"context": "VALIDATION"})
@@ -195,7 +197,8 @@ def ge_min_max_test(dfe, colname, minimum, maximum):
     result = dfe.expect_column_values_to_be_between(
         colname,
         min_value=minimum,
-        max_value=maximum
+        max_value=maximum,
+        result_format="SUMMARY"
     )
     if not result.success:
         log.error(f"col: {colname} not between min/max values", extra={"context": "VALIDATION"})
@@ -203,14 +206,14 @@ def ge_min_max_test(dfe, colname, minimum, maximum):
 
 
 def ge_unique_test(dfe, colname):
-    result = dfe.expect_column_values_to_be_unique(colname)
+    result = dfe.expect_column_values_to_be_unique(colname, result_format="SUMMARY")
     if not result.success:
         log.error(f"col: {colname} not unique", extra={"context": "VALIDATION"})
     return result.to_json_dict()
 
 
 def ge_nullable_test(dfe, colname):
-    result = dfe.expect_column_values_to_not_be_null(colname)
+    result = dfe.expect_column_values_to_not_be_null(colname, result_format="SUMMARY")
     if not result.success:
         log.error(f"col: {colname} contains nulls", extra={"context": "VALIDATION"})
     return result.to_json_dict()
