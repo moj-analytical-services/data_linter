@@ -251,6 +251,17 @@
                                     true,
                                     false
                                 ]
+                                },
+                            "only-test-cols-in-metadata": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/only-test-cols-in-metadata",
+                                "type": "boolean",
+                                "title": "The only-test-cols-in-metadata Schema",
+                                "description": "Set to avoid testing new cols and failing if all expected cols pass but new unknown columns also exist. Only for ge validator-engine.",
+                                "examples": [
+                                    true,
+                                    false
+                                ],
+                                "default": false
                                 }
                             }
                         }

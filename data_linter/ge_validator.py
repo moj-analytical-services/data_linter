@@ -37,11 +37,13 @@ def _convert_df_to_meta_for_testing(df, metadata):
 def _parse_data_to_pandas(
     filepath: str, table_params: dict, metadata: dict
 ):
+
+    meta_col_names = [c["name"] for c in metadata["columns"] if c["name"] not in metadata.get("partitions", [])]
     if metadata["data_format"] == "csv":
         names = None
         header = "infer" if table_params.get("expect-header", True) else None
         if header is None:
-            names = [c["name"] for c in metadata["columns"] if c["name"] not in metadata.get("partitions", [])]
+            names = meta_col_names
         df = pd.read_csv(filepath, header=header, dtype="string", names=names)
 
     elif metadata["data_format"] == "json":
@@ -57,6 +59,10 @@ def _parse_data_to_pandas(
     if table_params.get("headers-ignore-case"):
         df_cols = [c.lower() for c in df.columns]
         df.columns = df_cols
+
+    if table_params.get("only-test-cols-in-metadata", False):
+        keep_cols = [c for c in df.columns if c in meta_col_names]
+        df = df[keep_cols]
 
     return df
 
