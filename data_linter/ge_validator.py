@@ -1,14 +1,23 @@
 # Add ons so allowed to skip if need be
-try:
-    import great_expectations as ge
-    import pandas as pd
-except ImportError:
-    pass
-
 import logging
 import copy
-
 log = logging.getLogger("root")
+
+try:
+    import great_expectations as ge
+except ImportError as e:
+    log.warning(str(e))
+
+try:
+    import pandas as pd
+except ImportError as e:
+    log.warning(str(e))
+
+try:
+    import awswrangler as wr
+except ImportError as e:
+    log.warning(str(e))
+
 
 numerical_conversion = {
     "int": "Int64",
@@ -44,13 +53,23 @@ def _parse_data_to_pandas(
         header = "infer" if table_params.get("expect-header", True) else None
         if header is None:
             names = meta_col_names
-        df = pd.read_csv(filepath, header=header, dtype="string", names=names)
+        
+        if filepath.startswith("s3://"):
+            df = wr.s3.read_csv([filepath], header=header, dtype="string", names=names)
+        else:
+            df = pd.read_csv(filepath, header=header, dtype="string", names=names)
 
     elif metadata["data_format"] == "json":
-        df = pd.read_json(filepath, lines=True, dtype="string")
+        if filepath.startswith("s3://"):
+            df = wr.s3.read_json([filepath], lines=True, dtype="string")
+        else:
+            df = pd.read_json(filepath, lines=True, dtype="string")
 
     elif metadata["data_format"] == "parquet":
-        df = pd.read_parquet(filepath)
+        if filepath.startswith("s3://"):
+            df = wr.s3.read_parquet([filepath])
+        else:
+            df = pd.read_parquet(filepath)
 
     else:
         data_fmt = metadata["data_format"]
