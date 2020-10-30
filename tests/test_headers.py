@@ -1,7 +1,6 @@
 import os
 import json
 import pytest
-from pprint import pprint
 
 from data_linter.validators.frictionless_validator import (
     FrictionlessValidator,
@@ -11,8 +10,8 @@ from data_linter.validators.frictionless_validator import (
 @pytest.mark.parametrize(
     "file_name,expected_result",
     [
-        ("table1.csv", [False, True, True]),
-        ("table1_mixed_headers.csv", [False, False, True]),
+        ("table1.csv", [True, True, True]),
+        ("table1_mixed_headers.csv", [True, False, True]),
         ("table1_no_header.csv", [True, False, False]),
         ("table2.jsonl", [True, True, True]),
         ("table2_missing_keys.jsonl", [True, True, True]),
@@ -23,15 +22,12 @@ from data_linter.validators.frictionless_validator import (
 def test_headers(file_name, expected_result):
     """
     Tests files against the _read_data_and_validate function.
-
     runs each file and corresponding meta (table1 or table2).
     Against the additional table config params:
     - expected-headers is False
     - expected-headers is True and ignore-case is False
     - expected-headers is True and ignore-case is True
-
     In that order
-
     Args:
         file_name ([str]): The filename in the dir tests/data/headers/
         expected_results ([Tuple(bool)]): expected results for the 3
@@ -52,13 +48,11 @@ def test_headers(file_name, expected_result):
 
     all_tests = []
     for table_param in table_params:
-
         validator = FrictionlessValidator(
             full_file_path, table_param, metadata
         )
         validator.read_data_and_validate()
         table_response = validator.response
-        pprint(table_response)
         all_tests.append(table_response["valid"])
 
     assert expected_result == all_tests

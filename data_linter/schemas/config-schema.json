@@ -54,7 +54,10 @@
         },
         "fail-base-path": {
             "$id": "#/properties/fail-base-path",
-            "type": ["string", "null"],
+            "type": [
+                "string",
+                "null"
+            ],
             "title": "The Fail-base-path Schema",
             "description": "Data which does not pass validation will end up here.",
             "default": "",
@@ -176,8 +179,7 @@
                 "title": "The Items Schema",
                 "description": "",
                 "default": {},
-                "required": [
-                ],
+                "required": [],
                 "patternProperties": {
                     "^.*$": {
                         "$id": "#/properties/tables/items/properties/table1",
@@ -223,15 +225,16 @@
                                     "table1"
                                 ]
                             },
-                            "linter": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/linter",
-                                "type": "string",
-                                "title": "The Linter Schema",
-                                "description": "Which linter to use. For now only goodtables",
-                                "default": "goodtables",
+                            "row-limit": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/row-limit",
+                                "type": "integer",
+                                "title": "The row-limit Schema",
+                                "description": "The number of rows to validate",
                                 "examples": [
-                                    "goodtables"
-                                ],
+                                    10,
+                                    1000
+                                ]
+                            },
                             "expect-header": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
                                 "type": "boolean",
@@ -241,7 +244,7 @@
                                     true,
                                     false
                                 ]
-                                },
+                            },
                             "headers-ignore-case": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
                                 "type": "boolean",
@@ -251,7 +254,7 @@
                                     true,
                                     false
                                 ]
-                                },
+                            },
                             "only-test-cols-in-metadata": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/only-test-cols-in-metadata",
                                 "type": "boolean",
@@ -262,7 +265,6 @@
                                     false
                                 ],
                                 "default": false
-                                }
                             }
                         }
                     }

@@ -1,15 +1,14 @@
 import logging
 from data_linter.validators.base import BaseTableValidator
 
-
 optional_import_errors = ""
 try:
-    from goodtables import validate
-except ImportError as e:
-    optional_import_errors += " " + str(e)
-
-try:
-    from tabulator import Stream
+    from frictionless import (
+        validate,
+        Table,
+        dialects,
+        Query,
+    )
 except ImportError as e:
     optional_import_errors += " " + str(e)
 
@@ -35,7 +34,7 @@ class FrictionlessValidator(BaseTableValidator):
             )
             raise ImportError(imp_err)
 
-    def write_validation_errors_to_log(self, log: logging.Logger):
+    def write_validation_errors_to_log(self):
         for e in self.response["errors"]:
             log.error(e["message"], extra={"context": "VALIDATION"})
 
@@ -45,31 +44,54 @@ class FrictionlessValidator(BaseTableValidator):
         Using frictionless.
         """
 
+        log.info(f"Reading and validating: {self.filepath}")
+
+        skip_errors = []
+
+        # assert the correct dialect and checks
+        header_case = not self.table_params.get("headers-ignore-case", False)
+        if self.metadata["data_format"] == "json":
+            expected_headers = [
+                c["name"]
+                for c in self.metadata["columns"]
+                if c not in self.metadata.get("partitions", [])
+            ]
+            dialect = dialects.JsonDialect(keys=expected_headers)
+            if (
+                "headers-ignore-case" in self.table_params
+                or "expect-header" in self.table_params
+            ):
+                conf_warn = (
+                    "jsonl files do not support header options. If keys "
+                    "in json lines do not match up exactly (i.e. case sensitive) "
+                    "with meta columns then keys will be nulled"
+                )
+                log.warning(conf_warn)
+        else:  # assumes CSV
+            dialect = dialects.Dialect(header_case=header_case)
+            if not self.table_params.get("expect-header"):
+                skip_errors.append("#head")
+
+        query = None
+        row_limit = self.table_params.get("row-limit", False)
+
+        if row_limit:
+            query = Query(limit_rows=row_limit)
+
         if " " in self.filepath:
             raise ValueError("The filepath must not contain a space")
-        with Stream(self.filepath) as stream:
-            if self.table_params.get("expect-header") and self.metadata["data_format"] != "json":
-                # Get the first line from the file if expecting a header
-                headers = next(stream.iter())
-                if self.table_params.get("headers-ignore-case"):
-                    headers = [h.lower() for h in headers]
-            else:
-                headers = [c["name"] for c in self.metadata["columns"]]
 
-            # This has to be added for jsonl
-            # This forces the validator to put the headers in the right order
-            # and inform it ahead of time what all the headers should be.
-            # If not specified the iterator reorders the columns.
-            stream.headers = headers
-            if self.metadata["data_format"] == "json":
-                skip_checks = ["missing-value"]
-            else:
-                skip_checks = []
-
+        with Table(self.filepath, dialect=dialect, query=query) as table:
             resp = validate(
-                stream.iter, schema=self.schema, headers=headers, skip_checks=skip_checks
+                table.row_stream,
+                schema=self.schema,
+                dialect=dialect,
+                skip_errors=skip_errors
             )
-            self.response = resp["tables"][0]
+
+        self.valid = resp.valid
+        # Returns a class so lazily converting it to dict
+        self.response = dict(resp.tables[0])
 
 
 def convert_meta_type_to_goodtable_type(meta_type: str) -> str:

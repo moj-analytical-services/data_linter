@@ -21,9 +21,6 @@ from dataengineeringutils3.s3 import (
 import boto3
 from botocore.client import Config
 
-from goodtables import validate
-from tabulator import Stream
-
 from data_linter.constants import config_schema
 
 from data_linter.logging_functions import (
@@ -36,8 +33,6 @@ from data_linter.utils import (
     get_log_path,
     compress_data,
 )
-
-from data_linter.ge_validator import _ge_read_data_and_validate
 
 from data_linter.validators import (
     FrictionlessValidator,
@@ -203,7 +198,7 @@ def validate_data(config: dict):
                     matched_file, table_params, metadata
                 )
                 validator.read_data_and_validate()
-                validator.write_validation_errors_to_log(log)
+                validator.write_validation_errors_to_log()
 
                 # response - needs to be standardised see issue #100
                 table_response = {
