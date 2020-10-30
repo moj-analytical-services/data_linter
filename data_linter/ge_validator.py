@@ -1,6 +1,7 @@
 # Add ons so allowed to skip if need be
 import logging
 import copy
+
 log = logging.getLogger("root")
 
 try:
@@ -10,6 +11,7 @@ except ImportError as e:
 
 try:
     import pandas as pd
+    import numpy as np
 except ImportError as e:
     log.warning(str(e))
 
@@ -22,9 +24,11 @@ except ImportError as e:
 numerical_conversion = {
     "int": "Int64",
     "long": "Int64",
-    "double": "float",
-    "float": "float",
+    "double": np.float,
+    "float": np.float,
 }
+
+default_pd_in_type = "str"
 
 pd_conversion = copy.deepcopy(numerical_conversion)
 pd_conversion["datetime"] = "str"
@@ -34,12 +38,14 @@ pd_conversion["character"] = "str"
 
 
 def _convert_df_to_meta_for_testing(df, metadata):
-    for c in metadata["columns"]:
-        if (
-            c["name"] in list(df.columns) and
-            c["type"] in numerical_conversion.keys()
-        ):
-            df[c["name"]] = df[c["name"]].astype(numerical_conversion[c["type"]])
+    df_cols = list(df.columns)
+    cols = [c for c in metadata["columns"] if c["name"] in df_cols]
+    for c in cols:
+        if c["type"] in numerical_conversion:
+            df[c["name"]] = pd.to_numeric(df[c["name"]])
+            df[c["name"]] = df[c["name"]].astype(numerical_conversion[c["type"]]) # in case pandas converts to int rather than float
+        else:
+            df[c["name"]] = df[c["name"]].astype("string")
     return df
 
 
@@ -55,15 +61,15 @@ def _parse_data_to_pandas(
             names = meta_col_names
         
         if filepath.startswith("s3://"):
-            df = wr.s3.read_csv([filepath], header=header, dtype="string", names=names)
+            df = wr.s3.read_csv([filepath], header=header, dtype=default_pd_in_type, names=names)
         else:
-            df = pd.read_csv(filepath, header=header, dtype="string", names=names)
+            df = pd.read_csv(filepath, header=header, dtype=default_pd_in_type, names=names)
 
     elif metadata["data_format"] == "json":
         if filepath.startswith("s3://"):
-            df = wr.s3.read_json([filepath], lines=True, dtype="string")
+            df = wr.s3.read_json([filepath], lines=True, dtype=default_pd_in_type)
         else:
-            df = pd.read_json(filepath, lines=True, dtype="string")
+            df = pd.read_json(filepath, lines=True, dtype=default_pd_in_type)
 
     elif metadata["data_format"] == "parquet":
         if filepath.startswith("s3://"):
@@ -107,25 +113,34 @@ def validate_df_with_ge(df, metadata):
     return col_tests
 
 
-def validate_headers(df, metacols):
+def validate_headers(df, metacols, ignore_missing_cols=False):
     extra_info = {}
     df_cols = list(df.columns)
-    overall_pass = metacols == df_cols
+    full_match = metacols == df_cols
+    df_missing = set(df_cols).difference(metacols)
+    df_extra = set(metacols).difference(df_cols)
+
+    if ignore_missing_cols:
+        overall_pass = not df_extra
+        if df_missing:
+            warn_msg1 = f"data missing headers: {df_missing}"
+            log.warning(warn_msg1, extra={"context": "VALIDATION"})
+    else:
+        overall_pass = full_match
 
     if not overall_pass:
-        df_missing = set(df_cols).difference(metacols)
-        df_extra = set(metacols).difference(df_cols)
+        if df_missing:
+            err_msg1 = f"data missing headers: {df_missing}"
+            log.error(err_msg1, extra={"context": "VALIDATION"})
 
-        err_msg1 = f"data missing headers: {df_missing}"
-        err_msg2 = f"data has extra columns: {df_extra}"
+        if df_extra:
+            err_msg2 = f"data has extra columns: {df_extra}"
+            log.error(err_msg2, extra={"context": "VALIDATION"})
 
-        log.error(err_msg1, extra={"context": "VALIDATION"})
-        log.error(err_msg2, extra={"context": "VALIDATION"})
-        extra_info["missing"] = df_missing
-        extra_info["extra"] = df_extra
+        extra_info["missing"] = list(df_missing)
+        extra_info["extra"] = list(df_extra)
 
     return {"valid": overall_pass, "details": extra_info}
-
 
 
 def column_validation(dfe, metacol):
@@ -172,16 +187,21 @@ def column_validation(dfe, metacol):
 
 
 def ge_type_test(dfe, colname, coltype, dt_fmt=None):
-    if coltype in ["date", "datetime"]:
-        if dt_fmt is None:
-            dt_fmt = "%Y-%m-%d" if coltype == "date" else "%Y-%m-%d %H:%M:%S" 
-        result = dfe.expect_column_values_to_match_strftime_format(colname, strftime_format=dt_fmt, result_format="SUMMARY")
-    else:
-        result = dfe.expect_column_values_to_be_of_type(colname, pd_conversion.get(coltype, coltype), result_format="SUMMARY")
 
-    if not result.success:
-        log.error(f"col: {colname} was not of the expected type", extra={"context": "VALIDATION"})
-    return result.to_json_dict()
+    try:
+        if coltype in ["date", "datetime"]:
+            if dt_fmt is None:
+                dt_fmt = "%Y-%m-%d" if coltype == "date" else "%Y-%m-%d %H:%M:%S" 
+            result = dfe.expect_column_values_to_match_strftime_format(colname, strftime_format=dt_fmt, result_format="SUMMARY")
+        else:
+            result = dfe.expect_column_values_to_be_of_type(colname, pd_conversion.get(coltype, coltype), result_format="SUMMARY")
+    except Exception as e:
+        log.error(f"col: {colname}, type: {coltype} error. {str(e)}", extra={"context": "VALIDATION"})
+        return {"success": False}
+    else:
+        if not result.success:
+            log.error(f"col: {colname} was not of the expected type", extra={"context": "VALIDATION"})
+        return result.to_json_dict()
 
 
 def ge_min_max_length_test(dfe, colname, min_length, max_length):
