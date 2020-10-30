@@ -4,6 +4,7 @@ import json
 import re
 import logging
 
+import copy
 from typing import Union
 
 from datetime import datetime
@@ -38,10 +39,20 @@ from data_linter.utils import (
 
 from data_linter.ge_validator import _ge_read_data_and_validate
 
+from data_linter.validators import (
+    FrictionlessValidator,
+    PandasValidator,
+)
+
 boto3_config = Config(read_timeout=120)
 s3_client = boto3.client("s3", config=boto3_config)
 
 log = logging.getLogger("root")
+
+get_validator = {
+    "frictionless": FrictionlessValidator,
+    "pandas": PandasValidator
+}
 
 
 def get_validator_name() -> str:
@@ -153,145 +164,6 @@ def match_files_in_land_to_config(config) -> dict:
     return config
 
 
-def convert_meta_type_to_goodtable_type(meta_type: str) -> str:
-    """
-    Converts string name for etl_manager data type
-    and converts it to a goodtables data type
-
-    Parameters
-    ----------
-    meta_type: str
-        Column type of the etl_manager metadata
-
-    Returns
-    -------
-    str:
-        Column type of the goodtables_type
-        https://frictionlessdata.io/specs/table-schema/
-    """
-    meta_type = meta_type.lower()
-
-    lookup = {
-        "character": "string",
-        "int": "integer",
-        "long": "integer",
-        "float": "number",
-        "double": "number",
-        "date": "date",
-        "datetime": "datetime",
-        "boolean": "boolean",
-    }
-
-    if meta_type in lookup:
-        gt_type = lookup[meta_type]
-    elif meta_type.startswith("array"):
-        gt_type = "array"
-    elif meta_type.startswith("struct"):
-        gt_type = "object"
-    else:
-        raise TypeError(
-            f"Given meta_type: {meta_type} but this matches no goodtables equivalent"
-        )
-
-    return gt_type
-
-
-def convert_meta_to_goodtables_schema(meta: dict) -> dict:
-    """
-    Should take our metadata file and convert it to a goodtables schema
-
-    Parameters
-    ----------
-    meta: dict
-        Takes a metadata dictionary (see etl_manager)
-        then converts that to a particular schema for linting
-
-    Returns
-    -------
-    dict:
-        A goodtables schema
-    """
-
-    gt_template = {
-        "$schema": "https://frictionlessdata.io/schemas/table-schema.json",
-        "fields": [],
-        "missingValues": [],
-    }
-
-    gt_constraint_names = [
-        "unique",
-        "minLength",
-        "maxLength",
-        "minimum",
-        "maximum",
-        "pattern",
-        "enum",
-    ]
-
-    for col in meta["columns"]:
-        gt_constraints = {}
-
-        gt_type = convert_meta_type_to_goodtable_type(col["type"])
-        gt_format = col.get("format", "default")
-
-        if gt_type in ["date", "datetime"] and "format" not in col:
-            gt_format = "any"
-
-        if "nullable" in col:
-            gt_constraints["required"] = not col["nullable"]
-
-        contraint_params_in_col = [g for g in gt_constraint_names if g in col]
-
-        for gt_constraint_name in contraint_params_in_col:
-            gt_constraints[gt_constraint_name] = col[gt_constraint_name]
-
-        gt_template["fields"].append(
-            {
-                "name": col["name"],
-                "type": gt_type,
-                "format": gt_format,
-                "constraints": gt_constraints,
-            }
-        )
-
-    return gt_template
-
-
-def log_validation_result(log: logging.Logger, table_resp: dict):
-    for e in table_resp["errors"]:
-        log.error(e["message"], extra={"context": "VALIDATION"})
-
-
-def _read_data_and_validate(
-    filepath: str, schema: dict, table_params: dict, metadata: dict
-):
-    if " " in filepath:
-        raise ValueError("The filepath must not contain a space")
-    with Stream(filepath) as stream:
-        if table_params.get("expect-header") and metadata["data_format"] != "json":
-            # Get the first line from the file if expecting a header
-            headers = next(stream.iter())
-            if table_params.get("headers-ignore-case"):
-                headers = [h.lower() for h in headers]
-        else:
-            headers = [c["name"] for c in metadata["columns"]]
-
-        # This has to be added for jsonl
-        # This forces the validator to put the headers in the right order
-        # and inform it ahead of time what all the headers should be.
-        # If not specified the iterator reorders the columns.
-        stream.headers = headers
-        if metadata["data_format"] == "json":
-            skip_checks = ["missing-value"]
-        else:
-            skip_checks = []
-
-        response = validate(
-            stream.iter, schema=schema, headers=headers, skip_checks=skip_checks
-        )
-    return response
-
-
 def validate_data(config: dict):
 
     utc_ts = int(datetime.utcnow().timestamp())
@@ -303,7 +175,7 @@ def validate_data(config: dict):
     remove_on_pass = config.get("remove-tables-on-pass")
     compress = config.get("compress-data")
     timestamp_partition_name = config.get("timestamp-partition-name")
-    validator_engine = config.get("validator-engine", "goodtables")
+    validator_engine = config.get("validator-engine", "frictionless")
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -313,9 +185,7 @@ def validate_data(config: dict):
     for table_name, table_params in config["tables"].items():
         table_params["lint-response"] = []
         if table_params["matched_files"]:
-            msg1 = f"Linting {table_name}"
-
-            log.info(msg1)
+            log.info(f"Linting {table_name}")
 
             meta_file_path = table_params.get(
                 "metadata", f"meta_data/{table_name}.json"
@@ -323,36 +193,25 @@ def validate_data(config: dict):
 
             with open(meta_file_path) as sfile:
                 metadata = json.load(sfile)
-                schema = convert_meta_to_goodtables_schema(metadata)
 
             for i, matched_file in enumerate(table_params["matched_files"]):
                 all_matched_files.append(matched_file)
                 log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
                 file_basename = os.path.basename(matched_file)
 
-                if validator_engine == "goodtables":
-                    response = _read_data_and_validate(
-                        matched_file, schema, table_params, metadata
-                    )
-                    # Only write out response to inmemory log that goes to s3
-                    # i.e. send to debug rather than info
-                    log.debug(str(response["tables"]))
-                    table_response = response["tables"][0]
-                    log_validation_result(log, table_response)
+                validator = get_validator[validator_engine](
+                    matched_file, table_params, metadata
+                )
+                validator.read_data_and_validate()
+                validator.write_validation_errors_to_log(log)
 
-                elif validator_engine == "great-expectations":
-                    response = _ge_read_data_and_validate(
-                        matched_file, table_params, metadata
-                    )
-                    log.debug(str(response))
-                    table_response = response
-
-                else:
-                    raise ValueError(f"Unkown validator-engine: {validator_engine} provided")
-
-                table_response["s3-original-path"] = matched_file
-                table_response["table-name"] = table_name
-
+                # response - needs to be standardised see issue #100
+                table_response = {
+                    "valid": validator.valid,
+                    "response": copy.deepcopy(validator.response),
+                    "s3-original-path": matched_file,
+                    "table-name": table_name
+                }
 
                 # Write data to s3 on pass or elsewhere on fail
                 if table_response["valid"]:

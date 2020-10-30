@@ -3,9 +3,8 @@ import json
 import pytest
 from pprint import pprint
 
-from data_linter.validation import (
-    _read_data_and_validate,
-    convert_meta_to_goodtables_schema,
+from data_linter.validators.frictionless_validator import (
+    FrictionlessValidator,
 )
 
 
@@ -45,8 +44,6 @@ def test_headers(file_name, expected_result):
     with open(os.path.join(test_folder, f"meta_data/{table_name}.json")) as f:
         metadata = json.load(f)
 
-    schema = convert_meta_to_goodtables_schema(metadata)
-
     table_params = [
         {"expect-header": False},
         {"expect-header": True, "headers-ignore-case": False},
@@ -55,10 +52,12 @@ def test_headers(file_name, expected_result):
 
     all_tests = []
     for table_param in table_params:
-        response = _read_data_and_validate(
-            full_file_path, schema, table_param, metadata
+
+        validator = FrictionlessValidator(
+            full_file_path, table_param, metadata
         )
-        table_response = response["tables"][0]
+        validator.read_data_and_validate()
+        table_response = validator.response
         pprint(table_response)
         all_tests.append(table_response["valid"])
 

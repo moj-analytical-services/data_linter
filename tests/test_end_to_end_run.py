@@ -45,18 +45,18 @@ def test_end_to_end(s3):
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
 
 
-@pytest.mark.parametrize("validator", ["goodtables", "great-expectations"])
-def test_end_to_end_ge(s3, validator):
+# @pytest.mark.parametrize("validator", ["goodtables", "great-expectations"])
+# def test_end_to_end_ge(s3, validator):
 
-    from data_linter.validation import run_validation
+#     from data_linter.validation import run_validation
 
-    test_folder = "tests/data/end_to_end1/"
-    config_path = os.path.join(test_folder, "config.yaml")
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-    config["validator-engine"] = validator
-    set_up_s3(s3, test_folder, config)
-    run_validation(config)
+#     test_folder = "tests/data/end_to_end1/"
+#     config_path = os.path.join(test_folder, "config.yaml")
+#     with open(config_path) as f:
+#         config = yaml.safe_load(f)
+#     config["validator-engine"] = validator
+#     set_up_s3(s3, test_folder, config)
+#     run_validation(config)
 
 
 def test_end_to_end_no_creds_error():
