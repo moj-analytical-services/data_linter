@@ -3,7 +3,6 @@ import shutil
 import boto3
 import gzip
 import tempfile
-import importlib
 
 from typing import Union
 from pathlib import Path
