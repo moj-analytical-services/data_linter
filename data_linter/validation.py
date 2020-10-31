@@ -36,7 +36,7 @@ from data_linter.utils import (
 
 from data_linter.validators import (
     FrictionlessValidator,
-    PandasValidator,
+    GreatExpectationsValidator,
 )
 
 boto3_config = Config(read_timeout=120)
@@ -46,7 +46,7 @@ log = logging.getLogger("root")
 
 get_validator = {
     "frictionless": FrictionlessValidator,
-    "pandas": PandasValidator
+    "great-expectations": GreatExpectationsValidator
 }
 
 
