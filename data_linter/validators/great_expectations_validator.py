@@ -131,22 +131,7 @@ class GreatExpectationsValidator(BaseTableValidator):
     def write_validation_errors_to_log(self):
         table_result = self.result.get_result()
         if not table_result["valid"]:
-            for colname, col_results in table_result.items():
-                for test_name, test_result in col_results.items():
-                    if not test_result.get("success", True):
-                        if "partial_unexpected_list" in test_result:
-                            vals = test_result["partial_unexpected_list"]
-                            inds = test_result.get(
-                                "partial_unexpected_index_list", "Unknown"
-                            )
-                            examples = f"Examples {vals} at rows {inds}"
-                        else:
-                            examples = "Observation: " + test_result.get(
-                                "observed_value", "unknown check full results"
-                            )
-
-                        err = f"{test_name} failed. {examples}"
-                        log.error(err, extra={"context": "VALIDATION"})
+            log.error(str(table_result), extra={"context": "VALIDATION"})
 
     def read_data_and_validate(self):
         """Reads data from filepath and validates it.
