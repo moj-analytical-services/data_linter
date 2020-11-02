@@ -19,12 +19,8 @@ class FrictionlessValidator(BaseTableValidator):
     """
     Frictionless data validator
     """
-    def __init__(
-        self,
-        filepath: str,
-        table_params: dict,
-        metadata: dict
-    ):
+
+    def __init__(self, filepath: str, table_params: dict, metadata: dict):
         super().__init__(filepath, table_params, metadata)
         self.schema = convert_meta_to_goodtables_schema(metadata)
         if optional_import_errors:
@@ -86,7 +82,7 @@ class FrictionlessValidator(BaseTableValidator):
                 table.row_stream,
                 schema=self.schema,
                 dialect=dialect,
-                skip_errors=skip_errors
+                skip_errors=skip_errors,
             )
 
         self.valid = resp.valid

@@ -53,9 +53,7 @@ def get_out_path(
             basepath, table, f"{timestamp_partition_name}={ts}", final_filename
         )
     else:
-        out_path = os.path.join(
-            basepath, table, final_filename
-        )
+        out_path = os.path.join(basepath, table, final_filename)
     return out_path
 
 

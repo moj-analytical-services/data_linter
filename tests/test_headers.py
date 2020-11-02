@@ -48,9 +48,7 @@ def test_headers(file_name, expected_result):
 
     all_tests = []
     for table_param in table_params:
-        validator = FrictionlessValidator(
-            full_file_path, table_param, metadata
-        )
+        validator = FrictionlessValidator(full_file_path, table_param, metadata)
         validator.read_data_and_validate()
         table_response = validator.response
         all_tests.append(table_response["valid"])

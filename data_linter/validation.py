@@ -46,7 +46,7 @@ log = logging.getLogger("root")
 
 get_validator = {
     "frictionless": FrictionlessValidator,
-    "great-expectations": GreatExpectationsValidator
+    "great-expectations": GreatExpectationsValidator,
 }
 
 
@@ -205,7 +205,7 @@ def validate_data(config: dict):
                     "valid": validator.valid,
                     "response": copy.deepcopy(validator.response),
                     "s3-original-path": matched_file,
-                    "table-name": table_name
+                    "table-name": table_name,
                 }
 
                 # Write data to s3 on pass or elsewhere on fail
@@ -359,9 +359,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         validate_data(config)
 
     except Exception as e:
-        log_msg = (
-            f"Unexpected error. Uploading log to {log_path} before raising error."
-        )
+        log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
         error_msg = str(e)
 
         log.error(log_msg)
