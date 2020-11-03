@@ -131,7 +131,14 @@ class GreatExpectationsValidator(BaseTableValidator):
     def write_validation_errors_to_log(self):
         table_result = self.result.get_result()
         if not table_result["valid"]:
-            log.error(str(table_result), extra={"context": "VALIDATION"})
+            failed_cols = self.result.get_names_of_column_failures()
+            err_msg = (
+                "Table failed validation."
+                f"Col failures: {failed_cols}."
+                "See result error log for more details"
+            )
+            log.error(err_msg, extra={"context": "VALIDATION"})
+            log.debug(str(table_result), extra={"context": "VALIDATION"})
 
     def read_data_and_validate(self):
         """Reads data from filepath and validates it.
@@ -148,7 +155,7 @@ class GreatExpectationsValidator(BaseTableValidator):
         if self.metadata["data_format"] != "parquet":
             df = _convert_df_to_meta_for_testing(df, self.metadata, self.result)
 
-        validate_df_with_ge(df, self.metadata, self.result)
+        validate_df_with_ge(df, self.metadata, self.result, self.default_result_fmt)
         return self.result.get_result()
 
 
