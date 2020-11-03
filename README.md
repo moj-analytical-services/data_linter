@@ -60,6 +60,7 @@ tables:
         required: true
         pattern: ^table2
         metadata: meta_data/table2.json
+        row-limit: 10000 # for big tables - only take the first x rows
 ```
 
 You can also run the validator as part of a python script, where you might want to dynamically generate your config:
@@ -115,7 +116,7 @@ Known errors / gotchas:
 
 - `default_result_fmt`: This is passed to the GE validator, if unset default option is to set the value to `"COMPLETE"`. This value sets out how much information to be returned in the result from each "expectation". For more information [see here](https://docs.greatexpectations.io/en/v0.4.0/result_format.html). Also note the safest option is to set it to `"BASIC"` for reasons discussed in the gotcha section above.
 
-- `ignore_missing_cols`: Will only lint columns in the corresponding metadata. This is useful if you just want to make sure new data won't break deployed systems (i.e. everything else is fine if I drop that column before I push it elsewhere)
+- `ignore_missing_cols`: Will not fail if columns don't exist in data but do in metadata (it ignores this).
 
 
 ## Process Diagram
