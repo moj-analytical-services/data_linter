@@ -1,5 +1,5 @@
 import logging
-
+from copy import deepcopy
 
 class BaseTableValidator(object):
     def __init__(
@@ -25,7 +25,7 @@ class BaseTableValidator(object):
         self.response = None
 
     def write_validation_result_to_log(self, log: logging.Logger):
-        """Writes a table response to log provided.
+        """Writes a the validators response to log provided.
         Default behavior is to just write str representation
         to log.
 
@@ -33,7 +33,7 @@ class BaseTableValidator(object):
             log (logging.Logger): A python log
             table_resp (dict): A dictionary that will be written as
         """
-        log.error(self.get_error_response_str(), extra={"context": "VALIDATION"})
+        log.error(str(self.response), extra={"context": "VALIDATION"})
 
     def write_validation_errors_to_log(self, log: logging.Logger):
         raise NotImplementedError("Needs to be overwritten")
@@ -54,3 +54,9 @@ class BaseTableValidator(object):
             NotImplementedError: [description]
         """
         raise NotImplementedError("Needs to be overwritten")
+
+    def get_response_dict(self):
+        """
+        Returns the response object as a dictionary
+        """
+        return deepcopy(self.response)

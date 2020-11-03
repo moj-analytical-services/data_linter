@@ -204,7 +204,7 @@ def validate_data(config: dict):
                 # response - needs to be standardised see issue #100
                 table_response = {
                     "valid": validator.valid,
-                    "response": copy.deepcopy(validator.response),
+                    "response": validator.get_response_dict(),
                     "s3-original-path": matched_file,
                     "table-name": table_name,
                 }

@@ -126,16 +126,17 @@ class GreatExpectationsValidator(BaseTableValidator):
             raise ImportError(imp_err)
 
         self.default_result_fmt = default_result_fmt
-        self.result = ValidatorResult()
+        self.response = ValidatorResult()
+        self.valid = self.response.result["valid"]
 
     def write_validation_errors_to_log(self):
-        table_result = self.result.get_result()
+        table_result = self.response.get_result()
         if not table_result["valid"]:
-            failed_cols = self.result.get_names_of_column_failures()
+            failed_cols = self.response.get_names_of_column_failures()
             err_msg = (
                 "Table failed validation."
                 f"Col failures: {failed_cols}."
-                "See result error log for more details"
+                "See response error log for more details"
             )
             log.error(err_msg, extra={"context": "VALIDATION"})
             log.debug(str(table_result), extra={"context": "VALIDATION"})
@@ -153,11 +154,13 @@ class GreatExpectationsValidator(BaseTableValidator):
         )
 
         if self.metadata["data_format"] != "parquet":
-            df = _convert_df_to_meta_for_testing(df, self.metadata, self.result)
+            df = _convert_df_to_meta_for_testing(df, self.metadata, self.response)
 
-        validate_df_with_ge(df, self.metadata, self.result, self.default_result_fmt)
-        return self.result.get_result()
+        validate_df_with_ge(df, self.metadata, self.response, self.default_result_fmt)
+        self.valid = self.response.result["valid"]
 
+    def get_response_dict(self):
+        self.response.get_result()
 
 def _convert_df_to_meta_for_testing(df, metadata, result: ValidatorResult):
 

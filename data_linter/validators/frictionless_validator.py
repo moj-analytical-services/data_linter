@@ -1,4 +1,6 @@
 import logging
+from copy import deepcopy
+
 from data_linter.validators.base import BaseTableValidator
 
 optional_import_errors = ""
