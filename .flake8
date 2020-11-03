@@ -6,6 +6,7 @@ show-source = True
 statistics = True
 # ignore E203 because it disagrees with PEP8 and Black
 ignore = E203,W503,C901
+
 # potential to only check a specific list of rules not covered by Black
 # select = E9, F63, F7, F82
 exclude = 
