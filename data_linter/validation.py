@@ -4,7 +4,6 @@ import json
 import re
 import logging
 
-import copy
 from typing import Union
 
 from datetime import datetime
@@ -36,7 +35,7 @@ from data_linter.utils import (
 
 from data_linter.validators import (
     FrictionlessValidator,
-    PandasValidator,
+    GreatExpectationsValidator,
 )
 
 boto3_config = Config(read_timeout=120)
@@ -46,7 +45,7 @@ log = logging.getLogger("root")
 
 get_validator = {
     "frictionless": FrictionlessValidator,
-    "pandas": PandasValidator
+    "great-expectations": GreatExpectationsValidator,
 }
 
 
@@ -171,6 +170,7 @@ def validate_data(config: dict):
     compress = config.get("compress-data")
     timestamp_partition_name = config.get("timestamp-partition-name")
     validator_engine = config.get("validator-engine", "frictionless")
+    validator_params = config.get("validator-engine-params", {})
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -195,7 +195,7 @@ def validate_data(config: dict):
                 file_basename = os.path.basename(matched_file)
 
                 validator = get_validator[validator_engine](
-                    matched_file, table_params, metadata
+                    matched_file, table_params, metadata, **validator_params
                 )
                 validator.read_data_and_validate()
                 validator.write_validation_errors_to_log()
@@ -203,9 +203,9 @@ def validate_data(config: dict):
                 # response - needs to be standardised see issue #100
                 table_response = {
                     "valid": validator.valid,
-                    "response": copy.deepcopy(validator.response),
+                    "response": validator.get_response_dict(),
                     "s3-original-path": matched_file,
-                    "table-name": table_name
+                    "table-name": table_name,
                 }
 
                 # Write data to s3 on pass or elsewhere on fail
@@ -359,9 +359,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         validate_data(config)
 
     except Exception as e:
-        log_msg = (
-            f"Unexpected error. Uploading log to {log_path} before raising error."
-        )
+        log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
         error_msg = str(e)
 
         log.error(log_msg)

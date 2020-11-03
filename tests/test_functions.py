@@ -2,7 +2,7 @@ import json
 from frictionless import Schema
 
 from data_linter.validators.frictionless_validator import (
-    convert_meta_to_goodtables_schema
+    convert_meta_to_goodtables_schema,
 )
 from data_linter.utils import get_out_path
 

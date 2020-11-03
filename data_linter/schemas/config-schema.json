@@ -30,16 +30,23 @@
             "$id": "#/properties/validator-engine",
             "type": "string",
             "title": "The validator-engine to use",
-            "description": "If you want to use goodtables (aka frictionless-data) or great-expectations",
-            "default": "goodtables",
+            "description": "If you want to use frictionless or great-expectations",
+            "default": "frictionless",
             "examples": [
-                "goodtables",
+                "frictionless",
                 "great-expectations"
             ],
             "enum": [
-                "goodtables",
+                "frictionless",
                 "great-expectations"
             ]
+        },
+        "validator-engine-params": {
+            "$id": "#/properties/validator-engine-params",
+            "type": "object",
+            "title": "Additional Parameters to pass to validator",
+            "description": "Additional Parameters to pass to validator",
+            "default": {}
         },
         "land-base-path": {
             "$id": "#/properties/land-base-path",
