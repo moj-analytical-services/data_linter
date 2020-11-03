@@ -41,6 +41,13 @@
                 "great-expectations"
             ]
         },
+        "validator-engine-params": {
+            "$id": "#/properties/validator-engine-params",
+            "type": "object",
+            "title": "Additional Parameters to pass to validator",
+            "description": "Additional Parameters to pass to validator",
+            "default": {}
+        },
         "land-base-path": {
             "$id": "#/properties/land-base-path",
             "type": "string",
