@@ -90,7 +90,7 @@ class ValidatorResult(object):
         return failed_cols
 
     def add_table_test(self, testname, test_result):
-        # Same setup treats overall test as a colname
+        # Same setup - treats overall test as a colname
         self.init_col(testname)
         self.result[testname] = test_result
         if "success" in test_result:
@@ -102,6 +102,9 @@ class ValidatorResult(object):
         self.result[colname][testname] = test_result
         if "success" in test_result:
             self.result["valid"] = self.result["valid"] and test_result["success"]
+            self.result[colname]["valid"] = (
+                self.result[colname]["valid"] and test_result["success"]
+            )
 
 
 class GreatExpectationsValidator(BaseTableValidator):
@@ -114,7 +117,8 @@ class GreatExpectationsValidator(BaseTableValidator):
         filepath: str,
         table_params: dict,
         metadata: dict,
-        default_result_fmt="COMPLETE"
+        default_result_fmt="COMPLETE",
+        ignore_missing_cols=False,
     ):
         super().__init__(filepath, table_params, metadata)
 
@@ -126,6 +130,8 @@ class GreatExpectationsValidator(BaseTableValidator):
             raise ImportError(imp_err)
 
         self.default_result_fmt = default_result_fmt
+        self.ignore_missing_cols = ignore_missing_cols
+
         self.response = ValidatorResult()
         self.valid = self.response.result["valid"]
 
@@ -134,9 +140,9 @@ class GreatExpectationsValidator(BaseTableValidator):
         if not table_result["valid"]:
             failed_cols = self.response.get_names_of_column_failures()
             err_msg = (
-                "Table failed validation."
-                f"Col failures: {failed_cols}."
-                "See response error log for more details"
+                "Table failed validation. "
+                f"Col failures: {failed_cols}. "
+                "See response error log for more details."
             )
             log.error(err_msg, extra={"context": "VALIDATION"})
             log.debug(str(table_result), extra={"context": "VALIDATION"})
@@ -156,11 +162,18 @@ class GreatExpectationsValidator(BaseTableValidator):
         if self.metadata["data_format"] != "parquet":
             df = _convert_df_to_meta_for_testing(df, self.metadata, self.response)
 
-        validate_df_with_ge(df, self.metadata, self.response, self.default_result_fmt)
+        validate_df_with_ge(
+            df,
+            self.metadata,
+            self.response,
+            self.default_result_fmt,
+            self.ignore_missing_cols,
+        )
         self.valid = self.response.result["valid"]
 
     def get_response_dict(self):
         self.response.get_result()
+
 
 def _convert_df_to_meta_for_testing(df, metadata, result: ValidatorResult):
 
@@ -258,7 +271,13 @@ def _parse_data_to_pandas(
     return df
 
 
-def validate_df_with_ge(df, metadata, result: ValidatorResult, result_format="BASIC"):
+def validate_df_with_ge(
+    df,
+    metadata,
+    result: ValidatorResult,
+    result_format="BASIC",
+    ignore_missing_cols=False,
+):
     dfe = ge.dataset.PandasDataset(df)
 
     # Skip cols that could not be cast properly
@@ -271,7 +290,7 @@ def validate_df_with_ge(df, metadata, result: ValidatorResult, result_format="BA
         if col["name"] not in (metadata.get("partitions", []) + cols_to_skip)
     ]
     metacol_names = [c["name"] for c in metacols]
-    header_tests = validate_headers(df, metacol_names)
+    header_tests = validate_headers(df, metacol_names, ignore_missing_cols)
     result.add_table_test("validator-table-test-header", header_tests)
 
     for c in metacols:
@@ -283,19 +302,13 @@ def validate_headers(df, metacols, ignore_missing_cols=False):
     extra_info = {}
     df_cols = list(df.columns)
     full_match = metacols == df_cols
-    df_missing = set(df_cols).difference(metacols)
-    df_extra = set(metacols).difference(df_cols)
+    df_extra = set(df_cols).difference(metacols)
+    df_missing = set(metacols).difference(df_cols)
 
-    if ignore_missing_cols:
-        overall_pass = not df_extra
-        if df_missing:
-            warn_msg1 = f"data missing headers: {df_missing}"
-            log.warning(warn_msg1, extra={"context": "VALIDATION"})
-    else:
-        overall_pass = full_match
+    overall_pass = (not df_extra) if ignore_missing_cols else full_match
 
     if not overall_pass:
-        if df_missing:
+        if df_missing and not ignore_missing_cols:
             err_msg1 = f"data missing headers: {df_missing}"
             log.error(err_msg1, extra={"context": "VALIDATION"})
 

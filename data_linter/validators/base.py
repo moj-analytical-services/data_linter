@@ -1,14 +1,9 @@
 import logging
 from copy import deepcopy
 
+
 class BaseTableValidator(object):
-    def __init__(
-        self,
-        filepath: str,
-        table_params: dict,
-        metadata: dict,
-        **kwargs
-    ):
+    def __init__(self, filepath: str, table_params: dict, metadata: dict, **kwargs):
         """Base class for validators. Not a useable,
         but used to be inherited for other validators.
 
