@@ -7,6 +7,7 @@ class BaseTableValidator(object):
         filepath: str,
         table_params: dict,
         metadata: dict,
+        **kwargs
     ):
         """Base class for validators. Not a useable,
         but used to be inherited for other validators.

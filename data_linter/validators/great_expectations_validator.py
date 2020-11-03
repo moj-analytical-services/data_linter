@@ -114,6 +114,7 @@ class GreatExpectationsValidator(BaseTableValidator):
         filepath: str,
         table_params: dict,
         metadata: dict,
+        default_result_fmt="COMPLETE"
     ):
         super().__init__(filepath, table_params, metadata)
 
@@ -124,8 +125,7 @@ class GreatExpectationsValidator(BaseTableValidator):
             )
             raise ImportError(imp_err)
 
-        self.default_result_fmt = "COMPLETE"
-        self.col_type_conversion_failures = []
+        self.default_result_fmt = default_result_fmt
         self.result = ValidatorResult()
 
     def write_validation_errors_to_log(self):

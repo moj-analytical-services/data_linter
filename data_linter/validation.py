@@ -171,6 +171,7 @@ def validate_data(config: dict):
     compress = config.get("compress-data")
     timestamp_partition_name = config.get("timestamp-partition-name")
     validator_engine = config.get("validator-engine", "frictionless")
+    validator_params = config.get("validator-engine-params", {})
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -195,7 +196,7 @@ def validate_data(config: dict):
                 file_basename = os.path.basename(matched_file)
 
                 validator = get_validator[validator_engine](
-                    matched_file, table_params, metadata
+                    matched_file, table_params, metadata, **validator_params
                 )
                 validator.read_data_and_validate()
                 validator.write_validation_errors_to_log()
