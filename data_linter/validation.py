@@ -4,7 +4,6 @@ import json
 import re
 import logging
 
-import copy
 from typing import Union
 
 from datetime import datetime

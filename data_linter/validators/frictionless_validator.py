@@ -1,5 +1,4 @@
 import logging
-from copy import deepcopy
 
 from data_linter.validators.base import BaseTableValidator
 
