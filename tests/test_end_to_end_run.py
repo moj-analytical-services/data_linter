@@ -22,7 +22,8 @@ def set_up_s3(mocked_s3, test_folder, config):
     ]
     for b in buckets:
         mocked_s3.meta.client.create_bucket(
-            Bucket=b, CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
+            Bucket=b,
+            CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
         )
 
     files = [
@@ -31,6 +32,7 @@ def set_up_s3(mocked_s3, test_folder, config):
     for filename in files:
         full_path = os.path.join(test_folder, filename)
         mocked_s3.meta.client.upload_file(full_path, land_bucket, filename)
+
 
 def test_end_to_end(s3):
 
@@ -45,7 +47,7 @@ def test_end_to_end(s3):
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
 
 
-@pytest.mark.parametrize("validator", ["goodtables", "great-expectations"])
+@pytest.mark.parametrize("validator", ["frictionless", "great-expectations"])
 def test_end_to_end_ge(s3, validator):
 
     from data_linter.validation import run_validation
