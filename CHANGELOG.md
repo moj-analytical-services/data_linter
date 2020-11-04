@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 4.0.0 - 2020-11-03
+
+- Split out the codebase to make it easier to add new validators. These have to conform to the validator base class `data_linter/validators/base.py`. (#101)
+- Added a great expectations validator. (#103)
+- Suprise! Reverted back to frictionless (from the previous revert in v3 to goodtables) (#102)
+- Improved logging now log up to level INFO is written to standard out and level DEBUG to S3 log.
+- Added ability for user to define how data is written to S3. Specifically if you want it to be partitioned by timestamp or not.
+- Dropping the `v` from our releases.
+
+## v3.0.0 - 2020-10-23
+
+- Revert back to goodtables
+
 ## v2.0.1 - 2020-10-21
 
 - Fix log_path being called before assignment
