@@ -9,6 +9,6 @@ COPY . /validator
 RUN rm /validator/poetry.lock
 
 RUN poetry config virtualenvs.create false \
-  && poetry install --no-interaction --no-ansi -E mysql
+  && poetry install --extras "ge" --no-interaction --no-ansi
 
 ENTRYPOINT pytest tests/ -vv
