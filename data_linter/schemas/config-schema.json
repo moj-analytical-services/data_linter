@@ -198,7 +198,6 @@
                             {
                                 "pattern": null,
                                 "required": true,
-                                "linter": "goodtables",
                                 "metadata": null
                             }
                         ],
@@ -272,6 +271,13 @@
                                     false
                                 ],
                                 "default": false
+                            },
+                            "pandas-kwargs": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/pandas-kwargs",
+                                "type": "object",
+                                "title": "The pandas-kwargs Schema",
+                                "description": "kwargs to pass to pandas when using Great Expectations parser",
+                                "default": {}
                             }
                         }
                     }

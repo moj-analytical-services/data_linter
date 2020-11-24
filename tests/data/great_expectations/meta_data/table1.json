@@ -1,0 +1,34 @@
+{
+    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/table/v1.0.0.json",
+    "name": "table1",
+    "description": "test meta for table1",
+    "data_format": "csv",
+    "location": "table1/",
+    "columns": [
+        {
+            "name": "my_int",
+            "type": "int",
+            "minimum": 10,
+            "maximum": 20,
+            "nullable": false
+        },
+        {
+            "name": "animal",
+            "type": "character",
+            "enum": ["cat", "dog", "fish", "chicken", "NA"],
+            "nullable": false
+        },
+        {
+            "name": "my_email",
+            "type": "character"
+        },
+        {
+            "name": "my_datetime",
+            "type": "datetime"
+        },
+        {
+            "name": "my_date",
+            "type": "date"
+        }
+    ]
+}
