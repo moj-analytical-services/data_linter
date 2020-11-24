@@ -215,6 +215,9 @@ def _parse_data_to_pandas(
         for c in metadata["columns"]
         if c["name"] not in metadata.get("partitions", [])
     ]
+
+    pandas_kwargs = table_params.get("pandas-kwargs", {})
+
     if metadata["data_format"] == "csv":
         names = None
         header = "infer" if table_params.get("expect-header", True) else None
@@ -228,6 +231,7 @@ def _parse_data_to_pandas(
                 dtype=default_pd_in_type,
                 names=names,
                 nrows=nrows,
+                **pandas_kwargs,
             )
         else:
             df = pd.read_csv(
@@ -236,23 +240,32 @@ def _parse_data_to_pandas(
                 dtype=default_pd_in_type,
                 names=names,
                 nrows=nrows,
+                **pandas_kwargs,
             )
 
     elif metadata["data_format"] == "json":
         if filepath.startswith("s3://"):
             df = wr.s3.read_json(
-                [filepath], lines=True, dtype=default_pd_in_type, nrows=nrows
+                [filepath],
+                lines=True,
+                dtype=default_pd_in_type,
+                nrows=nrows,
+                **pandas_kwargs,
             )
         else:
             df = pd.read_json(
-                filepath, lines=True, dtype=default_pd_in_type, nrows=nrows
+                filepath,
+                lines=True,
+                dtype=default_pd_in_type,
+                nrows=nrows,
+                **pandas_kwargs,
             )
 
     elif metadata["data_format"] == "parquet":
         if filepath.startswith("s3://"):
-            df = wr.s3.read_parquet([filepath], nrows=nrows)
+            df = wr.s3.read_parquet([filepath], nrows=nrows, **pandas_kwargs)
         else:
-            df = pd.read_parquet(filepath, nrows=nrows)
+            df = pd.read_parquet(filepath, nrows=nrows, **pandas_kwargs)
 
     else:
         data_fmt = metadata["data_format"]
