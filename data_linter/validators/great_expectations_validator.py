@@ -217,8 +217,6 @@ def _parse_data_to_pandas(
     ]
 
     pandas_kwargs = table_params.get("pandas-kwargs", {})
-    if not pandas_kwargs.get("keep_default_na", True):
-        pandas_kwargs["na_values"] = pandas_kwargs.get("na_values", [''])
 
     if metadata["data_format"] == "csv":
         names = None

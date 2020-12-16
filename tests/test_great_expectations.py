@@ -18,7 +18,10 @@ def test_great_expectations(file_name, expected_result):
     with open(os.path.join(test_folder, f"meta_data/{table_name}.json")) as f:
         metadata = json.load(f)
 
-    table_params = [{}, {"pandas-kwargs": {"keep_default_na": False}}]
+    table_params = [
+        {},
+        {"pandas-kwargs": {"keep_default_na": False, "na_values": [""]}},
+    ]
 
     all_tests = []
     for table_param in table_params:
