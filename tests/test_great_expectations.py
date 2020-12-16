@@ -11,10 +11,23 @@ from data_linter.validators.great_expectations_validator import (
     "file_name,table_param,expected_result",
     [
         ("table1_na_test.csv", {}, False),
-        ("table1_na_test.csv", {"pandas-kwargs": {"keep_default_na": False, "na_values": [""]}}, True),
-        ("table1_na_test.csv", {"pandas-kwargs": {"keep_default_na": False, "na_values": {"animal": [""]}}}, False)
+        (
+            "table1_na_test.csv",
+            {"pandas-kwargs": {"keep_default_na": False, "na_values": [""]}},
+            True,
+        ),
+        (
+            "table1_na_test.csv",
+            {
+                "pandas-kwargs": {
+                    "keep_default_na": False,
+                    "na_values": {"my_datetime": [""]},
+                }
+            },
+            True,
+        ),
     ],
-    ids=["default_pd_na", "pd_new_na_list", "animal_specific_pd_new_na_list"]
+    ids=["default_pd_na", "pd_new_na_list", "datetime_col_specific_na"],
 )
 def test_great_expectations(file_name, table_param, expected_result):
     test_folder = "tests/data/great_expectations/"
