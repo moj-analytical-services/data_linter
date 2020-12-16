@@ -217,6 +217,8 @@ def _parse_data_to_pandas(
     ]
 
     pandas_kwargs = table_params.get("pandas-kwargs", {})
+    if not pandas_kwargs.get("keep_default_na", True):
+        pandas_kwargs["na_values"] = pandas_kwargs.get("na_values", [''])
 
     if metadata["data_format"] == "csv":
         names = None
@@ -394,7 +396,7 @@ def ge_test_datetime_format(dfe, colname, coltype, date_format, result_format=No
     )
     if not result.success:
         log.error(
-            f"col: {colname} not between min/max length values",
+            f"col: {colname} has incorrect datetime format",
             extra={"context": "VALIDATION"},
         )
     return result.to_json_dict()

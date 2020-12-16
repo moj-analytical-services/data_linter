@@ -24,7 +24,8 @@
         },
         {
             "name": "my_datetime",
-            "type": "datetime"
+            "type": "datetime",
+            "nullable": true
         },
         {
             "name": "my_date",
