@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 4.1.1 - 2020-12-16
+
+- Fix incorrect error message (#115)
+- Improved handling of keep_default_na=False (#116)
+## 4.1.0 - 2020-11-24
+
+- Add pandas-kwargs to table params to pass through to Great Expectations (#112)
+- Update dependencies
 ## 4.0.0 - 2020-11-03
 
 - Split out the codebase to make it easier to add new validators. These have to conform to the validator base class `data_linter/validators/base.py`. (#101)
