@@ -288,10 +288,21 @@ def validate_data(config: dict):
                     delete_s3_object(resp["s3-original-path"])
 
     elif all_must_pass:
+        log.error("The following tables failed:")
         if fail_base_path:
             m0 = "Copying files"
             log.info(m0)
-        for resp in all_table_responses:
+
+        failed_table_responses = [
+            resp for resp in all_table_responses if not resp["valid"]
+        ]
+        for resp in failed_table_responses:
+            m1 = f"{resp['table-name']} failed"
+            m2 = f"... original path: {resp['s3-original-path']}"
+            m3 = f"... out path: {resp['archived-path']}"
+            log.error(m1)
+            log.error(m2)
+            log.error(m3)
             if resp["archived-path"]:
                 if compress:
                     log.info(
@@ -305,14 +316,6 @@ def validate_data(config: dict):
                             {resp['archived-path']}"
                     )
                     copy_s3_object(resp["s3-original-path"], resp["archived-path"])
-            log.error("The following tables failed:")
-            if not resp["valid"]:
-                m1 = f"{resp['table-name']} failed"
-                m2 = f"... original path: {resp['s3-original-path']}"
-                m3 = f"... out path: {resp['archived-path']}"
-                log.error(m1)
-                log.error(m2)
-                log.error(m3)
 
         m4 = f"Logs that show failed data: {log_base_path}"
         m5 = (
