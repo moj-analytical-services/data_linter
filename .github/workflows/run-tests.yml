@@ -20,7 +20,7 @@ jobs:
         python -m pip install --upgrade pip==20.3.3
         pip install poetry
         poetry config virtualenvs.create false \
-          && poetry install --extras "ge, frictionless" --no-interaction --no-ansi
+          && poetry install --extras "ge frictionless" --no-interaction --no-ansi
         pytest tests/ -vv
 
   docker-run-tests:
