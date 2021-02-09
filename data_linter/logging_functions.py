@@ -46,13 +46,19 @@ def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
     return log, log_stringio
 
 
-def upload_log(log: logging.Logger, log_stringio: io.StringIO, s3_path: str):
-    if s3_path:
-        s3_client = boto3.client("s3")
-        b, k = s3_path_to_bucket_key(s3_path)
-        s3_client.put_object(Body=log_stringio.getvalue(), Bucket=b, Key=k)
+def upload_log(log: logging.Logger, log_stringio: io.StringIO, log_path: str):
+    log_path_is_s3 = log_path.startswith("s3://")
+
+    if log_path:
+        if log_path_is_s3:
+            s3_client = boto3.client("s3")
+            b, k = s3_path_to_bucket_key(log_path)
+            s3_client.put_object(Body=log_stringio.getvalue(), Bucket=b, Key=k)
+        else:
+            with open(log_path, 'w') as log_out:
+                log_out.write(log_stringio.getvalue())
     else:
         log.error(
             "An error occurred but no log path registered, "
-            "likely due to issue with config, so cannot upload to log S3."
+            "likely due to issue with config, so logs not saved."
         )

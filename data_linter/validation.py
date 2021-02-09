@@ -12,13 +12,9 @@ from jsonschema import validate as json_validate
 
 from dataengineeringutils3.s3 import (
     get_filepaths_from_s3_folder,
-    copy_s3_object,
     delete_s3_object,
     write_json_to_s3,
 )
-
-import boto3
-from botocore.client import Config
 
 from data_linter.constants import config_schema
 
@@ -31,15 +27,14 @@ from data_linter.utils import (
     get_out_path,
     get_log_path,
     compress_data,
+    copy_data,
+    get_filepaths_from_local_folder,
 )
 
 from data_linter.validators import (
     FrictionlessValidator,
     GreatExpectationsValidator,
 )
-
-boto3_config = Config(read_timeout=120)
-s3_client = boto3.client("s3", config=boto3_config)
 
 log = logging.getLogger("root")
 
@@ -97,16 +92,19 @@ def validate_and_clean_config(config: dict) -> dict:
     return config
 
 
-def match_files_in_land_to_config(config) -> dict:
+def match_files_in_land_to_config(config: dict) -> dict:
     """
     Takes config and matches files in S3 to the corresponding table list in config.
     Checks against other config parameters and raise error if config params not met.
     """
     land_base_path = config["land-base-path"]
-    land_files = get_filepaths_from_s3_folder(land_base_path)
+    if land_base_path.startswith('s3://'):
+        land_files = get_filepaths_from_s3_folder(land_base_path)
+    else:
+        land_files = get_filepaths_from_local_folder(land_base_path)
 
     if not land_files and config.get("fail-no-files", False):
-        raise FileNotFoundError(f"No files found in the s3 path: {land_base_path}")
+        raise FileNotFoundError(f"No files found in the path: {land_base_path}")
     else:
         total_files = len(land_files)
         log.info(f"Found {total_files} in {land_base_path}")
@@ -171,6 +169,10 @@ def validate_data(config: dict):
     timestamp_partition_name = config.get("timestamp-partition-name")
     validator_engine = config.get("validator-engine", "frictionless")
     validator_params = config.get("validator-engine-params", {})
+
+    land_base_path_is_s3 = land_base_path.startswith("s3://")
+    log_base_path_is_s3 = log_base_path.startswith("s3://")
+
     config = match_files_in_land_to_config(config)
 
     # If all the above passes lint each file
@@ -204,11 +206,11 @@ def validate_data(config: dict):
                 table_response = {
                     "valid": validator.valid,
                     "response": validator.get_response_dict(),
-                    "s3-original-path": matched_file,
+                    "original-path": matched_file,
                     "table-name": table_name,
                 }
 
-                # Write data to s3 on pass or elsewhere on fail
+                # Write data on pass or elsewhere on fail
                 if table_response["valid"]:
                     final_outpath = get_out_path(
                         pass_base_path,
@@ -227,10 +229,13 @@ def validate_data(config: dict):
                         if compress:
                             compress_data(matched_file, final_outpath)
                         else:
-                            copy_s3_object(matched_file, final_outpath)
+                            copy_data(matched_file, final_outpath)
                         if remove_on_pass:
                             log.info(f"Removing {matched_file}")
-                            delete_s3_object(matched_file)
+                            if land_base_path_is_s3:
+                                delete_s3_object(matched_file)
+                            else:
+                                os.remove(matched_file)
                     else:
                         log.info("File passed")
 
@@ -252,7 +257,7 @@ def validate_data(config: dict):
                         if compress:
                             compress_data(matched_file, final_outpath)
                         else:
-                            copy_s3_object(matched_file, final_outpath)
+                            copy_data(matched_file, final_outpath)
 
                 else:
                     overall_pass = False
@@ -261,8 +266,16 @@ def validate_data(config: dict):
                 # Write reponse log
                 log_outpath = get_log_path(log_base_path, table_name, utc_ts, filenum=i)
 
-                # Write log to s3
-                write_json_to_s3(table_response, log_outpath)
+                # Write log
+                if log_base_path_is_s3:
+                    write_json_to_s3(table_response, log_outpath)
+                else:
+                    dir_out = os.path.sep.join(log_outpath.split(os.path.sep)[:-1])
+                    if not os.path.exists(dir_out):
+                        os.makedirs(dir_out)
+                    with open(log_outpath, 'w') as log_out:
+                        json.dump(table_response, log_out)
+
                 all_table_responses.append(table_response)
 
         else:
@@ -276,16 +289,19 @@ def validate_data(config: dict):
             log.info(msg5)
 
             for resp in all_table_responses:
-                msg6 = f"Copying {resp['s3-original-path']} to {resp['archived-path']}"
+                msg6 = f"Copying {resp['original-path']} to {resp['archived-path']}"
                 log.info(msg6)
                 if compress:
-                    compress_data(resp["s3-original-path"], resp["archived-path"])
+                    compress_data(resp["original-path"], resp["archived-path"])
                 else:
-                    copy_s3_object(resp["s3-original-path"], resp["archived-path"])
+                    copy_data(resp["original-path"], resp["archived-path"])
 
                 if remove_on_pass:
-                    log.info(f"Removing data in land: {resp['s3-original-path']}")
-                    delete_s3_object(resp["s3-original-path"])
+                    log.info(f"Removing data in land: {resp['original-path']}")
+                    if land_base_path_is_s3:
+                        delete_s3_object(resp["original-path"])
+                    else:
+                        os.remove(resp["original-path"])
 
     elif all_must_pass:
         if fail_base_path:
@@ -295,20 +311,36 @@ def validate_data(config: dict):
             if resp["archived-path"]:
                 if compress:
                     log.info(
-                        f"Compressing file from {resp['s3-original-path']} to \
+                        f"Compressing file from {resp['original-path']} to \
                             {resp['archived-path']}"
                     )
-                    compress_data(resp["s3-original-path"], resp["archived-path"])
+                    compress_data(resp["original-path"], resp["archived-path"])
                 else:
                     log.info(
-                        f"Copying file from {resp['s3-original-path']} to \
+                        f"Copying file from {resp['original-path']} to \
                             {resp['archived-path']}"
                     )
-                    copy_s3_object(resp["s3-original-path"], resp["archived-path"])
+                    '''
+                    original_path_is_s3 = resp["original-path"].startswith("s3://")
+                    archived_path_is_s3 = resp["archived-path"].startswith("s3://")
+                    '''
+
+                    copy_data(resp["original-path"], resp["archived-path"])
+                    '''
+                    if original_path_is_s3 and archived_path_is_s3:
+                        copy_s3_object(resp["original-path"], resp["archived-path"])
+                    elif original_path_is_s3 and not archived_path_is_s3:
+                        #s3 to local
+                    elif not original_path_is_s3 and archived_path_is_s3:
+                        #local to s3
+                    elif not original_path_is_s3 and not archived_path_is_s3
+                        #local to local
+                    '''
+
             log.error("The following tables failed:")
             if not resp["valid"]:
                 m1 = f"{resp['table-name']} failed"
-                m2 = f"... original path: {resp['s3-original-path']}"
+                m2 = f"... original path: {resp['original-path']}"
                 m3 = f"... out path: {resp['archived-path']}"
                 log.error(m1)
                 log.error(m2)

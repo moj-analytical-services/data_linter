@@ -2,6 +2,7 @@ land-base-path: s3://land/
 fail-base-path: s3://fail/
 pass-base-path: s3://pass/
 log-base-path: s3://log/
+
 compress-data: true
 remove-tables-on-pass: true
 all-must-pass: false

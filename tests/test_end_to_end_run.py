@@ -103,3 +103,41 @@ def test_compression(s3):
         assert (
             compressed_json_str == uncompressed_json.read()
         ), "uncompressed json doesn't contain the same data as compressed json"
+
+
+@pytest.mark.parametrize("land_path", ["s3://land/", "tests/data/end_to_end1/"])
+@pytest.mark.parametrize("fail_path", ["s3://fail/", "fail"])
+@pytest.mark.parametrize("pass_path", ["s3://pass/", "pass"])
+@pytest.mark.parametrize("log_path", ["s3://log/", "log"])
+def test_end_to_end_full_path_spectrum(
+    s3,
+    tmpdir_factory,
+    land_path,
+    fail_path,
+    pass_path,
+    log_path
+):
+
+    from data_linter.validation import run_validation
+
+    test_folder = "tests/data/end_to_end1/"
+    config_path = os.path.join(test_folder, "config.yaml")
+
+    with open(config_path) as yml:
+        config = yaml.safe_load(yml)
+
+    if not fail_path.startswith("s3://"):
+        fail_path = tmpdir_factory.mktemp(fail_path)
+    if not pass_path.startswith("s3://"):
+        pass_path = tmpdir_factory.mktemp(pass_path)
+    if not log_path.startswith("s3://"):
+        log_path = tmpdir_factory.mktemp(log_path)
+
+    config["land_path"] = land_path
+    config["fail_path"] = fail_path
+    config["pass_path"] = pass_path
+    config["log_path"] = log_path
+
+    set_up_s3(s3, test_folder, config)
+
+    run_validation(config)
