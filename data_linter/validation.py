@@ -272,7 +272,7 @@ def validate_data(config: dict):
                 else:
                     dir_out = os.path.sep.join(log_outpath.split(os.path.sep)[:-1])
                     if not os.path.exists(dir_out):
-                        os.makedirs(dir_out)
+                        os.makedirs(dir_out, exist_ok=True)
                     with open(log_outpath, 'w') as log_out:
                         json.dump(table_response, log_out)
 
@@ -320,22 +320,8 @@ def validate_data(config: dict):
                         f"Copying file from {resp['original-path']} to \
                             {resp['archived-path']}"
                     )
-                    '''
-                    original_path_is_s3 = resp["original-path"].startswith("s3://")
-                    archived_path_is_s3 = resp["archived-path"].startswith("s3://")
-                    '''
 
                     copy_data(resp["original-path"], resp["archived-path"])
-                    '''
-                    if original_path_is_s3 and archived_path_is_s3:
-                        copy_s3_object(resp["original-path"], resp["archived-path"])
-                    elif original_path_is_s3 and not archived_path_is_s3:
-                        #s3 to local
-                    elif not original_path_is_s3 and archived_path_is_s3:
-                        #local to s3
-                    elif not original_path_is_s3 and not archived_path_is_s3
-                        #local to local
-                    '''
 
             log.error("The following tables failed:")
             if not resp["valid"]:

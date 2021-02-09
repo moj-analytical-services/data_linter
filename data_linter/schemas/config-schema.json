@@ -54,9 +54,9 @@
             "title": "The Land-base-path Schema",
             "description": "This is where data should arrive for a pipeline",
             "default": "",
-            "pattern": "^(s3://|/)",
             "examples": [
-                "s3://land-bucket/my-folder/"
+                "s3://land-bucket/my-folder/",
+                "data/land"
             ]
         },
         "fail-base-path": {
@@ -68,9 +68,9 @@
             "title": "The Fail-base-path Schema",
             "description": "Data which does not pass validation will end up here.",
             "default": "",
-            "pattern": "^(s3://|/)",
             "examples": [
-                "s3://fail-bucket/my-folder/"
+                "s3://fail-bucket/my-folder/",
+                "data/fail"
             ]
         },
         "pass-base-path": {
@@ -79,9 +79,9 @@
             "title": "The Pass-base-path Schema",
             "description": "Data which passes validation will end up here",
             "default": "",
-            "pattern": "^(s3://|/)",
             "examples": [
-                "s3://pass-bucket/my-folder/"
+                "s3://pass-bucket/my-folder/",
+                "data/pass"
             ]
         },
         "log-base-path": {
@@ -90,9 +90,9 @@
             "title": "The Log-base-path Schema",
             "description": "This validation will produce detailed logs. They will be stored here.",
             "default": "",
-            "pattern": "^(s3://|/)",
             "examples": [
-                "s3://log-bucket/my-folder/"
+                "s3://log-bucket/my-folder/",
+                "data/log"
             ]
         },
         "iam-role-name": {
