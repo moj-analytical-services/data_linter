@@ -187,6 +187,7 @@
                 "description": "",
                 "default": {},
                 "required": [],
+                "JSON COMMENT": "WHY IS IT EMPTY??????",
                 "patternProperties": {
                     "^.*$": {
                         "$id": "#/properties/tables/items/properties/table1",

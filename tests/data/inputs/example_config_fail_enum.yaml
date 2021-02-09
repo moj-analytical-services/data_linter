@@ -1,4 +1,4 @@
-land-base-path: s3://land-bucket/my-folder/  # Where to get the data from
+land-base-path: s4://land-bucket/my-folder/  # Where to get the data from
 fail-base-path: s3://fail-bucket/my-folder/  # Where to write the data if failed
 pass-base-path: s3://pass-bucket/my-folder/  # Where to write the data if passed
 log-base-path: s3://log-bucket/my-folder/  # Where to write logs
@@ -6,6 +6,7 @@ iam-role-name: role-name
 compress-data: true  # Compress data when moving elsewhere
 remove-tables-on-pass: true  # Delete the tables if pass
 all-must-pass: true  # Only move data if all tables have passed
+validator-engine: a-really-good-validator
 fail-unknown-files:
     exceptions:
         - additional_file.txt
@@ -14,4 +15,6 @@ fail-unknown-files:
 # Tables to validate
 tables:
     table_blah:
-        pattern: null
+      required: true  # Does the table have to exist
+      pattern: null  # Assumes file is called table1
+      linter: goodtables  # jsonschema?
