@@ -11,6 +11,6 @@ fail-unknown-files:
 # Tables to validate
 tables:
     - table_blah:
-        required: true  # Does the table have to exist
-        pattern: null  # Assumes file is called table1
-        linter: goodtables  # jsonschema?
+      required: true  # Does the table have to exist
+      pattern: null  # Assumes file is called table1
+      linter: goodtables  # jsonschema?
