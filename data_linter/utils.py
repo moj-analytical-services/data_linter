@@ -117,7 +117,7 @@ def copy_data(src_path: str, dst_path: str):
     if not dst_path_is_s3:
         dst_path_dir = os.path.dirname(dst_path)
         if not os.path.exists(dst_path_dir):
-            os.makedirs(os.path.sep.join(dst_path_dir), exist_ok=True)
+            os.makedirs(dst_path_dir, exist_ok=True)
 
     if src_path_is_s3 and dst_path_is_s3:
         copy_s3_object(src_path, dst_path)

@@ -98,7 +98,7 @@ def match_files_in_land_to_config(config: dict) -> dict:
     Checks against other config parameters and raise error if config params not met.
     """
     land_base_path = config["land-base-path"]
-    if land_base_path.startswith('s3://'):
+    if land_base_path.startswith("s3://"):
         land_files = get_filepaths_from_s3_folder(land_base_path)
     else:
         land_files = get_filepaths_from_local_folder(land_base_path)
@@ -273,7 +273,7 @@ def validate_data(config: dict):
                     dir_out = os.path.sep.join(log_outpath.split(os.path.sep)[:-1])
                     if not os.path.exists(dir_out):
                         os.makedirs(dir_out, exist_ok=True)
-                    with open(log_outpath, 'w') as log_out:
+                    with open(log_outpath, "w") as log_out:
                         json.dump(table_response, log_out)
 
                 all_table_responses.append(table_response)
