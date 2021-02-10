@@ -1,4 +1,5 @@
-land-base-path: s4://land-bucket/my-folder/  # Where to get the data from
+# vaildator-engine will fail schema validation as not one of the enum vals
+land-base-path: s3://land-bucket/my-folder/  # Where to get the data from
 fail-base-path: s3://fail-bucket/my-folder/  # Where to write the data if failed
 pass-base-path: s3://pass-bucket/my-folder/  # Where to write the data if passed
 log-base-path: s3://log-bucket/my-folder/  # Where to write logs

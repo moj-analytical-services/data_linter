@@ -32,11 +32,9 @@ def compress_data(download_path: str, upload_path: str):
         s3_client = boto3.client("s3")
 
     if not upload_path_is_s3:
-        if not os.path.exists(os.path.sep.join(upload_path.split(os.path.sep)[:-1])):
-            os.makedirs(
-                os.path.sep.join(upload_path.split(os.path.sep)[:-1]),
-                exist_ok=True
-            )
+        upload_path_dir = os.path.dirname(upload_path)
+        if not os.path.exists(upload_path_dir):
+            os.makedirs(upload_path_dir, exist_ok=True)
 
     with tempfile.TemporaryDirectory() as temp_dir:
 
@@ -117,11 +115,9 @@ def copy_data(src_path: str, dst_path: str):
     dst_path_is_s3 = dst_path.startswith("s3://")
 
     if not dst_path_is_s3:
-        if not os.path.exists(os.path.sep.join(dst_path.split(os.path.sep)[:-1])):
-            os.makedirs(
-                os.path.sep.join(dst_path.split(os.path.sep)[:-1]),
-                exist_ok=True
-            )
+        dst_path_dir = os.path.dirname(dst_path)
+        if not os.path.exists(dst_path_dir):
+            os.makedirs(os.path.sep.join(dst_path_dir), exist_ok=True)
 
     if src_path_is_s3 and dst_path_is_s3:
         copy_s3_object(src_path, dst_path)
