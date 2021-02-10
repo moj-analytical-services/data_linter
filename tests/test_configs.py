@@ -8,14 +8,14 @@ import os
 @pytest.mark.parametrize(
     "test_input, expected",
     [
-        ("example_config_fail_bucket.yaml", "pattern"),
-        ("example_config_fail_table.yaml", "required"),
+        ("example_config_fail_required.yaml", r"required"),
+        ("example_config_fail_enum.yaml", r"enum"),
+        ("example_config_fail_type.yaml", r"type")
     ],
 )
 def test_load_and_validate_config_fail(test_input, expected):
-    try:
+    with pytest.raises(ValidationError, match=expected) as e:
         _ = load_and_validate_config(os.path.join("tests/data/inputs", test_input))
-    except ValidationError as e:
         assert e.validator == expected
 
 
