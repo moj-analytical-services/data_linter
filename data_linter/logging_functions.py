@@ -56,7 +56,7 @@ def upload_log(log: logging.Logger, log_stringio: io.StringIO, log_path: str):
             b, k = s3_path_to_bucket_key(log_path)
             s3_client.put_object(Body=log_stringio.getvalue(), Bucket=b, Key=k)
         else:
-            dir_out = os.path.dirname(log_path.split)
+            dir_out = os.path.dirname(log_path)
             if not os.path.exists(dir_out):
                 os.makedirs(dir_out, exist_ok=True)
             with open(log_path, 'w') as log_out:

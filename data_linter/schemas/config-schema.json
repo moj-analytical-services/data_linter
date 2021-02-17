@@ -135,6 +135,16 @@
                 true
             ]
         },
+        "run-paralell": {
+            "$id": "#/properties/run-paralell",
+            "type": "boolean",
+            "title": "The Run-paralell Schema",
+            "description": "Process tables in paralell",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
         "fail-unknown-files": {
             "$id": "#/properties/fail-unknown-files",
             "type": "object",

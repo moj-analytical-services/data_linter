@@ -5,7 +5,7 @@ A python package to to allow automatic validation of data as part of a Data Engi
 This package implements different validators using different packages:
 
 - `frictionless`: Uses Frictionless data to validate the data against our metadata schemas. More information can be found [here](https://github.com/frictionlessdata/frictionless-py/)
-- `great-expectations`: Uses the Great Expectations data to validate the data against our metadata schemas. More information can be found [here](https://github.com/frictionlessdata/frictionless-py/)
+- `great-expectations`: Uses the Great Expectations data to validate the data against our metadata schemas. More information can be found [here](https://github.com/great-expectations/great_expectations)
 
 
 ## Installation
