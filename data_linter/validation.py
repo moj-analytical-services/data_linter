@@ -45,6 +45,8 @@ from data_linter.validators import (
 )
 
 log = logging.getLogger("root")
+# set up logging
+log, log_stringio = logging_setup()
 
 get_validator = {
     "frictionless": FrictionlessValidator,
@@ -196,15 +198,8 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
 
         log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
-
-        paralell = True
-        if paralell:
-            bin_pack_configs(config)
-            validate_from_chunked_configs(config)
-        else:
-            validate_data(config)
-
-        collect_all_status(config)
+        
+        validate_data(config)
 
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
@@ -218,19 +213,6 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         raise e.with_traceback(e.__traceback__)
     else:
         upload_log(log, log_stringio, log_path)
-
-
-def chunk_config_and_save(config: dict):
-    land_base_path = config["land-base-path"]
-
-    land_base_path_is_s3 = land_base_path.startswith("s3://")
-
-    if land_base_path_is_s3:
-        bin_pack_configs(config)
-
-    else:
-        pass
-        # do local equivelent
 
 
 def bin_pack_configs(config: dict):
@@ -299,7 +281,7 @@ def bin_pack_configs(config: dict):
                 bins[i] = curr_bin
 
         bins[i] = curr_bin
-        bins = [i for i in bins if i != [] or i is not None]
+        bins = [i for i in bins if i != []]
 
         # create the configs for the given bins
         for i, packed_bin in enumerate(bins):
@@ -339,7 +321,7 @@ def bin_pack_configs(config: dict):
         # do local equiv maybe lol
 
 
-def validate_from_chunked_configs(config: dict):
+def validate_from_chunked_configs(config: dict, config_num: int):
     land_base_path = config["land-base-path"]
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
@@ -347,7 +329,7 @@ def validate_from_chunked_configs(config: dict):
 
         while land_base_path.endswith("/"):
             land_base_path = land_base_path[:-1]
-        s3_temp_path = f"{land_base_path}/data_linter_temporary_fs/configs"
+        s3_temp_path = f"{land_base_path}/data_linter_temporary_fs/configs/{config_num}"
 
         config_file_paths = get_filepaths_from_s3_folder(s3_temp_path)
 
@@ -365,11 +347,12 @@ def validate_from_chunked_configs(config: dict):
 
 def validate_data(config: dict):
 
+    # set up logging
+    log, log_stringio = logging_setup()
+
     land_base_path = config["land-base-path"]
     validator_engine = config.get("validator-engine", "frictionless")
     validator_params = config.get("validator-engine-params", {})
-
-    # config = match_files_in_land_to_config(config)
 
     all_table_responses = []
 
@@ -587,3 +570,101 @@ def collect_all_status(config: dict):
     else:
         # do the same for local
         pass
+
+
+def para_run_init(config: Union[str, dict] = "config.yaml"):
+    # set up logging
+    log, log_stringio = logging_setup()
+
+    log.info("Loading config for paralellisation")
+    log_path = None
+    try:
+        if isinstance(config, str):
+            config = load_and_validate_config(config)
+        elif isinstance(config, dict):
+            config = validate_and_clean_config(config)
+        else:
+            raise TypeError("Input 'config' must be a str or dict.")
+
+        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+        log.info("Running validation")
+
+        config = match_files_in_land_to_config(config)
+
+        bin_pack_configs(config)
+
+    except Exception as e:
+        log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
+        error_msg = str(e)
+
+        log.error(log_msg)
+        log.error(error_msg)
+
+        upload_log(log, log_stringio, log_path)
+
+        raise e.with_traceback(e.__traceback__)
+    else:
+        upload_log(log, log_stringio, log_path)
+
+
+def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml"):
+
+    log.info("Loading config for validation")
+    log_path = None
+    try:
+        if isinstance(config, str):
+            config = load_and_validate_config(config)
+        elif isinstance(config, dict):
+            config = validate_and_clean_config(config)
+        else:
+            raise TypeError("Input 'config' must be a str or dict.")
+
+        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+        log.info("Running validation")
+
+        validate_from_chunked_configs(config, config_num)
+
+    except Exception as e:
+        log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
+        error_msg = str(e)
+
+        log.error(log_msg)
+        log.error(error_msg)
+
+        upload_log(log, log_stringio, log_path)
+
+        raise e.with_traceback(e.__traceback__)
+    else:
+        upload_log(log, log_stringio, log_path)
+
+
+def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
+    log, log_stringio = logging_setup()
+
+    log.info("collating table status")
+    log_path = None
+    try:
+        if isinstance(config, str):
+            config = load_and_validate_config(config)
+        elif isinstance(config, dict):
+            config = validate_and_clean_config(config)
+        else:
+            raise TypeError("Input 'config' must be a str or dict.")
+
+        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+        log.info("Running validation")
+
+        collect_all_status(config)
+
+    except Exception as e:
+        log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
+        error_msg = str(e)
+
+        log.error(log_msg)
+        log.error(error_msg)
+
+        upload_log(log, log_stringio, log_path)
+
+        raise e.with_traceback(e.__traceback__)
+    else:
+        upload_log(log, log_stringio, log_path)
