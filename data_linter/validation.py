@@ -198,7 +198,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
 
         log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
-        
+
         validate_data(config)
 
     except Exception as e:
@@ -215,14 +215,13 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         upload_log(log, log_stringio, log_path)
 
 
-def bin_pack_configs(config: dict):
+def bin_pack_configs(config: dict, max_bin_count: int):
     """
     write a docstring pls
     """
 
     land_base_path = config.get("land-base-path")
     land_base_path_is_s3 = land_base_path.startswith("s3://")
-    max_bin_count = 4
 
     if land_base_path_is_s3:
         while land_base_path.endswith("/"):
@@ -572,7 +571,7 @@ def collect_all_status(config: dict):
         pass
 
 
-def para_run_init(config: Union[str, dict] = "config.yaml"):
+def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
     # set up logging
     log, log_stringio = logging_setup()
 
@@ -591,7 +590,7 @@ def para_run_init(config: Union[str, dict] = "config.yaml"):
 
         config = match_files_in_land_to_config(config)
 
-        bin_pack_configs(config)
+        bin_pack_configs(config, max_bin_count)
 
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
