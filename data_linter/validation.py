@@ -5,6 +5,7 @@ import re
 import logging
 import tempfile
 import boto3
+import shutil
 
 from typing import Union
 
@@ -108,12 +109,16 @@ def match_files_in_land_to_config(config: dict) -> dict:
     Checks against other config parameters and raise error if config params not met.
     """
     land_base_path = config["land-base-path"]
+    # delete temp storage, incase it hasn't been already
     if land_base_path.startswith("s3://"):
-        land_files = get_filepaths_from_s3_folder(land_base_path)
-        # delete temp storage, incase it hasn't been already:
+        while land_base_path.endswith("/"):
+            land_base_path = land_base_path[:-1]
         delete_objects(f"{land_base_path}/data_linter_temporary_fs/")
     else:
-        land_files = get_filepaths_from_local_folder(land_base_path)
+        tmp_path = os.path.join(land_base_path, "data_linter_temporary_fs")
+        shutil.rmtree(tmp_path, ignore_errors=True)
+
+    land_files = get_filepaths_from_local_folder(land_base_path)
 
     if not land_files and config.get("fail-no-files", False):
         raise FileNotFoundError(f"No files found in the path: {land_base_path}")
@@ -194,12 +199,13 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         else:
             raise TypeError("Input 'config' must be a str or dict.")
 
-        config = match_files_in_land_to_config(config)
-
         log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
         log.info("Running validation")
 
+        config = match_files_in_land_to_config(config)
+
         validate_data(config)
+        collect_all_status(config)
 
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
@@ -425,7 +431,7 @@ def save_completion_status(land_base_path: str, all_table_responses: list):
                 local_file_to_s3(tmp_file.name, s3_temp_path)
 
         else:
-            tmp_dir = os.path.join(land_base_path, "tmp")
+            tmp_dir = os.path.join(land_base_path, "data_linter_temporary_fs/status")
             if not os.path.exists(tmp_dir):
                 os.makedirs(tmp_dir, exist_ok=True)
             tmp_file_resp = tempfile.mkstemp(suffix=".json", dir=tmp_dir)
@@ -446,6 +452,7 @@ def collect_all_status(config: dict):
     timestamp_partition_name = config.get("timestamp-partition-name")
 
     land_base_path_is_s3 = land_base_path.startswith("s3://")
+    log_base_path_is_s3 = log_base_path.startswith("s3://")
 
     if land_base_path_is_s3:
 
@@ -462,34 +469,62 @@ def collect_all_status(config: dict):
             status_file_obj = s3_client.get_object(Bucket=bucket, Key=key)
             all_table_response.append(json.loads(status_file_obj["Body"].read()))
 
-        all_tables_passed = True
+    else:
+        while land_base_path.endswith("/"):
+            land_base_path = land_base_path[:-1]
+        local_temp_path = f"{land_base_path}/data_linter_temporary_fs/status"
+        status_file_paths = get_filepaths_from_local_folder(local_temp_path)
 
-        pass_count = sum([i["valid"] for i in all_table_response])
+        all_table_response = []
+        for status_file_path in status_file_paths:
+            with open(status_file_path) as json_in:
+                all_table_response.append(json.load(json_in))
 
-        if pass_count != len(all_table_response):
-            all_tables_passed = False
+    all_tables_passed = True
 
-        there_was_a_fail = False
-        all_tables_to_fail = False
-        all_tables_to_respective = False
+    pass_count = sum([i["valid"] for i in all_table_response])
 
-        if all_tables_passed:
-            all_tables_to_respective = True
+    if pass_count != len(all_table_response):
+        all_tables_passed = False
+
+    there_was_a_fail = False
+    all_tables_to_fail = False
+    all_tables_to_respective = False
+
+    if all_tables_passed:
+        all_tables_to_respective = True
+    else:
+        if all_must_pass:
+            all_tables_to_fail = True
         else:
-            if all_must_pass:
-                all_tables_to_fail = True
+            all_tables_to_respective = True
+
+    for i, table_response in enumerate(all_table_response):
+        table_name = table_response.get("table-name")
+        matched_file = table_response.get("original-path")
+        file_basename = os.path.basename(matched_file)
+
+        if all_tables_to_fail:
+            there_was_a_fail = True
+            final_outpath = get_out_path(
+                fail_base_path,
+                table_name,
+                utc_ts,
+                file_basename,
+                compress=compress,
+                filenum=i,
+                timestamp_partition_name=timestamp_partition_name,
+            )
+            if compress:
+                log.info(f"Compressing file from {matched_file} to {final_outpath}")
+                compress_data(matched_file, final_outpath)
             else:
-                all_tables_to_respective = True
-
-        for i, table_response in enumerate(all_table_response):
-            table_name = table_response.get("table-name")
-            matched_file = table_response.get("original-path")
-            file_basename = os.path.basename(matched_file)
-
-            if all_tables_to_fail:
-                there_was_a_fail = True
+                log.info(f"Copying file from {matched_file} to {final_outpath}")
+                copy_data(matched_file, final_outpath)
+        elif all_tables_to_respective:
+            if table_response["valid"]:
                 final_outpath = get_out_path(
-                    fail_base_path,
+                    pass_base_path,
                     table_name,
                     utc_ts,
                     file_basename,
@@ -498,77 +533,73 @@ def collect_all_status(config: dict):
                     timestamp_partition_name=timestamp_partition_name,
                 )
                 if compress:
-                    log.info(f"Compressing file from {matched_file} to {final_outpath}")
+                    log.info(
+                        f"Compressing file from {matched_file} to {final_outpath}"
+                    )
                     compress_data(matched_file, final_outpath)
                 else:
                     log.info(f"Copying file from {matched_file} to {final_outpath}")
                     copy_data(matched_file, final_outpath)
-            elif all_tables_to_respective:
-                if table_response["valid"]:
-                    final_outpath = get_out_path(
-                        pass_base_path,
-                        table_name,
-                        utc_ts,
-                        file_basename,
-                        compress=compress,
-                        filenum=i,
-                        timestamp_partition_name=timestamp_partition_name,
-                    )
-                    if compress:
-                        log.info(
-                            f"Compressing file from {matched_file} to {final_outpath}"
-                        )
-                        compress_data(matched_file, final_outpath)
-                    else:
-                        log.info(f"Copying file from {matched_file} to {final_outpath}")
-                        copy_data(matched_file, final_outpath)
-                    if remove_on_pass:
-                        log.info(f"Removing data in land: {matched_file}")
+                if remove_on_pass:
+                    log.info(f"Removing data in land: {matched_file}")
+                    if land_base_path_is_s3:
                         delete_s3_object(matched_file)
-                else:
-                    there_was_a_fail = True
-                    final_outpath = get_out_path(
-                        pass_base_path,
-                        table_name,
-                        utc_ts,
-                        file_basename,
-                        compress=compress,
-                        filenum=i,
-                        timestamp_partition_name=timestamp_partition_name,
-                    )
-                    if compress:
-                        log.info(
-                            f"Compressing file from {matched_file} to {final_outpath}"
-                        )
-                        compress_data(matched_file, final_outpath)
                     else:
-                        log.info(f"Copying file from {matched_file} to {final_outpath}")
-                        copy_data(matched_file, final_outpath)
-            table_response["archived-path"] = final_outpath
+                        os.remove(matched_file)
 
-            # write (table specific) log
-            log_outpath = get_log_path(log_base_path, table_name, utc_ts, filenum=i)
+            else:
+                there_was_a_fail = True
+                final_outpath = get_out_path(
+                    pass_base_path,
+                    table_name,
+                    utc_ts,
+                    file_basename,
+                    compress=compress,
+                    filenum=i,
+                    timestamp_partition_name=timestamp_partition_name,
+                )
+                if compress:
+                    log.info(
+                        f"Compressing file from {matched_file} to {final_outpath}"
+                    )
+                    compress_data(matched_file, final_outpath)
+                else:
+                    log.info(f"Copying file from {matched_file} to {final_outpath}")
+                    copy_data(matched_file, final_outpath)
+        table_response["archived-path"] = final_outpath
+
+        # write (table specific) log
+        log_outpath = get_log_path(log_base_path, table_name, utc_ts, filenum=i)
+        if log_base_path_is_s3:
             write_json_to_s3(table_response, log_outpath)
-            log.info(f"log for {matched_file} uploaded to {log_outpath}")
+        else:
+            path_name = os.path.dirname(log_outpath)
+            os.makedirs(path_name, exist_ok=True)
+            with open(log_outpath, "w") as json_out:
+                json.dump(table_response, json_out)
+        log.info(f"log for {matched_file} uploaded to {log_outpath}")
 
-        if there_was_a_fail and all_must_pass:
-            log.info("The following tables have failed: ")
-            for failed_table in [i for i in all_table_response if not i["valid"]]:
-                log.info(f"{failed_table['table-name']} failed")
-                log.info(f"...original path: {failed_table['original-path']}")
-                log.info(f"...out path: {failed_table['archived-path']}")
-            raise ValueError("Tables did not pass linter")
+    if there_was_a_fail and all_must_pass:
+        log.info("The following tables have failed: ")
+        for failed_table in [i for i in all_table_response if not i["valid"]]:
+            log.info(f"{failed_table['table-name']} failed")
+            log.info(f"...original path: {failed_table['original-path']}")
+            log.info(f"...out path: {failed_table['archived-path']}")
+        raise ValueError("Tables did not pass linter")
 
-        if not all_must_pass and there_was_a_fail:
-            msg6 = "Some tables failed but all_must_pass set to false."
-            msg6 += " Check logs for details"
-            log.info(msg6)
+    if not all_must_pass and there_was_a_fail:
+        msg6 = "Some tables failed but all_must_pass set to false."
+        msg6 += " Check logs for details"
+        log.info(msg6)
 
+    if land_base_path_is_s3:
         delete_objects(f"{land_base_path}/data_linter_temporary_fs/")
-
     else:
-        # do the same for local
-        pass
+        shutil.rmtree(f"{land_base_path}/data_linter_temporary_fs/", ignore_errors=True)
+
+    # else:
+    #     # do the same for local
+    #     pass
 
 
 def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
