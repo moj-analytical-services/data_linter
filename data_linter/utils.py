@@ -154,3 +154,21 @@ def get_filepaths_from_local_folder(
         ret_file_paths.extend(file_paths)
 
     return ret_file_paths
+
+
+def read_all_file_body(file_path: str) -> str:
+    file_path_is_s3 = file_path.startswith("s3://")
+
+    if file_path_is_s3:
+        s3_client = boto3.client("s3")
+        bucket, key = s3_path_to_bucket_key(file_path)
+        file_obj = s3_client.get_object(Bucket=bucket, Key=key)
+        file_obj_body = file_obj["Body"].read()
+    else:
+        with open(file_path) as f_in:
+            file_obj_body = f_in.read()
+
+    if isinstance(file_obj_body, bytes):
+        return file_obj_body.decode("utf-8")
+    else:
+        return file_obj_body

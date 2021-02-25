@@ -2,10 +2,10 @@ import os
 import yaml
 import json
 import re
-import logging
 import tempfile
 import boto3
 import shutil
+import io
 
 from typing import Union
 
@@ -38,6 +38,7 @@ from data_linter.utils import (
     copy_data,
     get_filepaths_from_local_folder,
     local_file_to_s3,
+    read_all_file_body,
 )
 
 from data_linter.validators import (
@@ -45,8 +46,6 @@ from data_linter.validators import (
     GreatExpectationsValidator,
 )
 
-log = logging.getLogger("root")
-# set up logging
 log, log_stringio = logging_setup()
 
 get_validator = {
@@ -110,15 +109,13 @@ def match_files_in_land_to_config(config: dict) -> dict:
     """
     land_base_path = config["land-base-path"]
     # delete temp storage, incase it hasn't been already
+    del_path = os.path.join(land_base_path, "data_linter_temporary_fs")
     if land_base_path.startswith("s3://"):
-        while land_base_path.endswith("/"):
-            land_base_path = land_base_path[:-1]
-        delete_objects(f"{land_base_path}/data_linter_temporary_fs/")
+        delete_objects(del_path)
+        land_files = get_filepaths_from_s3_folder(land_base_path)
     else:
-        tmp_path = os.path.join(land_base_path, "data_linter_temporary_fs")
-        shutil.rmtree(tmp_path, ignore_errors=True)
-
-    land_files = get_filepaths_from_local_folder(land_base_path)
+        shutil.rmtree(del_path, ignore_errors=True)
+        land_files = get_filepaths_from_local_folder(land_base_path)
 
     if not land_files and config.get("fail-no-files", False):
         raise FileNotFoundError(f"No files found in the path: {land_base_path}")
@@ -186,8 +183,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         traceback.
     """
 
-    # set up logging
-    log, log_stringio = logging_setup()
+    global log_stringio
 
     log.info("Loading config")
     log_path = None
@@ -199,7 +195,9 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         else:
             raise TypeError("Input 'config' must be a str or dict.")
 
-        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+        log_base_path = config["log-base-path"]
+        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
+
         log.info("Running validation")
 
         config = match_files_in_land_to_config(config)
@@ -230,9 +228,7 @@ def bin_pack_configs(config: dict, max_bin_count: int):
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
     if land_base_path_is_s3:
-        while land_base_path.endswith("/"):
-            land_base_path = land_base_path[:-1]
-        s3_temp_path = f"{land_base_path}/data_linter_temporary_fs/configs"
+        s3_temp_path = os.path.join(land_base_path, "data_linter_temporary_fs/configs")
         file_list = []
 
         # create a list of dictionaries, for each file with all attributes
@@ -326,17 +322,18 @@ def bin_pack_configs(config: dict, max_bin_count: int):
         # do local equiv maybe lol
 
 
-def validate_from_chunked_configs(config: dict, config_num: int):
+def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
     land_base_path = config["land-base-path"]
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
     if land_base_path_is_s3:
-
-        while land_base_path.endswith("/"):
-            land_base_path = land_base_path[:-1]
-        s3_temp_path = f"{land_base_path}/data_linter_temporary_fs/configs/{config_num}"
+        s3_temp_path = os.path.join(
+            land_base_path, f"data_linter_temporary_fs/configs/{config_num}"
+        )
 
         config_file_paths = get_filepaths_from_s3_folder(s3_temp_path)
+        if not config_file_paths:
+            return False
 
         s3_client = boto3.client("s3")
 
@@ -349,11 +346,13 @@ def validate_from_chunked_configs(config: dict, config_num: int):
         for config in all_configs:
             validate_data(config)
 
+        return True
+
 
 def validate_data(config: dict):
 
     # set up logging
-    log, log_stringio = logging_setup()
+    # log, log_stringio = logging_setup()
 
     land_base_path = config["land-base-path"]
     validator_engine = config.get("validator-engine", "frictionless")
@@ -413,11 +412,13 @@ def save_completion_status(land_base_path: str, all_table_responses: list):
     for table_response in all_table_responses:
         if land_base_path_is_s3:
 
-            while land_base_path.endswith("/"):
-                land_base_path = land_base_path[:-1]
-            s3_temp_path = f"{land_base_path}/data_linter_temporary_fs/status/"
+            s3_temp_path = os.path.join(
+                land_base_path, "data_linter_temporary_fs/status"
+            )
 
-            og_file_name = table_response["original-path"].split("/")[-1].split(".")[0]
+            og_file_name = os.path.basename(
+                table_response["original-path"]
+            ).split(".")[0]
 
             with tempfile.NamedTemporaryFile(
                 suffix=".json", prefix=og_file_name
@@ -426,7 +427,8 @@ def save_completion_status(land_base_path: str, all_table_responses: list):
                 with open(tmp_file.name, "w") as json_out:
                     json.dump(table_response, json_out)
 
-                s3_temp_path += tmp_file.name.split("/")[-1]
+                tmp_file_name = os.path.basename(tmp_file.name)
+                s3_temp_path = os.path.join(s3_temp_path, tmp_file_name)
 
                 local_file_to_s3(tmp_file.name, s3_temp_path)
 
@@ -455,10 +457,7 @@ def collect_all_status(config: dict):
     log_base_path_is_s3 = log_base_path.startswith("s3://")
 
     if land_base_path_is_s3:
-
-        while land_base_path.endswith("/"):
-            land_base_path = land_base_path[:-1]
-        s3_temp_path = f"{land_base_path}/data_linter_temporary_fs/status/"
+        s3_temp_path = os.path.join(land_base_path, "data_linter_temporary_fs/status")
         status_file_paths = get_filepaths_from_s3_folder(s3_temp_path)
 
         s3_client = boto3.client("s3")
@@ -470,9 +469,9 @@ def collect_all_status(config: dict):
             all_table_response.append(json.loads(status_file_obj["Body"].read()))
 
     else:
-        while land_base_path.endswith("/"):
-            land_base_path = land_base_path[:-1]
-        local_temp_path = f"{land_base_path}/data_linter_temporary_fs/status"
+        local_temp_path = os.path.join(
+            land_base_path, "data_linter_temporary_fs/status"
+        )
         status_file_paths = get_filepaths_from_local_folder(local_temp_path)
 
         all_table_response = []
@@ -592,19 +591,8 @@ def collect_all_status(config: dict):
         msg6 += " Check logs for details"
         log.info(msg6)
 
-    if land_base_path_is_s3:
-        delete_objects(f"{land_base_path}/data_linter_temporary_fs/")
-    else:
-        shutil.rmtree(f"{land_base_path}/data_linter_temporary_fs/", ignore_errors=True)
-
-    # else:
-    #     # do the same for local
-    #     pass
-
 
 def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
-    # set up logging
-    log, log_stringio = logging_setup()
 
     log.info("Loading config for paralellisation")
     log_path = None
@@ -616,13 +604,19 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
         else:
             raise TypeError("Input 'config' must be a str or dict.")
 
-        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
-        log.info("Running validation")
+        log_base_path = config["log-base-path"]
+        temp_log_path = os.path.join(
+            log_base_path,
+            f"data_linter_temporary_fs/init/{get_validator_name()}.log"
+        )
+        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
 
         config = match_files_in_land_to_config(config)
 
         bin_pack_configs(config, max_bin_count)
 
+        log.info("Running validation")
+
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
         error_msg = str(e)
@@ -634,13 +628,13 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
 
         raise e.with_traceback(e.__traceback__)
     else:
-        upload_log(log, log_stringio, log_path)
+        upload_log(log, log_stringio, temp_log_path)
 
 
 def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml"):
 
-    log.info("Loading config for validation")
-    log_path = None
+    global log_stringio
+
     try:
         if isinstance(config, str):
             config = load_and_validate_config(config)
@@ -649,10 +643,20 @@ def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml
         else:
             raise TypeError("Input 'config' must be a str or dict.")
 
-        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
-        log.info("Running validation")
+        log.info(f"Worker {config_num} loading config for validaiton")
+        log_path = None
 
-        validate_from_chunked_configs(config, config_num)
+        log_base_path = config["log-base-path"]
+        temp_log_path = os.path.join(
+            log_base_path,
+            f"data_linter_temporary_fs/val/{config_num}/{get_validator_name()}.log"
+        )
+        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
+
+        there_was_a_config = validate_from_chunked_configs(config, config_num)
+
+        if not there_was_a_config:
+            log.info(f"worker {config_num} had no work - moving on")
 
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
@@ -665,13 +669,13 @@ def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml
 
         raise e.with_traceback(e.__traceback__)
     else:
-        upload_log(log, log_stringio, log_path)
+        upload_log(log, log_stringio, temp_log_path)
 
 
 def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
-    log, log_stringio = logging_setup()
 
-    log.info("collating table status")
+    global log_stringio
+
     log_path = None
     try:
         if isinstance(config, str):
@@ -681,10 +685,15 @@ def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
         else:
             raise TypeError("Input 'config' must be a str or dict.")
 
-        log_path = os.path.join(config["log-base-path"], get_validator_name() + ".log")
-        log.info("Running validation")
-
+        log_base_path = config["log-base-path"]
+        temp_log_path = os.path.join(
+            log_base_path,
+            f"data_linter_temporary_fs/status/{get_validator_name()}.log"
+        )
+        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
+        log.info("collating table status")
         collect_all_status(config)
+        log.info(f"collating all logs in {log_base_path}")
 
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
@@ -697,4 +706,58 @@ def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
 
         raise e.with_traceback(e.__traceback__)
     else:
-        upload_log(log, log_stringio, log_path)
+        upload_log(log, log_stringio, temp_log_path)
+
+
+def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
+
+    if isinstance(config, str):
+        config = load_and_validate_config(config)
+    elif isinstance(config, dict):
+        config = validate_and_clean_config(config)
+
+    log_base_path = config["log-base-path"]
+    log_path_fin = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+    log_base_path_is_s3 = log_base_path.startswith("s3://")
+
+    land_base_path = config["land-base-path"]
+    land_base_path_is_s3 = land_base_path.startswith("s3://")
+
+    init_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/init")
+    val_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/val")
+    status_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/satus")
+
+    if log_base_path_is_s3:
+        init_log_paths = get_filepaths_from_s3_folder(init_log_path)
+        val_log_paths = get_filepaths_from_s3_folder(val_log_path)
+        status_log_paths = get_filepaths_from_s3_folder(status_log_path)
+    else:
+        init_log_paths = get_filepaths_from_local_folder(init_log_path)
+        val_log_paths = get_filepaths_from_local_folder(val_log_path)
+        status_log_paths = get_filepaths_from_local_folder(status_log_path)
+
+    log_string_list = []
+    for init_log_path in init_log_paths:
+        log_string_list.append(read_all_file_body(init_log_path))
+    for val_log_path in val_log_paths:
+        log_string_list.append(read_all_file_body(val_log_path))
+    for status_log_path in status_log_paths:
+        log_string_list.append(read_all_file_body(status_log_path))
+
+    log_io = io.StringIO()
+    for log_str in log_string_list:
+        log_io.write(log_str)
+    upload_log(log, log_io, log_path_fin)
+
+    land_path_del = os.path.join(land_base_path, "data_linter_temporary_fs")
+    log_path_del = os.path.join(log_base_path, "data_linter_temporary_fs")
+
+    if land_base_path_is_s3:
+        delete_objects(land_path_del)
+    else:
+        shutil.rmtree(land_path_del, ignore_errors=True)
+
+    if log_base_path_is_s3:
+        delete_objects(log_path_del)
+    else:
+        shutil.rmtree(log_path_del, ignore_errors=True)

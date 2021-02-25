@@ -2,7 +2,6 @@ import os
 import yaml
 import gzip
 import tempfile
-
 import pytest
 
 
@@ -65,6 +64,7 @@ def test_end_to_end_no_creds_error():
 
     from data_linter.validation import run_validation
     from botocore.exceptions import ClientError
+    # from botocore.exceptions import NoCredentialsError
 
     test_folder = "tests/data/end_to_end1/"
     config_path = os.path.join(test_folder, "config.yaml")
