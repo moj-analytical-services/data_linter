@@ -724,7 +724,7 @@ def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
 
     init_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/init")
     val_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/val")
-    status_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/satus")
+    status_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/status")
 
     if log_base_path_is_s3:
         init_log_paths = get_filepaths_from_s3_folder(init_log_path)
