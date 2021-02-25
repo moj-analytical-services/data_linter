@@ -183,8 +183,6 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         traceback.
     """
 
-    global log_stringio
-
     log.info("Loading config")
     log_path = None
     try:
@@ -638,8 +636,6 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
 
 def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml"):
 
-    global log_stringio
-
     try:
         if isinstance(config, str):
             config = load_and_validate_config(config)
@@ -678,8 +674,6 @@ def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml
 
 
 def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
-
-    global log_stringio
 
     log_path = None
     try:

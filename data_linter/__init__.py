@@ -7,5 +7,5 @@ else:
 
 try:
     __version__ = version("data_linter")
-except:
-    __version__ = "unknown"
+except Exception:
+    __version__ = "1776"
