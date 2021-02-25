@@ -591,6 +591,11 @@ def collect_all_status(config: dict):
         msg6 += " Check logs for details"
         log.info(msg6)
 
+    if land_base_path_is_s3:
+        delete_objects(f"{land_base_path}/data_linter_temporary_fs/")
+    else:
+        shutil.rmtree(f"{land_base_path}/data_linter_temporary_fs/", ignore_errors=True)
+
 
 def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
 
