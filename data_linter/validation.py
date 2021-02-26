@@ -7,7 +7,7 @@ import boto3
 import shutil
 import io
 
-from typing import Union
+from typing import Union, List
 
 from datetime import datetime
 
@@ -107,7 +107,9 @@ def match_files_in_land_to_config(config: dict) -> dict:
     Takes config and matches files in S3 to the corresponding table list in config.
     Checks against other config parameters and raise error if config params not met.
     """
+
     land_base_path = config["land-base-path"]
+
     # delete temp storage, incase it hasn't been already
     del_path = os.path.join(land_base_path, "data_linter_temporary_fs")
     if land_base_path.startswith("s3://"):
@@ -219,7 +221,13 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
 
 def bin_pack_configs(config: dict, max_bin_count: int):
     """
-    write a docstring pls
+    creates up to max_bin_count of config files by splitting the files from the config
+    by size and grouping them into or below the average size of all the files
+
+    Args:
+        config: a config file specifying the files to be linted
+        max_bin_count: the maximum of bins to split the files up into - optimal number
+        is equal to the amount of workers available
     """
 
     land_base_path = config.get("land-base-path")
@@ -255,7 +263,7 @@ def bin_pack_configs(config: dict, max_bin_count: int):
         # sort them in descending order
         file_list.sort(key=lambda x: -x["file-size"])
 
-        bins = [None for i in range(max_bin_count)]
+        bins = [None] * max_bin_count
 
         offset = 0
         for i in range(max_bin_count):
@@ -316,11 +324,11 @@ def bin_pack_configs(config: dict, max_bin_count: int):
                 local_file_to_s3(tmp_file.name, f"{s3_temp_path}/{i}/{tmp_file_name}")
 
     else:
-        pass
-        # do local equiv maybe lol
+        raise ValueError("Local land path not supported for parrallel running")
 
 
 def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
+
     land_base_path = config["land-base-path"]
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
@@ -346,11 +354,11 @@ def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
 
         return True
 
+    else:
+        raise ValueError("Local land path not supported for parrallel running")
+
 
 def validate_data(config: dict):
-
-    # set up logging
-    # log, log_stringio = logging_setup()
 
     land_base_path = config["land-base-path"]
     validator_engine = config.get("validator-engine", "frictionless")
@@ -404,7 +412,16 @@ def validate_data(config: dict):
         save_completion_status(land_base_path, all_table_responses)
 
 
-def save_completion_status(land_base_path: str, all_table_responses: list):
+def save_completion_status(land_base_path: str, all_table_responses: List[dict]):
+    """
+    saves the status of the table linting to a file to be colleted later
+
+    Args:
+    land_base_path: string base path of where to save the satus files
+    all_table_responses: a list of dictionaries detailing whether it passed or failied
+    linting, the validator response, the file linted, and the table name
+    """
+
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
     for table_response in all_table_responses:
@@ -441,6 +458,15 @@ def save_completion_status(land_base_path: str, all_table_responses: list):
 
 
 def collect_all_status(config: dict):
+    """
+    collects the status files saved and determines whether the linting was a succes or
+    not and copies/removes/compresses the files to and from the correct places
+
+    Args:
+    config: the config as given at the beggining with the paths of where to collect and
+    save data from as well as compression, remove-on-pass etc.
+    """
+
     utc_ts = int(datetime.utcnow().timestamp())
     land_base_path = config["land-base-path"]
     all_must_pass = config.get("all-must-pass", False)

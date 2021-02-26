@@ -157,6 +157,13 @@ def get_filepaths_from_local_folder(
 
 
 def read_all_file_body(file_path: str) -> str:
+    """
+    Returns the text content of a file (will decode bytes if file read is bytes like)
+
+    Args:
+        file_path: A string specifying the location of the file to load text from.
+        can be s3 or local
+    """
     file_path_is_s3 = file_path.startswith("s3://")
 
     if file_path_is_s3:
