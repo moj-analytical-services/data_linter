@@ -8,7 +8,7 @@ remove-tables-on-pass: false
 tables:
   table2:
     matched_files:
-    - s3://alpha-mojap-de-courts-team/stephen/land/table2_extra.jsonl
+      - s3://alpha-mojap-de-courts-team/stephen/land/table2_extra.jsonl
     metadata: /Users/stephen/Documents/data_linter/tests/data/end_to_end1/meta_data/table2.json
     pattern: ^table2
     required: true
