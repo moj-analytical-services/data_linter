@@ -62,24 +62,23 @@ def get_validator_name() -> str:
     return validator_name
 
 
-def load_and_validate_config(config_path: str = "config.yaml") -> dict:
+def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
     """
     Loads and validates the config
     """
 
-    # load yaml or json
-    if not os.path.isfile(config_path):
-        config_path = config_path.replace("yaml", "yml")
-        if not os.path.isfile(config_path):
-            raise FileNotFoundError(f"Expecting a file in path given {config_path}.")
+    if isinstance(config, str):
+        config_raw_text = read_all_file_body(config)
+        config = yaml.safe_load(config_raw_text)
+    elif isinstance(config, dict):
+        pass
+    else:
+        raise TypeError("Input 'config' must be a str or dict.")
 
-    with open(config_path, "r") as f:
-        config = yaml.safe_load(f)
-
-    return validate_and_clean_config(config)
+    return _validate_and_clean_config(config)
 
 
-def validate_and_clean_config(config: dict) -> dict:
+def _validate_and_clean_config(config: dict) -> dict:
     """Validates a config as a dict. And adds default
     properties to that config.
 
@@ -188,12 +187,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
     log.info("Loading config")
     log_path = None
     try:
-        if isinstance(config, str):
-            config = load_and_validate_config(config)
-        elif isinstance(config, dict):
-            config = validate_and_clean_config(config)
-        else:
-            raise TypeError("Input 'config' must be a str or dict.")
+        config = load_and_validate_config(config)
 
         log_base_path = config["log-base-path"]
         log_path = os.path.join(log_base_path, get_validator_name() + ".log")
@@ -626,12 +620,7 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
     log.info("Loading config for paralellisation")
     log_path = None
     try:
-        if isinstance(config, str):
-            config = load_and_validate_config(config)
-        elif isinstance(config, dict):
-            config = validate_and_clean_config(config)
-        else:
-            raise TypeError("Input 'config' must be a str or dict.")
+        config = load_and_validate_config(config)
 
         log_base_path = config["log-base-path"]
         temp_log_path = os.path.join(
@@ -663,12 +652,7 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
 def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml"):
 
     try:
-        if isinstance(config, str):
-            config = load_and_validate_config(config)
-        elif isinstance(config, dict):
-            config = validate_and_clean_config(config)
-        else:
-            raise TypeError("Input 'config' must be a str or dict.")
+        config = load_and_validate_config(config)
 
         log.info(f"Worker {config_num} loading config for validaiton")
         log_path = None
@@ -703,12 +687,7 @@ def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
 
     log_path = None
     try:
-        if isinstance(config, str):
-            config = load_and_validate_config(config)
-        elif isinstance(config, dict):
-            config = validate_and_clean_config(config)
-        else:
-            raise TypeError("Input 'config' must be a str or dict.")
+        config = load_and_validate_config(config)
 
         log_base_path = config["log-base-path"]
         temp_log_path = os.path.join(
@@ -736,10 +715,7 @@ def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
 
 def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
 
-    if isinstance(config, str):
-        config = load_and_validate_config(config)
-    elif isinstance(config, dict):
-        config = validate_and_clean_config(config)
+    config = load_and_validate_config(config)
 
     log_base_path = config["log-base-path"]
     log_path_fin = os.path.join(config["log-base-path"], get_validator_name() + ".log")
