@@ -3,6 +3,7 @@ import io
 import boto3
 import os
 from typing import Tuple
+from datetime import datetime
 
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
@@ -66,3 +67,61 @@ def upload_log(log: logging.Logger, log_stringio: io.StringIO, log_path: str):
             "An error occurred but no log path registered, "
             "likely due to issue with config, so logs not saved."
         )
+
+
+def get_temp_log_path_from_config(config: dict, validator_name) -> str:
+    """
+        Defines temp log path for parallel runs
+
+    Args:
+        config (dict): A data linter config
+
+    Returns:
+        str: tmp path for log for a parallelised run
+    """
+    pass
+
+
+def get_log_fn() -> str:
+    validator_name = os.getenv("VALIDATOR_NAME")
+    if not validator_name:
+        validator_name = "data-linter"
+    validator_name += f"-{int(datetime.utcnow().timestamp())}.log"
+    return validator_name
+
+
+def get_temp_log_path_from_config(config: dict) -> str:
+    """
+        Defines temp log path for parallel runs
+
+    Args:
+        config (dict): A data linter config
+
+    Returns:
+        str: tmp path for log for a parallelised run
+    """
+    log_base_path = config["log-base-path"]
+    temp_log_path = os.path.join(
+        log_base_path,
+        f"data_linter_temporary_fs/init/{get_log_fn()}"
+    )
+    return temp_log_path
+
+
+def get_main_log_path_from_config(config: dict) -> str:
+    """
+        Defines main log file path for a data linter run
+
+    Args:
+        config (dict): A data linter config
+
+    Returns:
+        str: master log file path for a datalinter run
+    """
+    log_base_path = config["log-base-path"]
+    log_path = os.path.join(
+        log_base_path,
+        "data-linter-main-logs",
+        get_log_fn()
+    )
+    return log_path

@@ -29,11 +29,14 @@ from data_linter.constants import config_schema
 from data_linter.logging_functions import (
     upload_log,
     logging_setup,
+    get_temp_log_path_from_config,
+    get_main_log_path_from_config
+
 )
 
 from data_linter.utils import (
     get_out_path,
-    get_log_path,
+    get_table_log_path,
     compress_data,
     copy_data,
     get_filepaths_from_local_folder,
@@ -52,14 +55,6 @@ get_validator = {
     "frictionless": FrictionlessValidator,
     "great-expectations": GreatExpectationsValidator,
 }
-
-
-def get_validator_name() -> str:
-    validator_name = os.getenv("VALIDATOR_NAME")
-    if not validator_name:
-        validator_name = "de-data-validator"
-    validator_name += f"-{int(datetime.utcnow().timestamp())}"
-    return validator_name
 
 
 def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
@@ -188,9 +183,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
     log_path = None
     try:
         config = load_and_validate_config(config)
-
-        log_base_path = config["log-base-path"]
-        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
+        log_path = get_main_log_path_from_config(config)
 
         log.info("Running validation")
 
@@ -586,7 +579,7 @@ def collect_all_status(config: dict):
         table_response["archived-path"] = final_outpath
 
         # write (table specific) log
-        log_outpath = get_log_path(log_base_path, table_name, utc_ts, filenum=i)
+        log_outpath = get_table_log_path(log_base_path, table_name, utc_ts, filenum=i)
         if log_base_path_is_s3:
             write_json_to_s3(table_response, log_outpath)
         else:
@@ -621,13 +614,8 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
     log_path = None
     try:
         config = load_and_validate_config(config)
-
-        log_base_path = config["log-base-path"]
-        temp_log_path = os.path.join(
-            log_base_path,
-            f"data_linter_temporary_fs/init/{get_validator_name()}.log"
-        )
-        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
+        temp_log_path = get_temp_log_path_from_config(config)
+        log_path = get_main_log_path_from_config(config)
 
         config = match_files_in_land_to_config(config)
 
@@ -657,13 +645,8 @@ def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml
         log.info(f"Worker {config_num} loading config for validaiton")
         log_path = None
 
-        log_base_path = config["log-base-path"]
-        temp_log_path = os.path.join(
-            log_base_path,
-            f"data_linter_temporary_fs/val/{config_num}/{get_validator_name()}.log"
-        )
-        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
-
+        temp_log_path = get_temp_log_path_from_config(config)
+        log_path = get_main_log_path_from_config(config)
         there_was_a_config = validate_from_chunked_configs(config, config_num)
 
         if not there_was_a_config:
@@ -689,15 +672,12 @@ def para_collect_all_status(config: Union[str, dict] = "config.yaml"):
     try:
         config = load_and_validate_config(config)
 
-        log_base_path = config["log-base-path"]
-        temp_log_path = os.path.join(
-            log_base_path,
-            f"data_linter_temporary_fs/status/{get_validator_name()}.log"
-        )
-        log_path = os.path.join(log_base_path, get_validator_name() + ".log")
+        temp_log_path = get_temp_log_path_from_config(config)
+        log_path = get_main_log_path_from_config(config)
+
         log.info("collating table status")
         collect_all_status(config)
-        log.info(f"collating all logs in {log_base_path}")
+        log.info(f"collating all logs in {config['log-base-path']}")
 
     except Exception as e:
         log_msg = f"Unexpected error. Uploading log to {log_path} before raising error."
@@ -718,7 +698,7 @@ def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
     config = load_and_validate_config(config)
 
     log_base_path = config["log-base-path"]
-    log_path_fin = os.path.join(config["log-base-path"], get_validator_name() + ".log")
+    log_path_fin = get_main_log_path_from_config(config)
     log_base_path_is_s3 = log_base_path.startswith("s3://")
 
     land_base_path = config["land-base-path"]
