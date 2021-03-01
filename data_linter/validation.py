@@ -13,8 +13,6 @@ from datetime import datetime
 
 from jsonschema import validate as json_validate
 
-from awswrangler.s3 import delete_objects
-
 from copy import deepcopy
 
 from dataengineeringutils3.s3 import (
@@ -22,6 +20,7 @@ from dataengineeringutils3.s3 import (
     delete_s3_object,
     write_json_to_s3,
     s3_path_to_bucket_key,
+    delete_s3_folder_contents,
 )
 
 from data_linter.constants import config_schema
@@ -30,7 +29,8 @@ from data_linter.logging_functions import (
     upload_log,
     logging_setup,
     get_temp_log_path_from_config,
-    get_main_log_path_from_config
+    get_main_log_path_from_config,
+    get_temp_log_basepath
 
 )
 
@@ -103,14 +103,9 @@ def match_files_in_land_to_config(config: dict) -> dict:
     """
 
     land_base_path = config["land-base-path"]
-
-    # delete temp storage, incase it hasn't been already
-    del_path = os.path.join(land_base_path, "data_linter_temporary_fs")
     if land_base_path.startswith("s3://"):
-        delete_objects(del_path)
         land_files = get_filepaths_from_s3_folder(land_base_path)
     else:
-        shutil.rmtree(del_path, ignore_errors=True)
         land_files = get_filepaths_from_local_folder(land_base_path)
 
     if not land_files and config.get("fail-no-files", False):
@@ -221,7 +216,8 @@ def bin_pack_configs(config: dict, max_bin_count: int):
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
     if land_base_path_is_s3:
-        s3_temp_path = os.path.join(land_base_path, "data_linter_temporary_fs/configs")
+        tmp_log_bp = get_temp_log_basepath(config)
+        s3_temp_path = os.path.join(tmp_log_bp, "configs")
         file_list = []
 
         # create a list of dictionaries, for each file with all attributes
@@ -308,7 +304,12 @@ def bin_pack_configs(config: dict, max_bin_count: int):
                     yaml.dump(config_n, yaml_out, default_flow_style=False)
 
                 tmp_file_name = tmp_file.name.split("/")[-1]
-                local_file_to_s3(tmp_file.name, f"{s3_temp_path}/{i}/{tmp_file_name}")
+                s3_out_path = os.path.join(
+                    s3_temp_path,
+                    str(i),
+                    tmp_file_name
+                )
+                local_file_to_s3(tmp_file.name, s3_out_path)
 
     else:
         raise ValueError("Local land path not supported for parrallel running")
@@ -320,9 +321,8 @@ def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
     land_base_path_is_s3 = land_base_path.startswith("s3://")
 
     if land_base_path_is_s3:
-        s3_temp_path = os.path.join(
-            land_base_path, f"data_linter_temporary_fs/configs/{config_num}"
-        )
+        tmp_log_bp = get_temp_log_basepath(config)
+        s3_temp_path = os.path.join(tmp_log_bp, "configs", str(config_num))
 
         config_file_paths = get_filepaths_from_s3_folder(s3_temp_path)
         if not config_file_paths:
@@ -396,28 +396,27 @@ def validate_data(config: dict):
             log.info(msg4)
 
     if all_table_responses:
-        save_completion_status(land_base_path, all_table_responses)
+        save_completion_status(config, all_table_responses)
 
 
-def save_completion_status(land_base_path: str, all_table_responses: List[dict]):
+def save_completion_status(config: dict, all_table_responses: List[dict]):
     """
     saves the status of the table linting to a file to be colleted later
 
     Args:
-    land_base_path: string base path of where to save the satus files
+    config: A data linter config
     all_table_responses: a list of dictionaries detailing whether it passed or failied
     linting, the validator response, the file linted, and the table name
     """
 
-    land_base_path_is_s3 = land_base_path.startswith("s3://")
+    log_base_path_is_s3 = config["log-base-path"].startswith("s3://")
 
+    temp_status_basepath = os.path.join(
+        get_temp_log_basepath(config),
+        "status"
+    )
     for table_response in all_table_responses:
-        if land_base_path_is_s3:
-
-            s3_temp_path = os.path.join(
-                land_base_path, "data_linter_temporary_fs/status"
-            )
-
+        if log_base_path_is_s3:
             og_file_name = os.path.basename(
                 table_response["original-path"]
             ).split(".")[0]
@@ -430,15 +429,14 @@ def save_completion_status(land_base_path: str, all_table_responses: List[dict])
                     json.dump(table_response, json_out)
 
                 tmp_file_name = os.path.basename(tmp_file.name)
-                s3_temp_path = os.path.join(s3_temp_path, tmp_file_name)
+                s3_temp_path = os.path.join(temp_status_basepath, tmp_file_name)
 
                 local_file_to_s3(tmp_file.name, s3_temp_path)
 
         else:
-            tmp_dir = os.path.join(land_base_path, "data_linter_temporary_fs/status")
-            if not os.path.exists(tmp_dir):
-                os.makedirs(tmp_dir, exist_ok=True)
-            tmp_file_resp = tempfile.mkstemp(suffix=".json", dir=tmp_dir)
+            if not os.path.exists(temp_status_basepath):
+                os.makedirs(temp_status_basepath, exist_ok=True)
+            tmp_file_resp = tempfile.mkstemp(suffix=".json", dir=temp_status_basepath)
             tmp_filename = tmp_file_resp[1]
             with open(tmp_filename, "w") as json_out:
                 json.dump(table_response, json_out)
@@ -466,10 +464,12 @@ def collect_all_status(config: dict):
 
     land_base_path_is_s3 = land_base_path.startswith("s3://")
     log_base_path_is_s3 = log_base_path.startswith("s3://")
-
-    if land_base_path_is_s3:
-        s3_temp_path = os.path.join(land_base_path, "data_linter_temporary_fs/status")
-        status_file_paths = get_filepaths_from_s3_folder(s3_temp_path)
+    temp_status_basepath = os.path.join(
+        get_temp_log_basepath(config),
+        "status"
+    )
+    if log_base_path_is_s3:
+        status_file_paths = get_filepaths_from_s3_folder(temp_status_basepath)
 
         s3_client = boto3.client("s3")
 
@@ -480,10 +480,7 @@ def collect_all_status(config: dict):
             all_table_response.append(json.loads(status_file_obj["Body"].read()))
 
     else:
-        local_temp_path = os.path.join(
-            land_base_path, "data_linter_temporary_fs/status"
-        )
-        status_file_paths = get_filepaths_from_local_folder(local_temp_path)
+        status_file_paths = get_filepaths_from_local_folder(temp_status_basepath)
 
         all_table_response = []
         for status_file_path in status_file_paths:
@@ -528,6 +525,7 @@ def collect_all_status(config: dict):
             if compress:
                 log.info(f"Compressing file from {matched_file} to {final_outpath}")
                 compress_data(matched_file, final_outpath)
+                log.info("KARIK YOLO")
             else:
                 log.info(f"Copying file from {matched_file} to {final_outpath}")
                 copy_data(matched_file, final_outpath)
@@ -602,10 +600,10 @@ def collect_all_status(config: dict):
         msg6 += " Check logs for details"
         log.info(msg6)
 
-    if land_base_path_is_s3:
-        delete_objects(f"{land_base_path}/data_linter_temporary_fs/")
+    if log_base_path_is_s3:
+        delete_s3_folder_contents(temp_status_basepath)
     else:
-        shutil.rmtree(f"{land_base_path}/data_linter_temporary_fs/", ignore_errors=True)
+        shutil.rmtree(temp_status_basepath, ignore_errors=True)
 
 
 def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
@@ -701,12 +699,10 @@ def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
     log_path_fin = get_main_log_path_from_config(config)
     log_base_path_is_s3 = log_base_path.startswith("s3://")
 
-    land_base_path = config["land-base-path"]
-    land_base_path_is_s3 = land_base_path.startswith("s3://")
-
-    init_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/init")
-    val_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/val")
-    status_log_path = os.path.join(log_base_path, "data_linter_temporary_fs/status")
+    tmp_log_base_path = get_temp_log_basepath(config)
+    init_log_path = os.path.join(tmp_log_base_path, "init")
+    val_log_path = os.path.join(tmp_log_base_path, "val")
+    status_log_path = os.path.join(tmp_log_base_path, "status")
 
     if log_base_path_is_s3:
         init_log_paths = get_filepaths_from_s3_folder(init_log_path)
@@ -730,15 +726,9 @@ def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
         log_io.write(log_str)
     upload_log(log, log_io, log_path_fin)
 
-    land_path_del = os.path.join(land_base_path, "data_linter_temporary_fs")
     log_path_del = os.path.join(log_base_path, "data_linter_temporary_fs")
 
-    if land_base_path_is_s3:
-        delete_objects(land_path_del)
-    else:
-        shutil.rmtree(land_path_del, ignore_errors=True)
-
     if log_base_path_is_s3:
-        delete_objects(log_path_del)
+        delete_s3_folder_contents(log_path_del)
     else:
         shutil.rmtree(log_path_del, ignore_errors=True)

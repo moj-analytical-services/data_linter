@@ -90,6 +90,23 @@ def get_log_fn() -> str:
     return validator_name
 
 
+def get_temp_log_basepath(config: dict) -> str:
+    """
+        Defines temp log basepath for parallel runs
+
+    Args:
+        config (dict): A data linter config
+
+    Returns:
+        str: tmp base path for log for a parallelised run
+    """
+    temp_log_basepath = os.path.join(
+        config["log-base-path"],
+        "data_linter_temporary_fs/"
+    )
+    return temp_log_basepath
+
+
 def get_temp_log_path_from_config(config: dict) -> str:
     """
         Defines temp log path for parallel runs
@@ -100,10 +117,10 @@ def get_temp_log_path_from_config(config: dict) -> str:
     Returns:
         str: tmp path for log for a parallelised run
     """
-    log_base_path = config["log-base-path"]
     temp_log_path = os.path.join(
-        log_base_path,
-        f"data_linter_temporary_fs/init/{get_log_fn()}"
+        get_temp_log_basepath(config),
+        "init",
+        get_log_fn()
     )
     return temp_log_path
 
@@ -118,10 +135,12 @@ def get_main_log_path_from_config(config: dict) -> str:
     Returns:
         str: master log file path for a datalinter run
     """
-    log_base_path = config["log-base-path"]
     log_path = os.path.join(
-        log_base_path,
+        config["log-base-path"],
         "data-linter-main-logs",
         get_log_fn()
     )
     return log_path
+
+def init_temp_log_folder():
+    pass
