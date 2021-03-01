@@ -598,6 +598,13 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
     try:
         config = load_and_validate_config(config)
         temp_log_path = get_temp_log_path_from_config(config)
+        if get_filepaths_from_s3_folder(temp_log_path):
+            log.info(
+                f"Found temp logs in {temp_log_path}."
+                "Deleting data in folder before run."
+            )
+            delete_s3_folder_contents(temp_log_path)
+
         log_path = get_main_log_path_from_config(config)
 
         config = match_files_in_land_to_config(config)

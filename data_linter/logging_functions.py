@@ -130,7 +130,3 @@ def get_main_log_path_from_config(config: dict) -> str:
         config["log-base-path"], "data-linter-main-logs", get_log_fn()
     )
     return log_path
-
-
-def init_temp_log_folder():
-    pass
