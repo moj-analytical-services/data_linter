@@ -60,7 +60,7 @@ def upload_log(log: logging.Logger, log_stringio: io.StringIO, log_path: str):
             dir_out = os.path.dirname(log_path)
             if not os.path.exists(dir_out):
                 os.makedirs(dir_out, exist_ok=True)
-            with open(log_path, 'w') as log_out:
+            with open(log_path, "w") as log_out:
                 log_out.write(log_stringio.getvalue())
     else:
         log.error(
@@ -97,8 +97,7 @@ def get_temp_log_basepath(config: dict) -> str:
         str: tmp base path for log for a parallelised run
     """
     temp_log_basepath = os.path.join(
-        config["log-base-path"],
-        "data_linter_temporary_fs/"
+        config["log-base-path"], "data_linter_temporary_fs/"
     )
     return temp_log_basepath
 
@@ -113,11 +112,7 @@ def get_temp_log_path_from_config(config: dict) -> str:
     Returns:
         str: tmp path for log for a parallelised run
     """
-    temp_log_path = os.path.join(
-        get_temp_log_basepath(config),
-        "init",
-        get_log_fn()
-    )
+    temp_log_path = os.path.join(get_temp_log_basepath(config), "init", get_log_fn())
     return temp_log_path
 
 
@@ -132,11 +127,10 @@ def get_main_log_path_from_config(config: dict) -> str:
         str: master log file path for a datalinter run
     """
     log_path = os.path.join(
-        config["log-base-path"],
-        "data-linter-main-logs",
-        get_log_fn()
+        config["log-base-path"], "data-linter-main-logs", get_log_fn()
     )
     return log_path
+
 
 def init_temp_log_folder():
     pass

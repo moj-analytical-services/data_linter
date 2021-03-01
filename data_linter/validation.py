@@ -30,8 +30,7 @@ from data_linter.logging_functions import (
     logging_setup,
     get_temp_log_path_from_config,
     get_main_log_path_from_config,
-    get_temp_log_basepath
-
+    get_temp_log_basepath,
 )
 
 from data_linter.utils import (
@@ -304,11 +303,7 @@ def bin_pack_configs(config: dict, max_bin_count: int):
                     yaml.dump(config_n, yaml_out, default_flow_style=False)
 
                 tmp_file_name = tmp_file.name.split("/")[-1]
-                s3_out_path = os.path.join(
-                    s3_temp_path,
-                    str(i),
-                    tmp_file_name
-                )
+                s3_out_path = os.path.join(s3_temp_path, str(i), tmp_file_name)
                 local_file_to_s3(tmp_file.name, s3_out_path)
 
     else:
@@ -411,15 +406,12 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
 
     log_base_path_is_s3 = config["log-base-path"].startswith("s3://")
 
-    temp_status_basepath = os.path.join(
-        get_temp_log_basepath(config),
-        "status"
-    )
+    temp_status_basepath = os.path.join(get_temp_log_basepath(config), "status")
     for table_response in all_table_responses:
         if log_base_path_is_s3:
-            og_file_name = os.path.basename(
-                table_response["original-path"]
-            ).split(".")[0]
+            og_file_name = os.path.basename(table_response["original-path"]).split(".")[
+                0
+            ]
 
             with tempfile.NamedTemporaryFile(
                 suffix=".json", prefix=og_file_name
@@ -464,10 +456,7 @@ def collect_all_status(config: dict):
 
     land_base_path_is_s3 = land_base_path.startswith("s3://")
     log_base_path_is_s3 = log_base_path.startswith("s3://")
-    temp_status_basepath = os.path.join(
-        get_temp_log_basepath(config),
-        "status"
-    )
+    temp_status_basepath = os.path.join(get_temp_log_basepath(config), "status")
     if log_base_path_is_s3:
         status_file_paths = get_filepaths_from_s3_folder(temp_status_basepath)
 
@@ -541,9 +530,7 @@ def collect_all_status(config: dict):
                     timestamp_partition_name=timestamp_partition_name,
                 )
                 if compress:
-                    log.info(
-                        f"Compressing file from {matched_file} to {final_outpath}"
-                    )
+                    log.info(f"Compressing file from {matched_file} to {final_outpath}")
                     compress_data(matched_file, final_outpath)
                 else:
                     log.info(f"Copying file from {matched_file} to {final_outpath}")
@@ -567,9 +554,7 @@ def collect_all_status(config: dict):
                     timestamp_partition_name=timestamp_partition_name,
                 )
                 if compress:
-                    log.info(
-                        f"Compressing file from {matched_file} to {final_outpath}"
-                    )
+                    log.info(f"Compressing file from {matched_file} to {final_outpath}")
                     compress_data(matched_file, final_outpath)
                 else:
                     log.info(f"Copying file from {matched_file} to {final_outpath}")

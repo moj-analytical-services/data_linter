@@ -111,12 +111,7 @@ def test_compression(s3):
 @pytest.mark.parametrize("pass_path", ["s3://pass/", "pass"])
 @pytest.mark.parametrize("log_path", ["s3://log/", "log"])
 def test_end_to_end_full_path_spectrum(
-    s3,
-    tmpdir_factory,
-    land_path,
-    fail_path,
-    pass_path,
-    log_path
+    s3, tmpdir_factory, land_path, fail_path, pass_path, log_path
 ):
 
     from data_linter.validation import run_validation
@@ -188,10 +183,7 @@ def test_end_to_end_full_path_spectrum_parallel(
 
 
 @pytest.mark.parametrize("max_bin_count", [1, 3, 10])
-def test_bin_count(
-    s3,
-    max_bin_count
-):
+def test_bin_count(s3, max_bin_count):
 
     from data_linter import validation
 
@@ -217,23 +209,21 @@ def test_end_to_end_single_file_config(s3):
     test_folder = "tests/data/end_to_end1/"
 
     config = {
-        "land-base-path" : "s3://land/",
-        "fail-base-path" : "s3://fail/",
-        "pass-base-path" : "s3://pass/",
-        "log-base-path" : "s3://log/",
-        "compress-data" : True,
+        "land-base-path": "s3://land/",
+        "fail-base-path": "s3://fail/",
+        "pass-base-path": "s3://pass/",
+        "log-base-path": "s3://log/",
+        "compress-data": True,
         "remove-tables-on-pass": True,
-        "all-must-pass" : True,
-        "tables" : {
-            "table1" : {
-                "required" : True,
-                "metadata" : "tests/data/end_to_end1/meta_data/table1.json",
-                "expect-header" : True,
-                "matched-files" : [
-                    "s3://land/table1.csv"
-                ]
+        "all-must-pass": True,
+        "tables": {
+            "table1": {
+                "required": True,
+                "metadata": "tests/data/end_to_end1/meta_data/table1.json",
+                "expect-header": True,
+                "matched-files": ["s3://land/table1.csv"],
             }
-        }
+        },
     }
 
     set_up_s3(s3, test_folder, config)
@@ -278,7 +268,7 @@ def test_bin_pack_configs(s3, max_bin_count):
         try:
             actual_bin_pack = yaml.safe_load(read_all_file_body(file_path))
         except ClientError as e:
-            if e.response['Error']['Code'] == 'NoSuchKey':
+            if e.response["Error"]["Code"] == "NoSuchKey":
                 assert pre_bin_packed is None
         else:
             assert actual_bin_pack == pre_bin_packed

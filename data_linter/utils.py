@@ -141,7 +141,7 @@ def get_filepaths_from_local_folder(
         land_base_path = land_base_path[:-1]
 
     for curr_dir, _, file_names in os.walk(land_base_path):
-        file_names = [i for i in file_names if not i.startswith('.')]
+        file_names = [i for i in file_names if not i.startswith(".")]
 
         if file_extension:
             file_names = [i for i in file_names if i.endswith(file_extension)]
