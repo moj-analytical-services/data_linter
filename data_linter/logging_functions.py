@@ -69,19 +69,6 @@ def upload_log(log: logging.Logger, log_stringio: io.StringIO, log_path: str):
         )
 
 
-def get_temp_log_path_from_config(config: dict, validator_name) -> str:
-    """
-        Defines temp log path for parallel runs
-
-    Args:
-        config (dict): A data linter config
-
-    Returns:
-        str: tmp path for log for a parallelised run
-    """
-    pass
-
-
 def get_log_fn() -> str:
     return f"data-linter-{int(datetime.utcnow().timestamp())}.log"
 

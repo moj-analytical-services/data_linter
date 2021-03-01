@@ -342,7 +342,6 @@ def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
 
 def validate_data(config: dict):
 
-    land_base_path = config["land-base-path"]
     validator_engine = config.get("validator-engine", "frictionless")
     validator_params = config.get("validator-engine-params", {})
 
