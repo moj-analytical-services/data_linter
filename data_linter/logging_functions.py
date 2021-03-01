@@ -30,7 +30,7 @@ def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
     handler = logging.StreamHandler(log_stringio)
 
     log_formatter = logging.Formatter(
-        fmt="%(asctime)s | %(module)s | %(levelname)s | %(context)s | %(message)s",
+        fmt="%(asctime)s | %(funcName)s | %(levelname)s | %(context)s | %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     handler.setFormatter(log_formatter)
@@ -83,11 +83,7 @@ def get_temp_log_path_from_config(config: dict, validator_name) -> str:
 
 
 def get_log_fn() -> str:
-    validator_name = os.getenv("VALIDATOR_NAME")
-    if not validator_name:
-        validator_name = "data-linter"
-    validator_name += f"-{int(datetime.utcnow().timestamp())}.log"
-    return validator_name
+    return f"data-linter-{int(datetime.utcnow().timestamp())}.log"
 
 
 def get_temp_log_basepath(config: dict) -> str:
