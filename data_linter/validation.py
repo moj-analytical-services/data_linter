@@ -211,10 +211,10 @@ def bin_pack_configs(config: dict, max_bin_count: int):
         is equal to the amount of workers available
     """
 
-    land_base_path = config.get("land-base-path")
-    land_base_path_is_s3 = land_base_path.startswith("s3://")
+    log_base_path = config.get("log-base-path")
+    log_base_path_is_s3 = log_base_path.startswith("s3://")
 
-    if land_base_path_is_s3:
+    if log_base_path_is_s3:
         tmp_log_bp = get_temp_log_basepath(config)
         s3_temp_path = os.path.join(tmp_log_bp, "configs")
         file_list = []
