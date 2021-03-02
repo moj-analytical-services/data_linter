@@ -23,6 +23,7 @@ class FrictionlessValidator(BaseTableValidator):
 
     def __init__(self, filepath: str, table_params: dict, metadata: dict):
         super().__init__(filepath, table_params, metadata)
+        self.response = None  # Not yet integrated with ValidatorResult class
         self.schema = convert_meta_to_goodtables_schema(metadata)
         if optional_import_errors:
             imp_err = (
