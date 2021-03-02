@@ -11,6 +11,7 @@ from dataengineeringutils3.s3 import (
     s3_path_to_bucket_key,
     write_local_file_to_s3,
     copy_s3_object,
+    check_for_s3_file,
 )
 
 
@@ -81,7 +82,7 @@ def get_out_path(
     return out_path
 
 
-def get_log_path(basepath: str, table: str, ts: str, filenum: int = 0) -> str:
+def get_table_log_path(basepath: str, table: str, ts: str, filenum: int = 0) -> str:
     final_filename = f"log-{table}-{filenum}-{ts}.json"
 
     out_path = os.path.join(basepath, table, final_filename)
@@ -141,7 +142,7 @@ def get_filepaths_from_local_folder(
         land_base_path = land_base_path[:-1]
 
     for curr_dir, _, file_names in os.walk(land_base_path):
-        file_names = [i for i in file_names if not i.startswith('.')]
+        file_names = [i for i in file_names if not i.startswith(".")]
 
         if file_extension:
             file_names = [i for i in file_names if i.endswith(file_extension)]
@@ -154,3 +155,30 @@ def get_filepaths_from_local_folder(
         ret_file_paths.extend(file_paths)
 
     return ret_file_paths
+
+
+def read_all_file_body(file_path: str) -> str:
+    """
+    Returns the text content of a file (will decode bytes if file read is bytes like)
+
+    Args:
+        file_path: A string specifying the location of the file to load text from.
+        can be s3 or local
+    """
+    file_path_is_s3 = file_path.startswith("s3://")
+
+    if file_path_is_s3:
+        s3_client = boto3.client("s3")
+        if not check_for_s3_file(file_path):
+            raise FileNotFoundError("Path to config: {file_path}. Not found.")
+        bucket, key = s3_path_to_bucket_key(file_path)
+        file_obj = s3_client.get_object(Bucket=bucket, Key=key)
+        file_obj_body = file_obj["Body"].read()
+    else:
+        with open(file_path) as f_in:
+            file_obj_body = f_in.read()
+
+    if isinstance(file_obj_body, bytes):
+        return file_obj_body.decode("utf-8")
+    else:
+        return file_obj_body

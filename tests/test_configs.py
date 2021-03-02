@@ -10,7 +10,7 @@ import os
     [
         ("example_config_fail_required.yaml", r"required"),
         ("example_config_fail_enum.yaml", r"enum"),
-        ("example_config_fail_type.yaml", r"type")
+        ("example_config_fail_type.yaml", r"type"),
     ],
 )
 def test_load_and_validate_config_fail(test_input, expected):
