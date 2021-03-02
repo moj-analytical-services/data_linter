@@ -92,7 +92,7 @@ def test_validation_multiple_workers_no_init(s3):
     if you want to specify which worker works on what specific dataset.
     In the example below we run 1 worker per table validation
 
-    [init] -> [worker]x2 -> [closedown]
+    [worker]x2 -> [closedown]
     """
 
     import boto3
