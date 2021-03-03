@@ -9,7 +9,7 @@ from arrow_pd_parser.parse import (
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
-from pyarrow import parquet as pq
+from pyarrow import parquet as pq, fs
 
 from data_linter.validators.base import (
     BaseTableValidator,
@@ -67,26 +67,34 @@ class PandasValidator(BaseTableValidator):
         """
 
         if self.filepath.startswith("s3://"):
-            df = None  # TODO
+            reader_fs = fs.S3FileSystem(region='eu-west-1')
+            fp_for_file_reader = self.filepath.replace("s3://", "", 1)
+
         else:
+            reader_fs = fs.LocalFileSystem()
+            fp_for_file_reader = self.filepath
+
+        with reader_fs.open_input_stream(fp_for_file_reader) as f:
             if "csv" in self.metadata.data_format:
                 df = pa_read_csv_to_pandas(
-                    input_file=self.filepath,
+                    input_file=f,
                     schema=None,  # Needs actual schema
                     expect_full_schema=False
                 )
             elif "json" in self.metadata.data_format:
                 df = pa_read_json_to_pandas(
-                    input_file=self.filepath,
+                    input_file=f,
                     schema=None,  # Needs actual schema
                     expect_full_schema=False
                 )
             elif "parquet" in self.metadata.data_format:
                 df = arrow_to_pandas(
-                    pq.read_table(self.filepath)
+                    pq.read_table(f)
                 )
-
+            else:
+                raise ValueError(f"Unknown data_format in metadata: {self.metadata.data_format}.")
         return df
+
 
     def validate_df(self, df):  # STEPHEN TODO
         pass
