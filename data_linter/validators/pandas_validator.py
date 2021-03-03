@@ -1,6 +1,16 @@
 import logging
 import pandas as pd
 
+from arrow_pd_parser.parse import (
+    pa_read_csv_to_pandas,
+    pa_read_json_to_pandas,
+    pa_read_csv_to_pandas,
+)
+
+from arrow_pd_parser.pa_pd import arrow_to_pandas
+
+from pyarrow import parquet as pq
+
 from data_linter.validators.base import (
     BaseTableValidator,
     ValidatorResult,
@@ -55,7 +65,28 @@ class PandasValidator(BaseTableValidator):
         Reads in the data from the given filepath and returns
         a dataframe
         """
-        pass
+
+        if self.filepath.startswith("s3://"):
+            df = None  # TODO
+        else:
+            if "csv" in self.metadata.data_format:
+                df = pa_read_csv_to_pandas(
+                    input_file=self.filepath,
+                    schema=None,  # Needs actual schema
+                    expect_full_schema=False
+                )
+            elif "json" in self.metadata.data_format:
+                df = pa_read_json_to_pandas(
+                    input_file=self.filepath,
+                    schema=None,  # Needs actual schema
+                    expect_full_schema=False
+                )
+            elif "parquet" in self.metadata.data_format:
+                df = arrow_to_pandas(
+                    pq.read_table(self.filepath)
+                )
+
+        return df
 
     def validate_df(self, df):  # STEPHEN TODO
         pass

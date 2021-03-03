@@ -1,17 +1,27 @@
 import logging
 from copy import deepcopy
+from typing import List
 
 
-class ValidatorResult(object):
+class ValidatorResult:
     """
     Little class to manage adding to validator dict
     """
 
-    def __init__(self, result_dict={}):
+    def __init__(self, result_dict=None, validator_valid_key_name=None):
         if result_dict:
+            if not isinstance(result_dict, dict):
+                raise TypeError("result_dict must be a dict type")
             self.result = result_dict
         else:
             self.result = {"valid": True}
+
+        if validator_valid_key_name:
+            if not isinstance(validator_valid_key_name, str):
+                raise TypeError("validator_valid_key_name must be a str type")
+            self.vvkn = validator_valid_key_name
+        else:
+            self.vvkn = "valid"
 
     def get_result(self, copy=True):
         if copy:
@@ -42,7 +52,7 @@ class ValidatorResult(object):
                 overall_success = True
                 for k, v in self.result[colname].items():
                     if k in test_names:
-                        overall_success = overall_success and v.get("success", True)
+                        overall_success = overall_success and v.get(self.vvkn, True)
             else:
                 overall_success = self.result[colname].get("valid", True)
 
@@ -55,17 +65,17 @@ class ValidatorResult(object):
         # Same setup - treats overall test as a colname
         self.init_col(testname)
         self.result[testname] = test_result
-        if "success" in test_result:
-            self.result["valid"] = self.result["valid"] and test_result["success"]
+        if self.vvkn in test_result:
+            self.result["valid"] = self.result["valid"] and test_result[self.vvkn]
 
     def add_test_to_col(self, colname, testname, test_result):
         self.init_col(colname)
 
         self.result[colname][testname] = test_result
-        if "success" in test_result:
-            self.result["valid"] = self.result["valid"] and test_result["success"]
+        if self.vvkn in test_result:
+            self.result["valid"] = self.result["valid"] and test_result[self.vvkn]
             self.result[colname]["valid"] = (
-                self.result[colname]["valid"] and test_result["success"]
+                self.result[colname]["valid"] and test_result[self.vvkn]
             )
 
 
@@ -84,7 +94,11 @@ class BaseTableValidator:
         self.table_params = table_params
         self.metadata = metadata
         self.valid = None
-        self.response = ValidatorResult()
+
+        self.response = ValidatorResult(
+            result_dict=kwargs.get("result_dict"),
+            validator_valid_key_name=kwargs.get("validator_valid_key_name")
+        )
 
     def write_validation_result_to_log(self, log: logging.Logger):
         """Writes a the validators response to log provided.
