@@ -17,9 +17,9 @@ pyyaml = "^5.3.1"
 iam_builder = "^3.7.0"
 importlib-metadata = "^1.7"
 pandas = "^1.2"
+arrow-pd-parser = { url = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser/archive/v0.1.0.zip"}
 great-expectations = { version = "0.12.9", optional = true }
 awswrangler = {version = "2.3.0", optional = true}
-
 frictionless = {version = "3.24.0", optional = true}
 
 [tool.poetry.dev-dependencies]

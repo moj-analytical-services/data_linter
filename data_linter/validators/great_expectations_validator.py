@@ -5,7 +5,6 @@ from data_linter.validators.base import (
 )
 
 from copy import deepcopy
-from typing import List
 
 optional_import_errors = ""
 try:
@@ -57,7 +56,12 @@ class GreatExpectationsValidator(BaseTableValidator):
         default_result_fmt="COMPLETE",
         ignore_missing_cols=False,
     ):
-        super().__init__(filepath, table_params, metadata)
+        super().__init__(
+            filepath,
+            table_params,
+            metadata,
+            validator_valid_key_name="success"
+        )
 
         if optional_import_errors:
             imp_err = (
