@@ -42,10 +42,9 @@ class ValidatorResult:
             test_name (List[str], optional): [description]. List of tests to
             check against Defaults to [].
         """
-        non_column_names = ["valid", "validator-table-test-"]
         failed_cols = []
         for colname in self.result:
-            if colname in non_column_names:
+            if colname == "valid" or colname.startswith("validator-table-test-"):
                 continue
 
             if test_names:
