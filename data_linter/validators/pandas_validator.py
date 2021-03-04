@@ -98,7 +98,7 @@ class PandasValidator(BaseTableValidator):
 
     def validate_df(self, df):  # STEPHEN TODO
 
-        meta_cols = [col for col in self.metadata["columns"]]
+        meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
 
         for i, (_, col) in enumerate(df.iteritems()):
             self.validate_col(col, meta_cols[i])
@@ -145,7 +145,7 @@ class PandasValidator(BaseTableValidator):
         res_kwargs = {"column": col_name, "minimum_value": mi, "maximum_value": ma}
         res_dict = self.__result_dict("value_is_between", res_kwargs)
 
-        col_oob = self._get_min_max_series_out_of_bounds_col(col, col_name, mi, ma)
+        col_oob = self.__get_min_max_series_out_of_bounds_col(col, col_name, mi, ma)
 
         return self.__fill_res_dict(col, col_oob, res_dict)
 
@@ -154,7 +154,7 @@ class PandasValidator(BaseTableValidator):
         res_kwargs = {"column": col_name, "minimum_length": mil, "maximum_length": mal}
         res_dict = self.__result_dict("string_between_length", res_kwargs)
 
-        col_oob = self._get_min_max_series_out_of_bounds_col(
+        col_oob = self.__get_min_max_series_out_of_bounds_col(
             col.str.len(), col_name, mil, mal
         )
 
@@ -208,16 +208,6 @@ class PandasValidator(BaseTableValidator):
 
         return d
 
-    def __fill_unexpected(self, col, col_oob, res_dict) -> dict:
-
-        unexpected_index_list = col_oob.index[col_oob].tolist()
-        unexpected_list = col[unexpected_index_list].tolist()
-
-        res_dict["result"]["unexpected_index_list"] = unexpected_index_list
-        res_dict["result"]["unexpected_list"] = unexpected_list
-
-        return res_dict
-
     def __fill_res_dict(self, col, col_oob, res_dict) -> dict:
 
         valid = not col_oob.any()
@@ -232,7 +222,7 @@ class PandasValidator(BaseTableValidator):
 
         return res_dict
 
-    def _get_min_max_series_out_of_bounds_col(
+    def __get_min_max_series_out_of_bounds_col(
         self, col: pd.Series, colname: str, mi: Union[int, None], ma: Union[int, None]
     ) -> pd.Series:
 
