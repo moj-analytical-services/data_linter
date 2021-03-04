@@ -1,5 +1,8 @@
 import logging
 import pandas as pd
+import inspect
+
+from functools import wraps
 
 from arrow_pd_parser.parse import (
     pa_read_csv_to_pandas,
@@ -105,134 +108,205 @@ class PandasValidator(BaseTableValidator):
 
     def validate_col(self, col, meta_col):
 
+        self.min_max_test(col, meta_col)
+        self.min_max_length_test(col, meta_col)
+        self.pattern_test(col, meta_col)
+        self.enum_test(col, meta_col)
+        self.nullable_test(col, meta_col)
+        self.datetime_test(col, meta_col)
+
+    def min_max_test(self, col, meta_col):
+        res_dict = _min_max_test(col, meta_col)
         col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "min max numerical", res_dict)
 
-        mi = meta_col.get("minimum")
-        ma = meta_col.get("maximum")
-        if mi or ma:
-            self.response.add_test_to_col(
-                col_name, "min_max", self.min_max_test(col, col_name, mi, ma)
-            )
+    def min_max_length_test(self, col, meta_col):
+        res_dict = _min_max_length_test(col, meta_col)
+        col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "min max length", res_dict)
 
-        mil = meta_col.get("minLength")
-        mal = meta_col.get("maxLength")
-        if mil or mal:
-            self.response.add_test_to_col(
-                col_name,
-                "min_max_length",
-                self.min_max_length_test(col, col_name, mil, mal),
-            )
+    def pattern_test(self, col, meta_col):
+        res_dict = _pattern_test(col, meta_col)
+        col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "regex pattern", res_dict)
 
-        if meta_col.get("pattern"):
-            self.response.add_test_to_col(
-                col_name,
-                "regex_match",
-                self.pattern_test(col, col_name, meta_col["pattern"]),
-            )
+    def enum_test(self, col, meta_col):
+        res_dict = _pattern_test(col, meta_col)
+        col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "enum", res_dict)
 
-        if meta_col.get("enum"):
-            self.response.add_test_to_col(
-                col_name, "enum_match", self.enum_test(col, col_name, meta_col["enum"])
-            )
+    def nullable_test(self, col, meta_col):
+        res_dict = _nullable_test(col, meta_col)
+        col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "nullable", res_dict)
 
-        if not meta_col.get("nullable", True):
-            self.response.add_test_to_col(
-                col_name, "nullabe", self.nullable_test(col, col_name)
-            )
+    def datetime_test(self, col, meta_col):
+        res_dict = _datetime_test(col, meta_col)
+        col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "datetime", res_dict)
 
-    def min_max_test(self, col: pd.Series, col_name: str, mi: int, ma: int) -> dict:
 
-        res_kwargs = {"column": col_name, "minimum_value": mi, "maximum_value": ma}
-        res_dict = self.__result_dict("value_is_between", res_kwargs)
-
-        col_oob = self.__get_min_max_series_out_of_bounds_col(col, col_name, mi, ma)
-
-        return self.__fill_res_dict(col, col_oob, res_dict)
-
-    def min_max_length_test(self, col: pd.Series, col_name, mil, mal) -> dict:
-
-        res_kwargs = {"column": col_name, "minimum_length": mil, "maximum_length": mal}
-        res_dict = self.__result_dict("string_between_length", res_kwargs)
-
-        col_oob = self.__get_min_max_series_out_of_bounds_col(
-            col.str.len(), col_name, mil, mal
-        )
-
-        return self.__fill_res_dict(col, col_oob, res_dict)
-
-    def pattern_test(self, col: pd.Series, col_name: str, pattern: str) -> dict:
-
-        res_kwargs = {"column": col_name, "regex": pattern}
-
-        res_dict = self.__result_dict("srting matches regex", res_kwargs)
-
-        col_oob = ~col.str.match(pattern)
-
-        return self.__fill_res_dict(col, col_oob, res_dict)
-
-    def enum_test(self, col: pd.Series, col_name: str, enum: list) -> dict:
-
-        res_kwargs = {"column": col_name, "enum_value_set": enum}
-
-        res_dict = self.__result_dict("value in enum list", res_kwargs)
-
-        col_oob = ~col.isin(enum)
-
-        return self.__fill_res_dict(col, col_oob, res_dict)
-
-    def nullable_test(self, col: pd.Series, col_name) -> dict:
-
-        res_kwargs = {
-            "column": col_name,
-        }
-
-        res_dict = self.__result_dict("value is not null", res_kwargs)
-
-        col_oob = col.isnull()
-
-        return self.__fill_res_dict(col, col_oob, res_dict)
-
-    def datetime_test(self, col: pd.Series, col_name, dt_type) -> dict:
-        pass
-
-    def __result_dict(self, expectation_type: str, res_kwargs: dict) -> dict:
-
-        d = {
-            "result": {},
-            "valid": False,
-            "expectation_config": {
-                "expectation_type": expectation_type,
-                "kwargs": res_kwargs,
-            },
-        }
-
-        return d
-
-    def __fill_res_dict(self, col, col_oob, res_dict) -> dict:
-
-        valid = not col_oob.any()
-        res_dict["valid"] = valid
-
-        if not valid:
-            unexpected_index_list = col_oob.index[col_oob].tolist()
-            unexpected_list = col[unexpected_index_list].tolist()
-
-            res_dict["result"]["unexpected_index_list"] = unexpected_index_list
-            res_dict["result"]["unexpected_list"] = unexpected_list
-
-        return res_dict
-
-    def __get_min_max_series_out_of_bounds_col(
-        self, col: pd.Series, colname: str, mi: Union[int, None], ma: Union[int, None]
-    ) -> pd.Series:
-
-        # Test if values out of bounds
-        if mi is not None and ma is None:
-            col_oob = col < mi
-        elif ma is not None and mi is None:
-            col_oob = col > ma
-        elif ma is not None and mi is not None:
-            col_oob = ~col.between(mi, ma)
+def check_run_validation_for_meta(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        sig = inspect.signature(func)
+        argmap = sig.bind_partial(*args, **kwargs).arguments
+        mc = argmap.get("meta_col")
+        if func.__name__ == "_min_max_test" and _check_meta_has_params(
+            ["minimum", "maximum"], mc
+        ):
+            return func(*args, **kwargs)
+        elif func.__name__ == "_min_max_length_test" and _check_meta_has_params(
+            ["minLength", "maxLength"], mc
+        ):
+            return func(*args, **kwargs)
+        elif func.__name__ == "_pattern_test" and _check_meta_has_params(
+            ["pattern"], mc
+        ):
+            return func(*args, **kwargs)
+        elif func.__name__ == "_enum_test" and _check_meta_has_params(["enum"], mc):
+            return func(*args, **kwargs)
+        elif func.__name__ == "_nullable_test" and _check_meta_has_params(
+            ["nullabe"], mc
+        ):
+            return func(*args, **kwargs)
+        elif func.__name__ == "_datetime_test" and _check_meta_has_params(
+            ["date", "datetime"], mc
+        ):
+            return func(*args, **kwargs)
         else:
-            raise ValueError(f"invalid min/max values for column: {colname}")
-        return col_oob
+            pass
+
+    return wrapper
+
+
+@check_run_validation_for_meta
+def _min_max_test(col: pd.Series, meta_col: dict) -> dict:
+
+    col_name = meta_col["name"]
+    mi = meta_col.get("minimum")
+    ma = meta_col.get("maximum")
+
+    test_inputs = {"column": col_name, "minimum_value": mi, "maximum_value": ma}
+    res_dict = _result_dict("min max numerical", test_inputs)
+
+    col_oob = _get_min_max_series_out_of_bounds_col(col, col_name, mi, ma)
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+@check_run_validation_for_meta
+def _min_max_length_test(col: pd.Series, meta_col: str) -> dict:
+
+    col_name = meta_col["name"]
+    mil = meta_col.get("minLength")
+    mal = meta_col.get("maxLength")
+
+    test_inputs = {"column": col_name, "minimum_length": mil, "maximum_length": mal}
+    res_dict = _result_dict("min max length", test_inputs)
+
+    col_oob = _get_min_max_series_out_of_bounds_col(col.str.len(), col_name, mil, mal)
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+@check_run_validation_for_meta
+def _pattern_test(col: pd.Series, meta_col: str) -> dict:
+
+    col_name = meta_col["name"]
+    pattern = meta_col.get("pattern")
+
+    test_inputs = {"column": col_name, "regex": pattern}
+
+    res_dict = _result_dict("regex", test_inputs)
+
+    col_oob = ~col.str.match(pattern)
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+@check_run_validation_for_meta
+def _enum_test(col: pd.Series, meta_col: str) -> dict:
+
+    col_name = meta_col["name"]
+    enum = meta_col.get("enum")
+
+    test_inputs = {"column": col_name, "enum_value_set": enum}
+
+    res_dict = _result_dict("enum", test_inputs)
+
+    col_oob = ~col.isin(enum)
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+@check_run_validation_for_meta
+def _nullable_test(col: pd.Series, meta_col) -> dict:
+
+    col_name = meta_col.get("name")
+
+    test_inputs = {
+        "column": col_name,
+    }
+
+    res_dict = _result_dict("nullable", test_inputs)
+
+    col_oob = col.isnull()
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+def _datetime_test(col: pd.Series, meta_col) -> dict:
+    pass
+
+
+def _result_dict(test_name: str, test_inputs: dict) -> dict:
+
+    d = {
+        "valid": None,
+        "test_name": test_name,
+        "test_inputs": test_inputs,
+    }
+
+    return d
+
+
+def _fill_res_dict(col, col_oob, res_dict) -> dict:
+
+    valid = not col_oob.any()
+    res_dict["valid"] = valid
+
+    if not valid:
+        unexpected_index_list = col_oob.index[col_oob].tolist()
+        unexpected_list = col[unexpected_index_list].tolist()
+
+        res_dict["unexpected_index_list"] = unexpected_index_list
+        res_dict["unexpected_list"] = unexpected_list
+
+    return res_dict
+
+
+def _get_min_max_series_out_of_bounds_col(
+    col: pd.Series, colname: str, mi: Union[int, None], ma: Union[int, None]
+) -> pd.Series:
+
+    # Test if values out of bounds
+    if mi is not None and ma is None:
+        col_oob = col < mi
+    elif ma is not None and mi is None:
+        col_oob = col > ma
+    elif ma is not None and mi is not None:
+        col_oob = ~col.between(mi, ma)
+    else:
+        raise ValueError(f"invalid min/max values for column: {colname}")
+    return col_oob
+
+
+def _check_meta_has_params(any_of: list, meta_col: dict):
+    return any([a in meta_col for a in any_of])
