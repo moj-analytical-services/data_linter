@@ -1,5 +1,8 @@
 import logging
 import pandas as pd
+import functools
+import inspect
+from typing import Union, Tuple
 
 from arrow_pd_parser.parse import (
     pa_read_csv_to_pandas,
@@ -15,6 +18,31 @@ from data_linter.validators.base import (
     BaseTableValidator,
     ValidatorResult,
 )
+
+
+def check_run_validation_for_meta(func):
+    """
+    Wrapper function to test if test function should be called based
+    on meta_col keys.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        # Get parameters from function to check if function should run
+        sig = inspect.signature(func)
+        argmap = sig.bind_partial(*args, **kwargs).arguments
+        mc = argmap.get("meta_col")
+        if func.__name__ == "test_min_max" and _check_meta_has_params(["minimum", "maximum"], mc):
+            return func(*args, **kwargs)
+        elif func.__name__ == "test_min_max_length" and _check_meta_has_params([], mc):
+            return func(*args, **kwargs)
+        else:
+            pass
+    return wrapper
+
+
+def _check_meta_has_params(any_of: list, meta_col:dict):
+    return any([a in meta_col for a in any_of])
+
 
 class PandasValidator(BaseTableValidator):
     """
@@ -130,70 +158,81 @@ class PandasValidator(BaseTableValidator):
                 self.min_max_length_test(col, col_name, mil, mal)
             )
 
+    @check_run_validation_for_meta
+    def min_max_test(self, col: pd.Series, meta_col: dict):
 
-    def min_max_test(self, col, col_name: str, mi: int, ma: int):
+        colname = meta_col.get("name")
+        mi = meta_col.get("minimum")
+        ma = meta_col.get("maximum")
 
-        res_kwargs = {
-            "column" : col_name,
-            "minimum_value" : mi,
-            "maximum_value" : ma
-        }
-        res_dict = self._result_dict("value_is_between", res_kwargs)
+        res_dict = _init_get_low_level_result_dict()
+        res_dict["details"]["minimum_value"] = mi
+        res_dict["details"]["maximum_value"] = ma
 
-        if mi is not None and ma is None:
-            col_oob = (col < mi)
-        elif ma is not None and mi is None:
-            col_oob = (col > ma)
-        elif ma is not None and mi is not None:
-            col_oob = col.between(mi, ma)
-        else:
-            raise ValueError(f"invalid min/max values for column: {col_name}")
-        
-        valid = not col_oob.any()
-        res_dict["valid"] = valid
+        col_oob = _get_min_max_series_out_of_bounds_col(col, mi, ma)
+        res_dict["valid"] = ~(col_oob.any())
 
-        if not valid:
-
-            unexpected_index_list = col_oob.index[col_oob == False].tolist()
-            unexpected_list = col[unexpected_index_list].tolist()
-
-            res_dict["result"]["unexpected_index_list"] = unexpected_index_list
-            res_dict["result"]["unexpected_list"] = unexpected_list
-
-        return res_dict
-
-
-    def min_max_length_test(self, col, col_name, mil, mal):
-        
-        col_str_lens = col.str.len()
-        mil = 0 if mil is None else mil
-        mal = 0 if mal is None else mal
-        res_dict = self.min_max_test(col_str_lens, col_name, mil, mal)
-
-        res_kwargs = {
-            "column" : col_name,
-            "minimum_length" : mil,
-            "maximum_length" : mal
-        }
-        res_dict["res_kwargs"] = res_kwargs
-        res_dict["expectation_config"]["expectation_type"] = "string_between_length"
-        
         if not res_dict["valid"]:
-            res_dict["result"]["unexpected_list"] = \
-                col[res_dict["result"]["unexpected_index_list"]].tolist()
+            uil, ul = _get_list_of_col_values_and_index_from_oob(col, col_oob)
+            res_dict["details"]["unexpected_index_list"] = uil
+            res_dict["details"]["unexpected_list"] = ul
 
-        return res_dict
+        self.add_test_to_col(colname, "min_max_test", res_dict)
 
 
-    def _result_dict(self, expectation_type: str, res_kwargs: dict, vvkn: str = "valid"):
-        
-        d = {
-            "result" : {},
-            vvkn : False,
-            "expectation_config" : {
-                "expectation_type" : expectation_type,
-                "kwargs" : res_kwargs
-            }
-        }
+    def min_max_length_test(self, col, meta_col):
 
-        return d
+        colname = meta_col.get("name")
+        mil = meta_col.get("minLength")
+        mal = meta_col.get("maxLength")
+
+        res_dict = _init_get_low_level_result_dict()
+        res_dict["details"]["minLength_value"] = mil
+        res_dict["details"]["maxLength_value"] = mal
+
+        col_str_lens = col.str.len()
+        col_oob = _get_min_max_series_out_of_bounds_col(col_str_lens, mil, mal)
+
+        res_dict["valid"] = ~(col_oob.any())
+
+        if not res_dict["valid"]:
+            uil, ul = _get_list_of_col_values_and_index_from_oob(col, col_oob)
+            res_dict["details"]["unexpected_index_list"] = uil
+            res_dict["details"]["unexpected_list"] = ul
+
+        self.add_test_to_col(colname, "min_max_test", res_dict)
+
+
+def _get_min_max_series_out_of_bounds_col(
+    col: pd.Series,
+    colname: str,
+    mi: Union[int, None] = None,
+    ma: Union[int, None] = None,
+) -> pd.Series:
+    # Test if values out of bounds
+    if mi is not None and ma is None:
+        col_oob = (col < mi)
+    elif ma is not None and mi is None:
+        col_oob = (col > ma)
+    elif ma is not None and mi is not None:
+        col_oob = ~col.between(mi, ma)
+    else:
+        raise ValueError(f"invalid min/max values for column: {colname}")
+    return col_oob
+
+
+def _get_list_of_col_values_and_index_from_oob(
+    col: pd.Series,
+    col_oob: pd.Series,
+) -> Tuple(list, list):
+
+    unexpected_index_list = col_oob.index[col_oob].tolist()
+    unexpected_list = col[col_oob].tolist()
+    return (unexpected_index_list, unexpected_list)
+
+def _init_get_low_level_result_dict():
+    d = {
+        "details" : {},
+        "valid" : None,
+    }
+    return d
