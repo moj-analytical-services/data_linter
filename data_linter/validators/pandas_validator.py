@@ -4,7 +4,6 @@ import pandas as pd
 from arrow_pd_parser.parse import (
     pa_read_csv_to_pandas,
     pa_read_json_to_pandas,
-    pa_read_csv_to_pandas,
 )
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
@@ -13,8 +12,8 @@ from pyarrow import parquet as pq, fs
 
 from data_linter.validators.base import (
     BaseTableValidator,
-    ValidatorResult,
 )
+
 
 class PandasValidator(BaseTableValidator):
     """
@@ -36,7 +35,6 @@ class PandasValidator(BaseTableValidator):
     def valid(self):
         return self.response.result["valid"]
 
-
     def write_validation_errors_to_log(self, log: logging.Logger):
         table_result = self.response.get_result()
         if not table_result["valid"]:
@@ -49,7 +47,6 @@ class PandasValidator(BaseTableValidator):
             log.error(err_msg, extra={"context": "VALIDATION"})
             log.debug(str(table_result), extra={"context": "VALIDATION"})
 
-
     def read_data_and_validate(self):
         """Reads data from filepath and validates it.
 
@@ -59,10 +56,8 @@ class PandasValidator(BaseTableValidator):
         df = self.read_data()  # KARIK TODO
         self.validate_df(df)
 
-
     def get_response_dict(self):
         self.response.get_result()
-
 
     def read_data(self) -> pd.DataFrame:  # KARIK TODO
         """
@@ -96,26 +91,26 @@ class PandasValidator(BaseTableValidator):
                     pq.read_table(f)
                 )
             else:
-                raise ValueError(f"Unknown data_format in metadata: {self.metadata.data_format}.")
+                raise ValueError(
+                    f"Unknown data_format in metadata: {self.metadata.data_format}."
+                )
         return df
 
-
     def validate_df(self, df):  # STEPHEN TODO
-        
-        meta_cols = [ col for col in self.metadata["columns"]]
 
-        for i, (_, series) in enumerate(df.iteritems()):
-            self.validate_col(series, meta_cols[i], self.response)
+        meta_cols = [col for col in self.metadata["columns"]]
 
+        for i, (_, col) in enumerate(df.iteritems()):
+            self.validate_col(col, meta_cols[i])
 
-    def validate_col(self, col, meta_col, result): # result: ValidatorResult
+    def validate_col(self, col, meta_col):
 
         col_name = meta_col["name"]
-        
+
         mi = meta_col.get("minimum")
         ma = meta_col.get("maximum")
         if mi or ma:
-            result.add_test_to_col(
+            self.response.add_test_to_col(
                 col_name,
                 "min_max",
                 self.min_max_test(col, col_name, mi, ma)
@@ -124,51 +119,62 @@ class PandasValidator(BaseTableValidator):
         mil = meta_col.get("minLength")
         mal = meta_col.get("maxLength")
         if mil or mal:
-            result.add_test_to_col(
+            self.response.add_test_to_col(
                 col_name,
                 "min_max_length",
                 self.min_max_length_test(col, col_name, mil, mal)
             )
 
+        if meta_col.get("pattern"):
+            self.response.add_test_to_col(
+                col_name,
+                "regex_match",
+                self.pattern_test(col, col_name, meta_col["pattern"])
+            )
 
-    def min_max_test(self, col, col_name: str, mi: int, ma: int):
+        if meta_col.get("enum"):
+            self.response.add_test_to_col(
+                col_name,
+                "enum_match",
+                self.enum_test(col, col_name, meta_col["enum"])
+            )
+
+        if not meta_col.get("nullable", True):
+            self.response.add_test_to_col(
+                col_name,
+                "nullabe",
+                self.nullable_test(col, col_name)
+            )
+
+    def min_max_test(self, col: pd.Series, col_name: str, mi: int, ma: int) -> dict:
 
         res_kwargs = {
             "column" : col_name,
             "minimum_value" : mi,
             "maximum_value" : ma
         }
-        res_dict = self._result_dict("value_is_between", res_kwargs)
+        res_dict = self.__result_dict("value_is_between", res_kwargs)
 
         if mi is not None and ma is None:
             col_oob = (col < mi)
         elif ma is not None and mi is None:
             col_oob = (col > ma)
         elif ma is not None and mi is not None:
-            col_oob = col.between(mi, ma)
+            col_oob = ~col.between(mi, ma)
         else:
             raise ValueError(f"invalid min/max values for column: {col_name}")
-        
+
         valid = not col_oob.any()
         res_dict["valid"] = valid
 
         if not valid:
-
-            unexpected_index_list = col_oob.index[col_oob == False].tolist()
-            unexpected_list = col[unexpected_index_list].tolist()
-
-            res_dict["result"]["unexpected_index_list"] = unexpected_index_list
-            res_dict["result"]["unexpected_list"] = unexpected_list
+            self.__fill_unexpected(col, col_oob, res_dict)
 
         return res_dict
 
+    def min_max_length_test(self, col: pd.Series, col_name, mil, mal) -> dict:
 
-    def min_max_length_test(self, col, col_name, mil, mal):
-        
-        col_str_lens = col.str.len()
-        mil = 0 if mil is None else mil
-        mal = 0 if mal is None else mal
-        res_dict = self.min_max_test(col_str_lens, col_name, mil, mal)
+        res_dict = self.min_max_test(col.str.len(), col_name, mil, mal)
 
         res_kwargs = {
             "column" : col_name,
@@ -177,19 +183,74 @@ class PandasValidator(BaseTableValidator):
         }
         res_dict["res_kwargs"] = res_kwargs
         res_dict["expectation_config"]["expectation_type"] = "string_between_length"
-        
+
         if not res_dict["valid"]:
             res_dict["result"]["unexpected_list"] = \
                 col[res_dict["result"]["unexpected_index_list"]].tolist()
 
         return res_dict
 
+    def pattern_test(self, col: pd.Series, col_name: str, pattern: str) -> dict:
 
-    def _result_dict(self, expectation_type: str, res_kwargs: dict, vvkn: str = "valid"):
-        
+        res_kwargs = {
+            "column" : col_name,
+            "regex" : pattern
+        }
+
+        res_dict = self.__result_dict("srting matches regex", res_kwargs)
+
+        col_oob = ~col.str.match(pattern)
+        valid = not col_oob.any()
+        res_dict["valid"] = valid
+
+        if not valid:
+            res_dict = self.__fill_unexpected(col, col_oob, res_dict)
+
+        return res_dict
+
+    def enum_test(self, col: pd.Series, col_name: str, enum: list) -> dict:
+
+        res_kwargs = {
+            "column" : col_name,
+            "enum_value_set" : enum
+        }
+
+        res_dict = self.__result_dict("value in enum list", res_kwargs)
+
+        col_oob = ~col.isin(enum)
+        valid = not col_oob.any()
+        res_dict["valid"] = valid
+
+        if not valid:
+            res_dict = self.__fill_unexpected(col, col_oob, res_dict)
+
+        return res_dict
+
+    def nullable_test(self, col: pd.Series, col_name) -> dict:
+
+        res_kwargs = {
+            "column" : col_name,
+        }
+
+        res_dict = self.__result_dict("value is not null", res_kwargs)
+
+        col_oob = col.isnull()
+        valid = not col_oob.any()
+        res_dict["valid"] = valid
+
+        if not valid:
+            res_dict = self.__fill_unexpected(col, col_oob, res_dict)
+
+        return res_dict
+
+    def datetime_test(self, col: pd.Series, col_name, dt_type) -> dict:
+        pass
+
+    def __result_dict(self, expectation_type: str, res_kwargs: dict) -> dict:
+
         d = {
             "result" : {},
-            vvkn : False,
+            "valid" : False,
             "expectation_config" : {
                 "expectation_type" : expectation_type,
                 "kwargs" : res_kwargs
@@ -197,3 +258,13 @@ class PandasValidator(BaseTableValidator):
         }
 
         return d
+
+    def __fill_unexpected(self, col, col_oob, res_dict) -> dict:
+
+        unexpected_index_list = col_oob.index[col_oob].tolist()
+        unexpected_list = col[unexpected_index_list].tolist()
+
+        res_dict["result"]["unexpected_index_list"] = unexpected_index_list
+        res_dict["result"]["unexpected_list"] = unexpected_list
+
+        return res_dict
