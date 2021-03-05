@@ -4,6 +4,8 @@ import inspect
 
 from functools import wraps
 
+from datetime import datetime
+
 from arrow_pd_parser.parse import (
     pa_read_csv_to_pandas,
     pa_read_json_to_pandas,
@@ -62,7 +64,7 @@ class PandasValidator(BaseTableValidator):
         self.validate_df(df)
 
     def get_response_dict(self):
-        self.response.get_result()
+        return self.response.get_result()
 
     def read_data(self) -> pd.DataFrame:  # KARIK TODO
         """
@@ -103,8 +105,8 @@ class PandasValidator(BaseTableValidator):
 
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
 
-        for i, (_, col) in enumerate(df.iteritems()):
-            self.validate_col(col, meta_cols[i])
+        for m in meta_cols:
+            self.validate_col(df[m["name"]], m)
 
     def validate_col(self, col, meta_col):
 
@@ -113,7 +115,8 @@ class PandasValidator(BaseTableValidator):
         self.pattern_test(col, meta_col)
         self.enum_test(col, meta_col)
         self.nullable_test(col, meta_col)
-        self.datetime_test(col, meta_col)
+        self.datetime_format_test(col, meta_col)
+        self.date_format_test(col, meta_col)
 
     def min_max_test(self, col, meta_col):
         res_dict = _min_max_test(col, meta_col)
@@ -145,11 +148,17 @@ class PandasValidator(BaseTableValidator):
         if res_dict is not None:
             self.response.add_test_to_col(col_name, "nullable", res_dict)
 
-    def datetime_test(self, col, meta_col):
-        res_dict = _datetime_test(col, meta_col)
+    def datetime_format_test(self, col, meta_col):
+        res_dict = _datetime_format_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
             self.response.add_test_to_col(col_name, "datetime", res_dict)
+
+    def date_format_test(self, col, meta_col):
+        res_dict = _date_format_test(col, meta_col)
+        col_name = meta_col["name"]
+        if res_dict is not None:
+            self.response.add_test_to_col(col_name, "date", res_dict)
 
 
 def check_run_validation_for_meta(func):
@@ -172,12 +181,16 @@ def check_run_validation_for_meta(func):
             return func(*args, **kwargs)
         elif func.__name__ == "_enum_test" and _check_meta_has_params(["enum"], mc):
             return func(*args, **kwargs)
-        elif func.__name__ == "_nullable_test" and _check_meta_has_params(
-            ["nullabe"], mc
+        elif func.__name__ == "_nullable_test" and not _check_meta_has_params(
+            [None, True], [mc.get("nullable")]
         ):
             return func(*args, **kwargs)
-        elif func.__name__ == "_datetime_test" and _check_meta_has_params(
-            ["date", "datetime"], mc
+        elif func.__name__ == "_date_format_test" and _check_meta_has_params(
+            ["date"], [mc.get("type")]
+        ):
+            return func(*args, **kwargs)
+        elif func.__name__ == "_datetime_format_test" and _check_meta_has_params(
+            ["datetime"], [mc.get("type")]
         ):
             return func(*args, **kwargs)
         else:
@@ -202,7 +215,7 @@ def _min_max_test(col: pd.Series, meta_col: dict) -> dict:
 
 
 @check_run_validation_for_meta
-def _min_max_length_test(col: pd.Series, meta_col: str) -> dict:
+def _min_max_length_test(col: pd.Series, meta_col: dict) -> dict:
 
     col_name = meta_col["name"]
     mil = meta_col.get("minLength")
@@ -217,7 +230,7 @@ def _min_max_length_test(col: pd.Series, meta_col: str) -> dict:
 
 
 @check_run_validation_for_meta
-def _pattern_test(col: pd.Series, meta_col: str) -> dict:
+def _pattern_test(col: pd.Series, meta_col: dict) -> dict:
 
     col_name = meta_col["name"]
     pattern = meta_col.get("pattern")
@@ -232,7 +245,7 @@ def _pattern_test(col: pd.Series, meta_col: str) -> dict:
 
 
 @check_run_validation_for_meta
-def _enum_test(col: pd.Series, meta_col: str) -> dict:
+def _enum_test(col: pd.Series, meta_col: dict) -> dict:
 
     col_name = meta_col["name"]
     enum = meta_col.get("enum")
@@ -247,7 +260,7 @@ def _enum_test(col: pd.Series, meta_col: str) -> dict:
 
 
 @check_run_validation_for_meta
-def _nullable_test(col: pd.Series, meta_col) -> dict:
+def _nullable_test(col: pd.Series, meta_col: dict) -> dict:
 
     col_name = meta_col.get("name")
 
@@ -262,8 +275,49 @@ def _nullable_test(col: pd.Series, meta_col) -> dict:
     return _fill_res_dict(col, col_oob, res_dict)
 
 
-def _datetime_test(col: pd.Series, meta_col) -> dict:
-    pass
+@check_run_validation_for_meta
+def _date_format_test(col: pd.Series, meta_col) -> dict:
+
+    col_name = meta_col["name"]
+    date_format = meta_col.get("date_format", "%Y-%m-%d")
+    if date_format.count("%") != 3:
+        raise ValueError(f"incorrect formate for date object: {date_format}")
+
+    test_inputs = {"columm": col_name, "date format": date_format}
+
+    res_dict = _result_dict("date format", test_inputs)
+
+    col_conv = pd.Series([_date_or_datetime_conversion(date_format, s) for s in col])
+
+    col_oob = col_conv.isnull()
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+@check_run_validation_for_meta
+def _datetime_format_test(col: pd.Series, meta_col):
+
+    col_name = meta_col["name"]
+    date_format = meta_col.get("date_format", "%Y-%m-%d %H:%M:%S")
+    if date_format.count("%") < 6 or date_format.count("%") > 9:
+        raise ValueError(f"incorrect formate for date object: {date_format}")
+
+    test_inputs = {"columm": col_name, "date format": date_format}
+
+    res_dict = _result_dict("datetime format", test_inputs)
+
+    col_conv = pd.Series([_date_or_datetime_conversion(date_format, s) for s in col])
+
+    col_oob = col_conv.isnull()
+
+    return _fill_res_dict(col, col_oob, res_dict)
+
+
+def _date_or_datetime_conversion(dt_format: str, date_or_datetime_str: str):
+    try:
+        return datetime.strptime(date_or_datetime_str, dt_format)
+    except ValueError:
+        return None
 
 
 def _result_dict(test_name: str, test_inputs: dict) -> dict:
@@ -301,7 +355,7 @@ def _get_min_max_series_out_of_bounds_col(
         col_oob = col < mi
     elif ma is not None and mi is None:
         col_oob = col > ma
-    elif ma is not None and mi is not None:
+    elif mi is not None and ma is not None:
         col_oob = ~col.between(mi, ma)
     else:
         raise ValueError(f"invalid min/max values for column: {colname}")
