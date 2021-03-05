@@ -13,7 +13,7 @@ from typing import Union
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
-from pyarrow import parquet as pq, fs
+from pyarrow import parquet as pq, fs, csv
 
 from data_linter.validators.base import (
     BaseTableValidator,
@@ -58,46 +58,15 @@ class PandasValidator(BaseTableValidator):
         Data is read using pd_arrow_parser.
         """
 
-        df = self.read_data()  # KARIK TODO
+        df = _parse_data_to_pandas(
+            self.filepath,
+            self.table_params,
+            self.metadata
+        )
         self.validate_df(df)
 
     def get_response_dict(self):
         self.response.get_result()
-
-    def read_data(self) -> pd.DataFrame:  # KARIK TODO
-        """
-        Reads in the data from the given filepath and returns
-        a dataframe
-        """
-
-        if self.filepath.startswith("s3://"):
-            reader_fs = fs.S3FileSystem(region="eu-west-1")
-            fp_for_file_reader = self.filepath.replace("s3://", "", 1)
-
-        else:
-            reader_fs = fs.LocalFileSystem()
-            fp_for_file_reader = self.filepath
-
-        with reader_fs.open_input_stream(fp_for_file_reader) as f:
-            if "csv" in self.metadata.data_format:
-                df = pa_read_csv_to_pandas(
-                    input_file=f,
-                    schema=None,  # Needs actual schema
-                    expect_full_schema=False,
-                )
-            elif "json" in self.metadata.data_format:
-                df = pa_read_json_to_pandas(
-                    input_file=f,
-                    schema=None,  # Needs actual schema
-                    expect_full_schema=False,
-                )
-            elif "parquet" in self.metadata.data_format:
-                df = arrow_to_pandas(pq.read_table(f))
-            else:
-                raise ValueError(
-                    f"Unknown data_format in metadata: {self.metadata.data_format}."
-                )
-        return df
 
     def validate_df(self, df):  # STEPHEN TODO
 
@@ -310,3 +279,77 @@ def _get_min_max_series_out_of_bounds_col(
 
 def _check_meta_has_params(any_of: list, meta_col: dict):
     return any([a in meta_col for a in any_of])
+
+
+def _parse_data_to_pandas(
+    filepath: str, table_params: dict, metadata: dict
+):
+    """
+    Reads in the data from the given filepath and returns
+    a dataframe
+    """
+
+    meta_col_names = [
+        c["name"]
+        for c in metadata["columns"]
+        if c["name"] not in metadata.get("partitions", [])
+    ]
+
+    # Set the reader type
+    if filepath.startswith("s3://"):
+        reader_fs = fs.S3FileSystem(region="eu-west-1")
+        fp_for_file_reader = filepath.replace("s3://", "", 1)
+
+    else:
+        reader_fs = fs.LocalFileSystem()
+        fp_for_file_reader = filepath
+
+    with reader_fs.open_input_stream(fp_for_file_reader) as f:
+        if "csv" in metadata["data_format"]:
+
+            # Safer CSV load for newlines_in_values set to True
+            if table_params.get("expect-header", True):
+                po = csv.ParseOptions(newlines_in_values=True)
+            else:
+                po = csv.ParseOptions(
+                    newlines_in_values=True,
+                    column_names=column_names
+                )
+
+            df = pa_read_csv_to_pandas(
+                input_file=f,
+                schema=None,  # Needs actual schema
+                expect_full_schema=False,
+                parse_options=po
+            )
+            # dates/datetimes == string
+
+        elif "json" in self.metadata.data_format:
+            df = pa_read_json_to_pandas(
+                input_file=f,
+                schema=None,  # Needs actual schema
+                expect_full_schema=False,
+            )
+            # dates/datetimes == string
+
+        elif "parquet" in self.metadata.data_format:
+            df = arrow_to_pandas(pq.read_table(f))
+            # dates/datetimes == datetime / date
+
+        else:
+            raise ValueError(
+                f"Unknown data_format in metadata: {self.metadata.data_format}."
+            )
+
+    if table_params.get("row-limit"):
+        df = df.sample(table_params.get("row-limit"))
+
+    if table_params.get("headers-ignore-case"):
+        df_cols = [c.lower() for c in df.columns]
+        df.columns = df_cols
+
+    if table_params.get("only-test-cols-in-metadata", False):
+        keep_cols = [c for c in df.columns if c in meta_col_names]
+        df = df[keep_cols]
+
+    return df
