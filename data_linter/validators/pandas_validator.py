@@ -137,7 +137,7 @@ class PandasValidator(BaseTableValidator):
             self.response.add_test_to_col(col_name, "regex pattern", res_dict)
 
     def enum_test(self, col, meta_col):
-        res_dict = _pattern_test(col, meta_col)
+        res_dict = _enum_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
             self.response.add_test_to_col(col_name, "enum", res_dict)
@@ -324,7 +324,6 @@ def _result_dict(test_name: str, test_inputs: dict) -> dict:
 
     d = {
         "valid": None,
-        "test_name": test_name,
         "test_inputs": test_inputs,
     }
 
