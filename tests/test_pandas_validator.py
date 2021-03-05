@@ -95,7 +95,7 @@ def test_min_max_validation_fail(col, meta_col):
 def test_min_max_length_test_pass(col, meta_col):
     res = pv._min_max_length_test(col, meta_col)
     assert isinstance(res, dict)
-    assert res["valid"] is True
+    assert res["valid"]
 
 
 @pytest.mark.parametrize(
@@ -116,4 +116,4 @@ def test_min_max_length_test_pass(col, meta_col):
 def test_min_max_length_test_fail(col, meta_col):
     res = pv._min_max_length_test(col, meta_col)
     assert isinstance(res, dict)
-    assert res["valid"]
+    assert res["valid"] is False
