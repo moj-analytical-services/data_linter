@@ -60,11 +60,7 @@ class PandasValidator(BaseTableValidator):
         Data is read using pd_arrow_parser.
         """
 
-        df = _parse_data_to_pandas(
-            self.filepath,
-            self.table_params,
-            self.metadata
-        )
+        df = _parse_data_to_pandas(self.filepath, self.table_params, self.metadata)
         self.validate_df(df)
 
     def get_response_dict(self):
@@ -305,6 +301,7 @@ def _fill_res_dict(col, col_oob, res_dict) -> dict:
     res_dict["valid"] = valid
 
     if not valid:
+        col_oob = col_oob.fillna(False)
         unexpected_index_list = col_oob.index[col_oob].tolist()
         unexpected_list = col[unexpected_index_list].tolist()
 
@@ -320,23 +317,20 @@ def _get_min_max_series_out_of_bounds_col(
 
     # Test if values out of bounds
     if mi is not None and ma is None:
-        col_oob = col < mi
+        return col < mi
     elif ma is not None and mi is None:
-        col_oob = col > ma
+        return col > ma
     elif mi is not None and ma is not None:
-        col_oob = ~col.between(mi, ma)
+        return (col < mi) | (col > ma)
     else:
         raise ValueError(f"invalid min/max values for column: {colname}")
-    return col_oob
 
 
 def _check_meta_has_params(any_of: list, meta_col: dict):
     return any([a in meta_col for a in any_of])
 
 
-def _parse_data_to_pandas(
-    filepath: str, table_params: dict, metadata: dict
-):
+def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     """
     Reads in the data from the given filepath and returns
     a dataframe
@@ -365,15 +359,14 @@ def _parse_data_to_pandas(
                 po = csv.ParseOptions(newlines_in_values=True)
             else:
                 po = csv.ParseOptions(
-                    newlines_in_values=True,
-                    column_names=column_names
+                    newlines_in_values=True, column_names=column_names
                 )
 
             df = pa_read_csv_to_pandas(
                 input_file=f,
                 schema=None,  # Needs actual schema
                 expect_full_schema=False,
-                parse_options=po
+                parse_options=po,
             )
             # dates/datetimes == string
 
