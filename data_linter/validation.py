@@ -513,7 +513,6 @@ def collect_all_status(config: dict):
             if compress:
                 log.info(f"Compressing file from {matched_file} to {final_outpath}")
                 compress_data(matched_file, final_outpath)
-                log.info("KARIK YOLO")
             else:
                 log.info(f"Copying file from {matched_file} to {final_outpath}")
                 copy_data(matched_file, final_outpath)
