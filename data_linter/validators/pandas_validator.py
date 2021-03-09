@@ -21,6 +21,8 @@ from data_linter.validators.base import (
     BaseTableValidator,
 )
 
+default_datetime_format = "%Y-%m-%d %H:%M:%S"
+
 
 class PandasValidator(BaseTableValidator):
     """
@@ -219,7 +221,10 @@ def _enum_test(col: pd.Series, meta_col: dict) -> dict:
 
     res_dict = _result_dict("enum", test_inputs)
 
-    col_oob = ~col.isin(enum)
+    if meta_col.get("nullable", True):
+        col_oob = ~col.fillna(enum[0]).isin(enum)
+    else:
+        col_oob = ~col.isin(enum)
 
     return _fill_res_dict(col, col_oob, res_dict)
 
@@ -244,18 +249,14 @@ def _nullable_test(col: pd.Series, meta_col: dict) -> dict:
 def _date_format_test(col: pd.Series, meta_col) -> dict:
 
     col_name = meta_col["name"]
-    date_format = meta_col.get("date_format", "%Y-%m-%d")
-    if date_format.count("%") != 3:
-        raise ValueError(f"incorrect formate for date object: {date_format}")
+    datetime_format = meta_col.get("datetime_format", default_datetime_format)
+    test_inputs = {"column": col_name, "datetime format": datetime_format}
 
-    test_inputs = {"columm": col_name, "date format": date_format}
+    res_dict = _result_dict("datetime format", test_inputs)
 
-    res_dict = _result_dict("date format", test_inputs)
-
-    col_conv = pd.Series([_date_or_datetime_conversion(date_format, s) for s in col])
-
-    col_oob = col_conv.isnull()
-
+    col_oob = ~col.apply(
+        lambda x: _valid_date_or_datetime_conversion(x, datetime_format, True)
+    )
     return _fill_res_dict(col, col_oob, res_dict)
 
 
@@ -263,26 +264,36 @@ def _date_format_test(col: pd.Series, meta_col) -> dict:
 def _datetime_format_test(col: pd.Series, meta_col):
 
     col_name = meta_col["name"]
-    date_format = meta_col.get("date_format", "%Y-%m-%d %H:%M:%S")
-    if date_format.count("%") < 6 or date_format.count("%") > 9:
-        raise ValueError(f"incorrect formate for date object: {date_format}")
-
-    test_inputs = {"columm": col_name, "date format": date_format}
+    datetime_format = meta_col.get("datetime_format", default_datetime_format)
+    test_inputs = {"column": col_name, "datetime format": datetime_format}
 
     res_dict = _result_dict("datetime format", test_inputs)
 
-    col_conv = pd.Series([_date_or_datetime_conversion(date_format, s) for s in col])
-
-    col_oob = col_conv.isnull()
-
+    col_oob = ~col.apply(
+        lambda x: _valid_date_or_datetime_conversion(x, datetime_format)
+    )
     return _fill_res_dict(col, col_oob, res_dict)
 
 
-def _date_or_datetime_conversion(dt_format: str, date_or_datetime_str: str):
-    try:
-        return datetime.strptime(date_or_datetime_str, dt_format)
-    except ValueError:
-        return None
+def _valid_date_or_datetime_conversion(
+    date_or_datetime_str: str, dt_format: str, check_for_no_time_component=False
+):
+    if pd.isna(date_or_datetime_str) or not bool(date_or_datetime_str):
+        return True
+    else:
+        try:
+            dt = datetime.strptime(date_or_datetime_str, dt_format)
+            if check_for_no_time_component:
+                return _check_no_time_component_in_expected_date(dt)
+            else:
+                return True
+        except ValueError:
+            return False
+
+
+def _check_no_time_component_in_expected_date(dt: datetime):
+    result = dt.hour == 0 and dt.minute == 0 and dt.second == 0 and dt.microsecond == 0
+    return result
 
 
 def _result_dict(test_name: str, test_inputs: dict) -> dict:
@@ -359,7 +370,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
                 po = csv.ParseOptions(newlines_in_values=True)
             else:
                 po = csv.ParseOptions(
-                    newlines_in_values=True, column_names=column_names
+                    newlines_in_values=True, column_names=meta_col_names
                 )
 
             df = pa_read_csv_to_pandas(
@@ -370,7 +381,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             )
             # dates/datetimes == string
 
-        elif "json" in self.metadata.data_format:
+        elif "json" in metadata["data_format"]:
             df = pa_read_json_to_pandas(
                 input_file=f,
                 schema=None,  # Needs actual schema
@@ -378,13 +389,13 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             )
             # dates/datetimes == string
 
-        elif "parquet" in self.metadata.data_format:
+        elif "parquet" in metadata["data_format"]:
             df = arrow_to_pandas(pq.read_table(f))
             # dates/datetimes == datetime / date
 
         else:
             raise ValueError(
-                f"Unknown data_format in metadata: {self.metadata.data_format}."
+                f"Unknown data_format in metadata: {metadata['data_format']}."
             )
 
     if table_params.get("row-limit"):
