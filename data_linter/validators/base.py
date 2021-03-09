@@ -96,7 +96,7 @@ class BaseTableValidator:
 
         self.response = ValidatorResult(
             result_dict=kwargs.get("result_dict"),
-            validator_valid_key_name=kwargs.get("validator_valid_key_name")
+            validator_valid_key_name=kwargs.get("validator_valid_key_name"),
         )
 
     def write_validation_result_to_log(self, log: logging.Logger):
