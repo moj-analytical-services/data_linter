@@ -57,10 +57,7 @@ class GreatExpectationsValidator(BaseTableValidator):
         ignore_missing_cols=False,
     ):
         super().__init__(
-            filepath,
-            table_params,
-            metadata,
-            validator_valid_key_name="success"
+            filepath, table_params, metadata, validator_valid_key_name="success"
         )
 
         if optional_import_errors:
