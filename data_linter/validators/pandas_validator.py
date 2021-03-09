@@ -359,7 +359,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
                 po = csv.ParseOptions(newlines_in_values=True)
             else:
                 po = csv.ParseOptions(
-                    newlines_in_values=True, column_names=column_names
+                    newlines_in_values=True, column_names=meta_col_names
                 )
 
             df = pa_read_csv_to_pandas(
@@ -370,7 +370,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             )
             # dates/datetimes == string
 
-        elif "json" in self.metadata.data_format:
+        elif "json" in metadata["data_format"]:
             df = pa_read_json_to_pandas(
                 input_file=f,
                 schema=None,  # Needs actual schema
@@ -378,13 +378,13 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             )
             # dates/datetimes == string
 
-        elif "parquet" in self.metadata.data_format:
+        elif "parquet" in metadata["data_format"]:
             df = arrow_to_pandas(pq.read_table(f))
             # dates/datetimes == datetime / date
 
         else:
             raise ValueError(
-                f"Unknown data_format in metadata: {self.metadata.data_format}."
+                f"Unknown data_format in metadata: {metadata['data_format']}."
             )
 
     if table_params.get("row-limit"):

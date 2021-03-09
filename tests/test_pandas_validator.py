@@ -122,3 +122,30 @@ def test_min_max_length_test_fail(col, meta_col):
     res = pv._min_max_length_test(col, meta_col)
     assert isinstance(res, dict)
     assert res["valid"] is False
+
+
+def test_pattern_test():
+    pass
+
+
+def test_enum_test():
+    pass
+
+
+def test_datetime_format_test():
+    pass
+
+
+def test_date_format_test():
+    pass
+
+
+def test_validation_function_skips():
+    assert pv._nullable_test(str_is_null, {"name": "c"}) is None
+    assert pv._nullable_test(str_is_null, {"name": "c", "nullable": True}) is None
+    assert pv._min_max_test(str_is_null, {"name": "c"}) is None
+    assert pv._min_max_length_test(str_is_null, {"name": "c"}) is None
+    assert pv._pattern_test(str_is_null, {"name": "c"}) is None
+    assert pv._enum_test(str_is_null, {"name": "c"}) is None
+    assert pv._datetime_format_test(str_is_null, {"name": "c"}) is None
+    assert pv._date_format_test(str_is_null, {"name": "c"}) is None
