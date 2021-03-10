@@ -6,7 +6,10 @@ import pytest
 
 from tests.helpers import set_up_s3
 
-
+# class MockS3FileSystem:
+#     @staticmethod
+#     def open_input_stream(f):
+        
 def test_end_to_end(s3):
 
     from data_linter.validation import run_validation
@@ -20,8 +23,8 @@ def test_end_to_end(s3):
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
 
 
-@pytest.mark.parametrize("validator", ["frictionless", "great-expectations"])
-def test_end_to_end_ge(s3, validator):
+@pytest.mark.parametrize("validator", ["pandas", "frictionless", "great-expectations"])
+def test_end_to_end_all_validators(s3, validator, monkeypatch):
 
     from data_linter.validation import run_validation
 
