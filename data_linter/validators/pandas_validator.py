@@ -26,6 +26,7 @@ from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
 
 log = logging.getLogger("root")
+default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
 
 
@@ -73,7 +74,7 @@ class PandasValidator(BaseTableValidator):
     def get_response_dict(self):
         return self.response.get_result()
 
-    def validate_df(self, df):  # STEPHEN TODO
+    def validate_df(self, df):
 
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
 
@@ -264,10 +265,10 @@ def _nullable_test(col: pd.Series, meta_col: dict) -> dict:
 def _date_format_test(col: pd.Series, meta_col) -> dict:
 
     col_name = meta_col["name"]
-    datetime_format = meta_col.get("datetime_format", default_datetime_format)
-    test_inputs = {"column": col_name, "datetime format": datetime_format}
+    datetime_format = meta_col.get("datetime_format", default_date_format)
+    test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
-    res_dict = _result_dict("datetime format", test_inputs)
+    res_dict = _result_dict("datetime_format", test_inputs)
 
     col_oob = ~col.apply(
         lambda x: _valid_date_or_datetime_conversion(x, datetime_format, True)
@@ -280,9 +281,9 @@ def _datetime_format_test(col: pd.Series, meta_col):
 
     col_name = meta_col["name"]
     datetime_format = meta_col.get("datetime_format", default_datetime_format)
-    test_inputs = {"column": col_name, "datetime format": datetime_format}
+    test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
-    res_dict = _result_dict("datetime format", test_inputs)
+    res_dict = _result_dict("datetime_format", test_inputs)
 
     col_oob = ~col.apply(
         lambda x: _valid_date_or_datetime_conversion(x, datetime_format)
