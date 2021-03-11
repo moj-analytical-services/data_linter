@@ -15,7 +15,8 @@ from typing import Union
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
-from pyarrow import parquet as pq, fs, csv
+import pyarrow as pa
+from pyarrow import parquet as pq, fs, csv, json
 
 from data_linter.validators.base import (
     BaseTableValidator,
@@ -23,8 +24,6 @@ from data_linter.validators.base import (
 
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
-
-from jsonschema.exceptions import ValidationError
 
 log = logging.getLogger("root")
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
@@ -44,24 +43,7 @@ class PandasValidator(BaseTableValidator):
     ):
         super().__init__(filepath, table_params, metadata)
 
-        self.validate_metadata()
         self.ignore_missing_cols = ignore_missing_cols
-
-    def validate_and_update_metadata(self):
-        try:
-            meta_obj = Metadata.fromdict(self.metadata)
-            if "file_format" not in self.metadata:
-                raise ValidationError("metadata given must have a file_format property")
-        except ValidationError as e:
-            error_msg = (
-                "Pandas validator requires schemas that conform "
-                "to those found in the mojap_metadata package. "
-                f"Metadata given failed validation: {str(e)}"
-            )
-            raise ValidationError(error_msg)
-        finally:
-            meta_obj.set_col_type_category_from_types()
-            self.metadata = meta_obj.to_dict()
 
     @property
     def valid(self):
@@ -387,15 +369,24 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     # For string based file types convert make arrow readers read them in as strings
     # validators will still treat these as dates but will run validation against strings
     # cols expecting values to match a timestamp format
-    if "json" in metadata.file_format or "csv" in metadata.file_format:
+    if "json" in metadata["file_format"] or "csv" in metadata["file_format"]:
         md_obj = Metadata.from_dict(metadata)
-        for c in md_obj.columns:
-            if c["type"].startswith("timestamp") or c["type"].startswith("date"):
+        cols = md_obj.columns
+
+        cols_to_force_str_read_in = []
+        for c in cols:
+            if c["type"].startswith("time") or c["type"].startswith("date"):
                 c["type"] = "string"
                 c["type_category"] = "string"
+                cols_to_force_str_read_in.append(c["name"])
 
+        md_obj.columns = cols
         ac = ArrowConverter()
         arrow_schema = ac.generate_from_meta(md_obj)
+
+        ts_as_str_schema = pa.schema([])
+        for cname in cols_to_force_str_read_in:
+            ts_as_str_schema = ts_as_str_schema.append(arrow_schema.field(cname))
 
     # Set the reader type
     if filepath.startswith("s3://"):
@@ -417,19 +408,32 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
                     newlines_in_values=True, column_names=meta_col_names
                 )
 
+            if ts_as_str_schema:
+                co = csv.ConvertOptions(column_types=ts_as_str_schema)
+            else:
+                co = None
+
             df = pa_read_csv_to_pandas(
                 input_file=f,
                 schema=arrow_schema,
                 expect_full_schema=False,
                 parse_options=po,
+                convert_options=co,
             )
             # dates/datetimes == string
 
         elif "json" in metadata["file_format"]:
+
+            po = json.ParseOptions(
+                newlines_in_values=True,
+                explicit_schema=ts_as_str_schema if ts_as_str_schema else None
+            )
+
             df = pa_read_json_to_pandas(
                 input_file=f,
                 schema=arrow_schema,
                 expect_full_schema=False,
+                parse_options=po,
             )
             # dates/datetimes == string
 

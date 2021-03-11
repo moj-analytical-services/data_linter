@@ -48,7 +48,7 @@ class FrictionlessValidator(BaseTableValidator):
 
         # assert the correct dialect and checks
         header_case = not self.table_params.get("headers-ignore-case", False)
-        if self.metadata["data_format"] == "json":
+        if "json" in self.metadata["file_format"]:
             expected_headers = [
                 c["name"]
                 for c in self.metadata["columns"]
@@ -92,15 +92,15 @@ class FrictionlessValidator(BaseTableValidator):
         self.response = dict(resp.tables[0])
 
 
-def convert_meta_type_to_goodtable_type(meta_type: str) -> str:
+def convert_meta_type_to_goodtable_type(meta_col: dict) -> str:
     """
     Converts string name for etl_manager data type
     and converts it to a goodtables data type
 
     Parameters
     ----------
-    meta_type: str
-        Column type of the etl_manager metadata
+    meta_col: dict
+        Column dict from the metadata columns
 
     Returns
     -------
@@ -108,28 +108,33 @@ def convert_meta_type_to_goodtable_type(meta_type: str) -> str:
         Column type of the goodtables_type
         https://frictionlessdata.io/specs/table-schema/
     """
-    meta_type = meta_type.lower()
+    meta_type = meta_col["type"].lower()
+    meta_type_category = meta_col["type_category"].lower()
 
     lookup = {
-        "character": "string",
-        "int": "integer",
-        "long": "integer",
+        "string": "string",
+        "integer": "integer",
         "float": "number",
-        "double": "number",
-        "date": "date",
-        "datetime": "datetime",
         "boolean": "boolean",
     }
 
-    if meta_type in lookup:
-        gt_type = lookup[meta_type]
-    elif meta_type.startswith("array"):
+    if meta_type_category in lookup:
+        gt_type = lookup[meta_type_category]
+    elif meta_type_category.startswith("timestamp"):
+        if meta_type.startswith("date"):
+            gt_type = "date"
+        elif meta_type.startswith("timestamp"):
+            gt_type = "datetime"
+        else:
+            pass
+    elif meta_type_category == "list":
         gt_type = "array"
-    elif meta_type.startswith("struct"):
+    elif meta_type_category == "struct":
         gt_type = "object"
     else:
         raise TypeError(
-            f"Given meta_type: {meta_type} but this matches no goodtables equivalent"
+            f"Given meta with type:{meta_type} and type_category:"
+            f"{meta_type_category} but this matches no goodtables equivalent."
         )
 
     return gt_type
@@ -170,7 +175,7 @@ def convert_meta_to_goodtables_schema(meta: dict) -> dict:
     for col in meta["columns"]:
         gt_constraints = {}
 
-        gt_type = convert_meta_type_to_goodtable_type(col["type"])
+        gt_type = convert_meta_type_to_goodtable_type(col)
         gt_format = col.get("format", "default")
 
         if gt_type in ["date", "datetime"] and "format" not in col:

@@ -39,9 +39,15 @@ def test_end_to_end(s3, monkeypatch):
 
     test_folder = "tests/data/end_to_end1/"
     land_folder = "tests/data/end_to_end1/land/"
+
     config_path = os.path.join(test_folder, "config.yaml")
+
     with open(config_path) as f:
         config = yaml.safe_load(f)
+
+    # if config.get("validator-engine", "pandas") == "pandas":
+    #     config_path = os.path.join(test_folder, "config2.yaml")
+
     set_up_s3(s3, land_folder, config)
     run_validation(config_path)
     os.system(f"python data_linter/command_line.py --config-path {config_path}")

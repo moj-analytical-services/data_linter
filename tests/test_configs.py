@@ -1,4 +1,6 @@
 import pytest
+import toml
+import data_linter as dl
 from data_linter.validation import load_and_validate_config
 from jsonschema.exceptions import ValidationError
 import json
@@ -24,3 +26,9 @@ def test_load_and_validate_config_pass():
         expected_pass = json.load(f)
     c = load_and_validate_config("tests/data/inputs/example_config_pass.yaml")
     assert c == expected_pass
+
+
+def test_pyproject_toml_matches_version():
+    with open("pyproject.toml") as f:
+        proj = toml.load(f)
+    dl.__version__ == proj["tool"]["poetry"]["version"]
