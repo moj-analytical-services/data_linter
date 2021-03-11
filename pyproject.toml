@@ -5,8 +5,12 @@ description = "data linter"
 authors = ["Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
            "Tapan Perkins <tapan.perkins@digital.justice.gov.uk>",
-           "Karik Isichei <karik.isichei@digital.justice.gov.uk>"]
+           "Karik Isichei <karik.isichei@digital.justice.gov.uk>",
+           "Stephen Bias <stephen.bias@digital.justice.gov.uk>"]
+
 readme = "README.md"
+repository = "https://github.com/moj-analytical-services/data_linter"
+homepage = "https://github.com/moj-analytical-services/data_linter"
 
 [tool.poetry.dependencies]
 python = ">=3.7.1,<3.9"
