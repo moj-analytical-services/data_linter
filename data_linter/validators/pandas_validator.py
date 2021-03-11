@@ -94,43 +94,43 @@ class PandasValidator(BaseTableValidator):
         res_dict = _min_max_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "min max numerical", res_dict)
+            self.response.add_test_to_col(col_name, "min_max_test", res_dict)
 
     def min_max_length_test(self, col, meta_col):
         res_dict = _min_max_length_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "min max length", res_dict)
+            self.response.add_test_to_col(col_name, "min_max_length_test", res_dict)
 
     def pattern_test(self, col, meta_col):
         res_dict = _pattern_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "regex pattern", res_dict)
+            self.response.add_test_to_col(col_name, "pattern_test", res_dict)
 
     def enum_test(self, col, meta_col):
         res_dict = _enum_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "enum", res_dict)
+            self.response.add_test_to_col(col_name, "enum_test", res_dict)
 
     def nullable_test(self, col, meta_col):
         res_dict = _nullable_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "nullable", res_dict)
+            self.response.add_test_to_col(col_name, "nullable_test", res_dict)
 
     def datetime_format_test(self, col, meta_col):
         res_dict = _datetime_format_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "datetime", res_dict)
+            self.response.add_test_to_col(col_name, "datetime_format_test", res_dict)
 
     def date_format_test(self, col, meta_col):
         res_dict = _date_format_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "date", res_dict)
+            self.response.add_test_to_col(col_name, "date_format_test", res_dict)
 
 
 def check_run_validation_for_meta(func):
@@ -165,12 +165,14 @@ def check_run_validation_for_meta(func):
             [None, True], [mc.get("nullable")]
         ):
             return func(*args, **kwargs)
-        elif func.__name__ == "_date_format_test" and _check_meta_has_params(
-            ["date"], [mc.get("type")]
+        elif (
+            func.__name__ == "_date_format_test"
+            and mc.get("type", "").startswith("date")
         ):
             return func(*args, **kwargs)
-        elif func.__name__ == "_datetime_format_test" and _check_meta_has_params(
-            ["datetime"], [mc.get("type")]
+        elif (
+            func.__name__ == "_datetime_format_test"
+            and mc.get("type", "").startswith("timestamp")
         ):
             return func(*args, **kwargs)
         else:

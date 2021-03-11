@@ -207,7 +207,7 @@ def test_enum_test(col, meta_col, expected_valid):
     ],
 )
 def test_date_format_test_pass(col):
-    meta_col = {"name": "test_col", "type": "date", "datetime_format": "%d/%m/%Y"}
+    meta_col = {"name": "test_col", "type": "date64", "datetime_format": "%d/%m/%Y"}
     res = pv._date_format_test(col, meta_col)
     assert isinstance(res, dict)
     assert res["valid"]
@@ -215,7 +215,7 @@ def test_date_format_test_pass(col):
     # Test datetime format can be safely cast to dates
     meta_col2 = {
         "name": "test_col",
-        "type": "date",
+        "type": "date32",
         "datetime_format": "%d/%m/%Y %H:%M:%S",
     }
     # Add zeros to date str
@@ -231,19 +231,19 @@ def test_date_format_test_pass(col):
         (
             # expects iso by default
             date_str_is_null,
-            {"name": "test_col", "type": "date"},
+            {"name": "test_col", "type": "date64"},
         ),
         (
             # expects iso by default
             date_str_not_null,
-            {"name": "test_col", "type": "date"},
+            {"name": "test_col", "type": "date64"},
         ),
         (
             # datetime strs with time component not date
             datetime_str_is_null,
             {
                 "name": "test_col",
-                "type": "date",
+                "type": "date64",
                 "datetime_format": "%Y/%m/%d %H:%M:%S",
             },
         ),
@@ -252,7 +252,7 @@ def test_date_format_test_pass(col):
             datetime_str_not_null,
             {
                 "name": "test_col",
-                "type": "date",
+                "type": "date64",
                 "datetime_format": "%Y/%m/%d %H:%M:%S",
             },
         ),
@@ -280,7 +280,7 @@ def test_date_format_test_fail(col, meta_col):
     ],
 )
 def test_datetime_format_test(col, datetime_format, expected_valid):
-    meta_col = {"name": "test_col", "type": "datetime"}
+    meta_col = {"name": "test_col", "type": "timestamp(s)"}
     if datetime_format:
         meta_col["datetime_format"] = datetime_format
 
