@@ -13,7 +13,7 @@ def test_download_fileobj(s3_client):
     bucket, key = s3_path_to_bucket_key(s3_download_path)
 
     table1 = "table1.csv"
-    test_path = "tests/data/end_to_end1/"
+    test_path = "tests/data/end_to_end1/land/"
     full_path = os.path.join(test_path, table1)
     s3_client.upload_file(full_path, bucket, table1)
 

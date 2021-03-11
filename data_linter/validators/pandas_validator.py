@@ -21,6 +21,8 @@ from data_linter.validators.base import (
     BaseTableValidator,
 )
 
+log = logging.getLogger("root")
+
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
 
 
@@ -44,7 +46,7 @@ class PandasValidator(BaseTableValidator):
     def valid(self):
         return self.response.result["valid"]
 
-    def write_validation_errors_to_log(self, log: logging.Logger):
+    def write_validation_errors_to_log(self):
         table_result = self.response.get_result()
         if not table_result["valid"]:
             failed_cols = self.response.get_names_of_column_failures()

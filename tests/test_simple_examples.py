@@ -2,6 +2,11 @@ import os
 import yaml
 from copy import deepcopy
 from tests.helpers import set_up_s3
+from contextlib import contextmanager
+import io
+import boto3
+from pyarrow import fs
+from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
 simple_yaml_config = """
 land-base-path: s3://land/
@@ -27,20 +32,40 @@ tables:
 """
 
 
-def test_validation_single_worker(s3):
+class MockS3FilesystemReadInputStream:
+    @staticmethod
+    @contextmanager
+    def open_input_stream(s3_file_path_in: str) -> io.BytesIO:
+        s3_resource = boto3.resource("s3")
+        bucket, key = s3_path_to_bucket_key(s3_file_path_in)
+        obj_bytes = s3_resource.Object(bucket, key).get()["Body"].read()
+        obj_io_bytes = io.BytesIO(obj_bytes)
+        try:
+            yield obj_io_bytes
+        finally:
+            obj_io_bytes.close()
+
+
+def test_validation_single_worker(s3, monkeypatch):
     """
     Simple example on how to run DL for a single worker.
 
     [init] -> [worker]x1 -> [closedown]
     """
+
+    def mock_get_file(*args, **kwargs):
+        return MockS3FilesystemReadInputStream()
+
+    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
+
     from data_linter import validation
     from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 
-    test_folder = "tests/data/end_to_end1/"
+    land_folder = "tests/data/end_to_end1/land/"
     config = yaml.safe_load(simple_yaml_config)
 
     # Only required for mocked tests
-    set_up_s3(s3, test_folder, config)
+    set_up_s3(s3, land_folder, config)
 
     validation.para_run_init(1, config)
     validation.para_run_validation(0, config)
@@ -54,16 +79,22 @@ def test_validation_single_worker(s3):
     assert (not land_files and not fail_files) and pass_files
 
 
-def test_validation_multiple_workers(s3):
+def test_validation_multiple_workers(s3, monkeypatch):
     """
     Simple example on how to run DL for multiple worker.
 
     [init] -> [worker]x4 -> [closedown]
     """
+
+    def mock_get_file(*args, **kwargs):
+        return MockS3FilesystemReadInputStream()
+
+    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
+
     from data_linter import validation
     from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
 
-    test_folder = "tests/data/end_to_end1/"
+    test_folder = "tests/data/end_to_end1/land/"
     config = yaml.safe_load(simple_yaml_config)
 
     # Only required for mocked tests
@@ -85,7 +116,7 @@ def test_validation_multiple_workers(s3):
     assert (not land_files and not fail_files) and pass_files
 
 
-def test_validation_multiple_workers_no_init(s3):
+def test_validation_multiple_workers_no_init(s3, monkeypatch):
     """
     Simple example on how to run DL for multiple workers.
     But without using the init. You would want to do this
@@ -94,6 +125,11 @@ def test_validation_multiple_workers_no_init(s3):
 
     [worker]x2 -> [closedown]
     """
+
+    def mock_get_file(*args, **kwargs):
+        return MockS3FilesystemReadInputStream()
+
+    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
     import boto3
     from data_linter import validation
@@ -106,11 +142,11 @@ def test_validation_multiple_workers_no_init(s3):
 
     s3_client = boto3.client("s3")
 
-    test_folder = "tests/data/end_to_end1/"
+    land_folder = "tests/data/end_to_end1/land/"
     config = yaml.safe_load(simple_yaml_config)
 
     # Only required for mocked tests
-    set_up_s3(s3, test_folder, config)
+    set_up_s3(s3, land_folder, config)
 
     worker_config_path = os.path.join(get_temp_log_basepath(config), "configs")
     log_bucket, worker_base_key = s3_path_to_bucket_key(worker_config_path)
