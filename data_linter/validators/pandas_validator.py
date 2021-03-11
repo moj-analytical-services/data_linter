@@ -21,8 +21,12 @@ from data_linter.validators.base import (
     BaseTableValidator,
 )
 
-log = logging.getLogger("root")
+from mojap_metadata import Metadata
+from mojap_metadata.converters.arrow_converter import ArrowConverter
 
+from jsonschema.exceptions import ValidationError
+
+log = logging.getLogger("root")
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
 
 
@@ -40,7 +44,24 @@ class PandasValidator(BaseTableValidator):
     ):
         super().__init__(filepath, table_params, metadata)
 
+        self.validate_metadata()
         self.ignore_missing_cols = ignore_missing_cols
+
+    def validate_and_update_metadata(self):
+        try:
+            meta_obj = Metadata.fromdict(self.metadata)
+            if "file_format" not in self.metadata:
+                raise ValidationError("metadata given must have a file_format property")
+        except ValidationError as e:
+            error_msg = (
+                "Pandas validator requires schemas that conform "
+                "to those found in the mojap_metadata package. "
+                f"Metadata given failed validation: {str(e)}"
+            )
+            raise ValidationError(error_msg)
+        finally:
+            meta_obj.set_col_type_category_from_types()
+            self.metadata = meta_obj.to_dict()
 
     @property
     def valid(self):
@@ -131,6 +152,14 @@ class PandasValidator(BaseTableValidator):
 
 
 def check_run_validation_for_meta(func):
+    """
+    Wrapper for each validation test. Will get inputs to function
+    and check if function should be called based on the inputs.
+    (Most likely this will be done based on the properties of the supplied
+    metadata).
+
+    Will return nothing if function should not be called.
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         sig = inspect.signature(func)
@@ -355,6 +384,19 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         if c["name"] not in metadata.get("partitions", [])
     ]
 
+    # For string based file types convert make arrow readers read them in as strings
+    # validators will still treat these as dates but will run validation against strings
+    # cols expecting values to match a timestamp format
+    if "json" in metadata.file_format or "csv" in metadata.file_format:
+        md_obj = Metadata.from_dict(metadata)
+        for c in md_obj.columns:
+            if c["type"].startswith("timestamp") or c["type"].startswith("date"):
+                c["type"] = "string"
+                c["type_category"] = "string"
+
+        ac = ArrowConverter()
+        arrow_schema = ac.generate_from_meta(md_obj)
+
     # Set the reader type
     if filepath.startswith("s3://"):
         reader_fs = fs.S3FileSystem(region="eu-west-1")
@@ -365,7 +407,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         fp_for_file_reader = filepath
 
     with reader_fs.open_input_stream(fp_for_file_reader) as f:
-        if "csv" in metadata["data_format"]:
+        if "csv" in metadata["file_format"]:
 
             # Safer CSV load for newlines_in_values set to True
             if table_params.get("expect-header", True):
@@ -377,27 +419,27 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
 
             df = pa_read_csv_to_pandas(
                 input_file=f,
-                schema=None,  # Needs actual schema
+                schema=arrow_schema,
                 expect_full_schema=False,
                 parse_options=po,
             )
             # dates/datetimes == string
 
-        elif "json" in metadata["data_format"]:
+        elif "json" in metadata["file_format"]:
             df = pa_read_json_to_pandas(
                 input_file=f,
-                schema=None,  # Needs actual schema
+                schema=arrow_schema,
                 expect_full_schema=False,
             )
             # dates/datetimes == string
 
-        elif "parquet" in metadata["data_format"]:
+        elif "parquet" in metadata["file_format"]:
             df = arrow_to_pandas(pq.read_table(f))
             # dates/datetimes == datetime / date
 
         else:
             raise ValueError(
-                f"Unknown data_format in metadata: {metadata['data_format']}."
+                f"Unknown file_format in metadata: {metadata['file_format']}."
             )
 
     if table_params.get("row-limit"):

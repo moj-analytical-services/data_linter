@@ -92,7 +92,6 @@ class BaseTableValidator:
         self.filepath = filepath
         self.table_params = table_params
         self.metadata = metadata
-        # self.valid = None
 
         self.response = ValidatorResult(
             result_dict=kwargs.get("result_dict"),
