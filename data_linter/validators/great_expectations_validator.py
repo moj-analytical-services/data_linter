@@ -25,19 +25,16 @@ except ImportError as e:
     optional_import_errors += " " + str(e)
 
 numerical_conversion = {
-    "int": "Int64",
-    "long": "Int64",
-    "double": np.float,
+    "integer": "Int64",
     "float": np.float,
 }
 
 default_pd_in_type = "str"
 
 pd_conversion = deepcopy(numerical_conversion)
-pd_conversion["datetime"] = "str"
-pd_conversion["date"] = "str"
+pd_conversion["timestamp"] = "str"
 pd_conversion["boolean"] = "str"
-pd_conversion["character"] = "str"
+pd_conversion["string"] = "str"
 
 
 log = logging.getLogger("root")
@@ -96,7 +93,7 @@ class GreatExpectationsValidator(BaseTableValidator):
             nrows=self.table_params.get("row-limit"),
         )
 
-        if self.metadata["data_format"] != "parquet":
+        if self.metadata["file_format"] != "parquet":
             df = _convert_df_to_meta_for_testing(df, self.metadata, self.response)
 
         validate_df_with_ge(
@@ -119,10 +116,10 @@ def _convert_df_to_meta_for_testing(df, metadata, result: ValidatorResult):
 
     for c in cols:
         try:
-            if c["type"] in numerical_conversion:
+            if c["type_category"] in numerical_conversion:
                 df[c["name"]] = pd.to_numeric(df[c["name"]])
                 df[c["name"]] = df[c["name"]].astype(
-                    numerical_conversion[c["type"]]
+                    numerical_conversion[c["type_category"]]
                 )  # in case pandas converts to int rather than float
             else:
                 df[c["name"]] = df[c["name"]].astype("string")
@@ -130,7 +127,7 @@ def _convert_df_to_meta_for_testing(df, metadata, result: ValidatorResult):
                 c["name"], "test-type-conversion", {"success": True, "desc": None}
             )
         except Exception as e:
-            t = numerical_conversion.get(c["type"], "string")
+            t = numerical_conversion.get(c["type_category"], "string")
             e = (
                 f"Column {c['name']} could not be cast to pandas type {t}."
                 f"Error: {str(e)}"
@@ -155,7 +152,7 @@ def _parse_data_to_pandas(
 
     pandas_kwargs = table_params.get("pandas-kwargs", {})
 
-    if metadata["data_format"] == "csv":
+    if "csv" in metadata["file_format"]:
         names = None
         header = "infer" if table_params.get("expect-header", True) else None
         if header is None:
@@ -180,7 +177,7 @@ def _parse_data_to_pandas(
                 **pandas_kwargs,
             )
 
-    elif metadata["data_format"] == "json":
+    elif "json" in metadata["file_format"]:
         if filepath.startswith("s3://"):
             df = wr.s3.read_json(
                 [filepath],
@@ -198,16 +195,16 @@ def _parse_data_to_pandas(
                 **pandas_kwargs,
             )
 
-    elif metadata["data_format"] == "parquet":
+    elif "parquet" in metadata["file_format"]:
         if filepath.startswith("s3://"):
             df = wr.s3.read_parquet([filepath], nrows=nrows, **pandas_kwargs)
         else:
             df = pd.read_parquet(filepath, nrows=nrows, **pandas_kwargs)
 
     else:
-        data_fmt = metadata["data_format"]
         raise ValueError(
-            f"metadata data_format ({data_fmt}) not supported for GE validator."
+            f"metadata file_format ({metadata['file_format']})"
+            "not supported for GE validator."
         )
 
     if table_params.get("headers-ignore-case"):
@@ -283,7 +280,10 @@ def column_validation(dfe, metacol, result: ValidatorResult, result_format):
     if not metacol.get("nullable", True):
         result.add_test_to_col(n, "nullable", ge_nullable_test(dfe, n, result_format))
 
-    if metacol["type"] in ["date", "datetime"]:
+    if (
+        metacol["type"].startswith("date")
+        or metacol["type"].startswith("timestamp")
+    ):
         result.add_test_to_col(
             n,
             "datetime-format",
@@ -323,7 +323,7 @@ def column_validation(dfe, metacol, result: ValidatorResult, result_format):
 
 def ge_test_datetime_format(dfe, colname, coltype, date_format, result_format=None):
     if date_format is None:
-        date_format = "%Y-%m-%d" if coltype == "date" else "%Y-%m-%d %H:%M:%S"
+        date_format = "%Y-%m-%d" if coltype.startswith("date") else "%Y-%m-%d %H:%M:%S"
     result = dfe.expect_column_values_to_match_strftime_format(
         colname,
         strftime_format=date_format,

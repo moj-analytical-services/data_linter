@@ -2,6 +2,9 @@ import logging
 from copy import deepcopy
 from typing import List
 
+from mojap_metadata import Metadata
+from jsonschema.exceptions import ValidationError
+
 
 class ValidatorResult:
     """
@@ -22,6 +25,27 @@ class ValidatorResult:
             self.vvkn = validator_valid_key_name
         else:
             self.vvkn = "valid"
+
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @metadata.setter
+    def metadata(self, meta_dict: dict):
+        try:
+            meta_obj = Metadata.from_dict(meta_dict)
+            meta_obj.set_col_type_category_from_types()
+            self._metadata = meta_obj.to_dict()
+
+            if "file_format" not in self.metadata:
+                raise ValidationError("metadata given must have a file_format property")
+        except ValidationError as e:
+            error_msg = (
+                "Pandas validator requires schemas that conform "
+                "to those found in the mojap_metadata package. "
+                f"Metadata given failed validation: {str(e)}"
+            )
+            raise ValidationError(error_msg)
 
     def get_result(self, copy=True):
         if copy:
@@ -92,7 +116,6 @@ class BaseTableValidator:
         self.filepath = filepath
         self.table_params = table_params
         self.metadata = metadata
-        # self.valid = None
 
         self.response = ValidatorResult(
             result_dict=kwargs.get("result_dict"),
