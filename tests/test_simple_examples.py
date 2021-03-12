@@ -52,10 +52,10 @@ def test_validation_single_worker(s3, monkeypatch):
 
     [init] -> [worker]x1 -> [closedown]
     """
-
+    
+    # Need to mock S3 read for pyarrow (only for testing)
     def mock_get_file(*args, **kwargs):
         return MockS3FilesystemReadInputStream()
-
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
     from data_linter import validation

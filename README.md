@@ -1,9 +1,9 @@
 # Data Linter
 
-A python package to to allow automatic validation of data as part of a Data Engineering pipeline. It is designed to automate the process of moving data from Land to Raw-History as described in the [ETL pipline guide](https://github.com/moj-analytical-services/etl-pipeline-example)
+A python package to to allow automatic validation of data as part of a Data Engineering pipeline. It is designed to read in and validate tabular data against a given schema for the data. The schemas provided adhere to [our metadata schemas standards](https://github.com/moj-analytical-services/mojap-metadata/) for data. This package can also be used to manage movement of data from a landing area (s3 or locally) to a new location based on the result of the validation.
 
-This package implements different validators using different packages:
-
+This package implements different validators using different packages based on the users preference:
+- `pandas`: (default) Uses our own lightweight pandas dataframe operations to run simple validation tests on the columns based on the datatype and additional tags in the metadata. Utilises pyarrow for reading data.
 - `frictionless`: Uses Frictionless data to validate the data against our metadata schemas. More information can be found [here](https://github.com/frictionlessdata/frictionless-py/)
 - `great-expectations`: Uses the Great Expectations data to validate the data against our metadata schemas. More information can be found [here](https://github.com/great-expectations/great_expectations)
 
@@ -11,18 +11,29 @@ This package implements different validators using different packages:
 ## Installation
 
 ```bash
-pip install data_linter # frictionless only
+pip install data_linter # pandas validator only
 ```
 
+Or to install the necessary dependencies for the non-default validators.
+
 ```bash
+pip install data_linter[frictionless] # To include packages required for the frictionless validator
+
+# OR
+
 pip install data_linter[ge] # To include packages required for teh great-expectations validator
 ```
 
+
 ## Usage
 
-This package takes a `yaml` based config file written by the user (see example below), and validates data in the specified Land bucket against specified metadata. If the data conforms to the metadata, it is moved to the specified Raw bucket for the next step in the pipeline. Any failed checks are passed to a separate bucket for testing. The package also generates logs to allow you to explore issues in more detail.
+This package takes a `yaml` based config file written by the user (see example below), and validates data in the specified s3 folder path against specified metadata. If the data conforms to the metadata, it is moved to the specified s3 folder path for the next step in the pipeline (note can also provide local paths for running locally). Any failed checks are passed to a separate location for testing. The package also generates logs to allow you to explore issues in more detail.
+
+### Simple Use
 
 To run the validation, at most simple you can use the following:
+
+**In Python:**
 
 ```python
 from data_linter import run_validation
@@ -32,14 +43,20 @@ config_path = "config.yaml"
 run_validation(config_path)
 ```
 
-## Example config file
+**Via command line:**
+
+```bash
+data_linter --config_path config.yaml
+```
+
+### Example config file
 
 ```yaml
-land-base-path: s3://land-bucket/my-folder/  # Where to get the data from
-fail-base-path: s3://fail-bucket/my-folder/  # Where to write the data if failed
-pass-base-path: s3://pass-bucket/my-folder/  # Where to write the data if passed
-log-base-path: s3://log-bucket/my-folder/  # Where to write logs
-compress-data: true  # Compress data when moving elsewhere
+land-base-path: s3://testing-bucket/land/  # Where to get the data from
+fail-base-path: s3://testing-bucket/fail/  # Where to write the data if failed
+pass-base-path: s3://testing-bucket/pass/  # Where to write the data if passed
+log-base-path: s3://testing-bucket/logs/  # Where to write logs
+compress-data: true  # Compress data when moving elsewhere (only applicable from CSV/JSON)
 remove-tables-on-pass: true  # Delete the tables in land if validation passes
 all-must-pass: true  # Only move data if all tables have passed
 fail-unknown-files:
@@ -47,14 +64,15 @@ fail-unknown-files:
         - additional_file.txt
         - another_additional_file.txt
 
-validator-engine: frictionless # will default to this if unspecified
+validator-engine: pandas # will default to this if unspecified
+# (but other options are `frictionless` and `great-expectations`)
 
 # Tables to validate
 tables:
     table1:
         required: true  # Does the table have to exist
-        pattern: null  # Assumes file is called table1
-        metadata: meta_data/table1.json
+        pattern: null  # Assumes file is called table1 (same as key)
+        metadata: meta_data/table1.json # local path to metadata
 
     table2:
         required: true
@@ -98,7 +116,43 @@ for table in ["table1", "table2"]:
 run_validation(base_config) # Then watch that log go...
 ```
 
+### Validating a single file
+
+> Without all the bells and whistles
+
+If you do not need `data_linter` to match files to a specified config, log the process and then move data around based on the outcome of the validation you can just use the validators themselves:
+
+```python
+# Example using simple pandas validatior (without added data_linter features)
+import json
+from data_linter.validators import PandasValidator
+
+filepath = "tests/data/end_to_end1/land/table1.csv"
+table_params = {
+    "expect-header": True
+}
+with open("tests/data/end_to_end1/meta_data/table1.json") as f:
+    metadata = json.load(f)
+
+pv = PandasValidator(filepath, table_params, metadata)
+pv.read_data_and_validate()
+
+pv.valid  # True (data in table1.csv is valid against metadata)
+pv.response.get_result()  # Returns dict of all tests ran against data
+
+# The response object of for the PandasValidator in itself, and has it's own functions
+pv.get_names_of_column_failures()  # [], i.e. no cols failed
+```
+
+
 ## Validators
+
+
+### Pandas
+```
+# - Add notes on dates/datetimes
+# - Add data format notes
+```
 
 ### Frictionless
 
