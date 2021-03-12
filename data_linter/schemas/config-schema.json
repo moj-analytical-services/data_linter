@@ -31,14 +31,16 @@
             "type": "string",
             "title": "The validator-engine to use",
             "description": "If you want to use frictionless or great-expectations",
-            "default": "frictionless",
+            "default": "pandas",
             "examples": [
-                "frictionless",
-                "great-expectations"
+                "pandas",
+                "great-expectations",
+                "frictionless"
             ],
             "enum": [
-                "frictionless",
-                "great-expectations"
+                "pandas",
+                "great-expectations",
+                "frictionless"
             ]
         },
         "validator-engine-params": {

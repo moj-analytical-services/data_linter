@@ -46,11 +46,13 @@ from data_linter.utils import (
 from data_linter.validators import (
     FrictionlessValidator,
     GreatExpectationsValidator,
+    PandasValidator
 )
 
 log, log_stringio = logging_setup()
 
 get_validator = {
+    "pandas": PandasValidator,
     "frictionless": FrictionlessValidator,
     "great-expectations": GreatExpectationsValidator,
 }
@@ -342,7 +344,7 @@ def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
 
 def validate_data(config: dict):
 
-    validator_engine = config.get("validator-engine", "frictionless")
+    validator_engine = config.get("validator-engine", "pandas")
     validator_params = config.get("validator-engine-params", {})
 
     all_table_responses = []

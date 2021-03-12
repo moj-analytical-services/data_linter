@@ -1,13 +1,14 @@
 {
-    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/table/v1.0.0.json",
+    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json",
     "name": "table2",
     "description": "test meta for table2",
-    "data_format": "json",
+    "file_format": "json",
     "location": "table2/",
     "columns": [
         {
             "name": "employee_id",
-            "type": "int",
+            "type": "int64",
+            "type_category": "integer",
             "description": "an ID for each employee",
             "nullable": false,
             "minimum": 100000,
@@ -15,22 +16,26 @@
         },
         {
             "name": "employee_name",
-            "type": "character",
+            "type": "string",
+            "type_category": "string",
             "description": "name of the employee"
         },
         {
             "name": "employee_dob",
-            "type": "date",
+            "type": "date64",
+            "type_category": "timestamp",
             "description": "date of birth for the employee"
         },
         {
             "name": "employee_email",
-            "type": "character",
+            "type": "string",
+            "type_category": "string",
             "description": "date of birth for the employee"
         },
         {
             "name": "fte",
-            "type": "double",
+            "type": "float64",
+            "type_category": "float",
             "description": "FTE of employee",
             "minimum": 0,
             "maximum": 1

@@ -15,12 +15,18 @@ from typing import Union
 
 from arrow_pd_parser.pa_pd import arrow_to_pandas
 
-from pyarrow import parquet as pq, fs, csv
+import pyarrow as pa
+from pyarrow import parquet as pq, fs, csv, json
 
 from data_linter.validators.base import (
     BaseTableValidator,
 )
 
+from mojap_metadata import Metadata
+from mojap_metadata.converters.arrow_converter import ArrowConverter
+
+log = logging.getLogger("root")
+default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
 
 
@@ -44,7 +50,7 @@ class PandasValidator(BaseTableValidator):
     def valid(self):
         return self.response.result["valid"]
 
-    def write_validation_errors_to_log(self, log: logging.Logger):
+    def write_validation_errors_to_log(self):
         table_result = self.response.get_result()
         if not table_result["valid"]:
             failed_cols = self.response.get_names_of_column_failures()
@@ -68,7 +74,7 @@ class PandasValidator(BaseTableValidator):
     def get_response_dict(self):
         return self.response.get_result()
 
-    def validate_df(self, df):  # STEPHEN TODO
+    def validate_df(self, df):
 
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
 
@@ -89,46 +95,54 @@ class PandasValidator(BaseTableValidator):
         res_dict = _min_max_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "min max numerical", res_dict)
+            self.response.add_test_to_col(col_name, "min_max_test", res_dict)
 
     def min_max_length_test(self, col, meta_col):
         res_dict = _min_max_length_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "min max length", res_dict)
+            self.response.add_test_to_col(col_name, "min_max_length_test", res_dict)
 
     def pattern_test(self, col, meta_col):
         res_dict = _pattern_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "regex pattern", res_dict)
+            self.response.add_test_to_col(col_name, "pattern_test", res_dict)
 
     def enum_test(self, col, meta_col):
         res_dict = _enum_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "enum", res_dict)
+            self.response.add_test_to_col(col_name, "enum_test", res_dict)
 
     def nullable_test(self, col, meta_col):
         res_dict = _nullable_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "nullable", res_dict)
+            self.response.add_test_to_col(col_name, "nullable_test", res_dict)
 
     def datetime_format_test(self, col, meta_col):
         res_dict = _datetime_format_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "datetime", res_dict)
+            self.response.add_test_to_col(col_name, "datetime_format_test", res_dict)
 
     def date_format_test(self, col, meta_col):
         res_dict = _date_format_test(col, meta_col)
         col_name = meta_col["name"]
         if res_dict is not None:
-            self.response.add_test_to_col(col_name, "date", res_dict)
+            self.response.add_test_to_col(col_name, "date_format_test", res_dict)
 
 
 def check_run_validation_for_meta(func):
+    """
+    Wrapper for each validation test. Will get inputs to function
+    and check if function should be called based on the inputs.
+    (Most likely this will be done based on the properties of the supplied
+    metadata).
+
+    Will return nothing if function should not be called.
+    """
     @wraps(func)
     def wrapper(*args, **kwargs):
         sig = inspect.signature(func)
@@ -152,12 +166,14 @@ def check_run_validation_for_meta(func):
             [None, True], [mc.get("nullable")]
         ):
             return func(*args, **kwargs)
-        elif func.__name__ == "_date_format_test" and _check_meta_has_params(
-            ["date"], [mc.get("type")]
+        elif (
+            func.__name__ == "_date_format_test"
+            and mc.get("type", "").startswith("date")
         ):
             return func(*args, **kwargs)
-        elif func.__name__ == "_datetime_format_test" and _check_meta_has_params(
-            ["datetime"], [mc.get("type")]
+        elif (
+            func.__name__ == "_datetime_format_test"
+            and mc.get("type", "").startswith("timestamp")
         ):
             return func(*args, **kwargs)
         else:
@@ -249,10 +265,10 @@ def _nullable_test(col: pd.Series, meta_col: dict) -> dict:
 def _date_format_test(col: pd.Series, meta_col) -> dict:
 
     col_name = meta_col["name"]
-    datetime_format = meta_col.get("datetime_format", default_datetime_format)
-    test_inputs = {"column": col_name, "datetime format": datetime_format}
+    datetime_format = meta_col.get("datetime_format", default_date_format)
+    test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
-    res_dict = _result_dict("datetime format", test_inputs)
+    res_dict = _result_dict("datetime_format", test_inputs)
 
     col_oob = ~col.apply(
         lambda x: _valid_date_or_datetime_conversion(x, datetime_format, True)
@@ -265,9 +281,9 @@ def _datetime_format_test(col: pd.Series, meta_col):
 
     col_name = meta_col["name"]
     datetime_format = meta_col.get("datetime_format", default_datetime_format)
-    test_inputs = {"column": col_name, "datetime format": datetime_format}
+    test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
-    res_dict = _result_dict("datetime format", test_inputs)
+    res_dict = _result_dict("datetime_format", test_inputs)
 
     col_oob = ~col.apply(
         lambda x: _valid_date_or_datetime_conversion(x, datetime_format)
@@ -353,6 +369,28 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         if c["name"] not in metadata.get("partitions", [])
     ]
 
+    # For string based file types convert make arrow readers read them in as strings
+    # validators will still treat these as dates but will run validation against strings
+    # cols expecting values to match a timestamp format
+    if "json" in metadata["file_format"] or "csv" in metadata["file_format"]:
+        md_obj = Metadata.from_dict(metadata)
+        cols = md_obj.columns
+
+        cols_to_force_str_read_in = []
+        for c in cols:
+            if c["type"].startswith("time") or c["type"].startswith("date"):
+                c["type"] = "string"
+                c["type_category"] = "string"
+                cols_to_force_str_read_in.append(c["name"])
+
+        md_obj.columns = cols
+        ac = ArrowConverter()
+        arrow_schema = ac.generate_from_meta(md_obj)
+
+        ts_as_str_schema = pa.schema([])
+        for cname in cols_to_force_str_read_in:
+            ts_as_str_schema = ts_as_str_schema.append(arrow_schema.field(cname))
+
     # Set the reader type
     if filepath.startswith("s3://"):
         reader_fs = fs.S3FileSystem(region="eu-west-1")
@@ -363,7 +401,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         fp_for_file_reader = filepath
 
     with reader_fs.open_input_stream(fp_for_file_reader) as f:
-        if "csv" in metadata["data_format"]:
+        if "csv" in metadata["file_format"]:
 
             # Safer CSV load for newlines_in_values set to True
             if table_params.get("expect-header", True):
@@ -373,29 +411,42 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
                     newlines_in_values=True, column_names=meta_col_names
                 )
 
+            if ts_as_str_schema:
+                co = csv.ConvertOptions(column_types=ts_as_str_schema)
+            else:
+                co = None
+
             df = pa_read_csv_to_pandas(
                 input_file=f,
-                schema=None,  # Needs actual schema
+                schema=arrow_schema,
+                expect_full_schema=False,
+                parse_options=po,
+                convert_options=co,
+            )
+            # dates/datetimes == string
+
+        elif "json" in metadata["file_format"]:
+
+            po = json.ParseOptions(
+                newlines_in_values=True,
+                explicit_schema=ts_as_str_schema if ts_as_str_schema else None
+            )
+
+            df = pa_read_json_to_pandas(
+                input_file=f,
+                schema=arrow_schema,
                 expect_full_schema=False,
                 parse_options=po,
             )
             # dates/datetimes == string
 
-        elif "json" in metadata["data_format"]:
-            df = pa_read_json_to_pandas(
-                input_file=f,
-                schema=None,  # Needs actual schema
-                expect_full_schema=False,
-            )
-            # dates/datetimes == string
-
-        elif "parquet" in metadata["data_format"]:
+        elif "parquet" in metadata["file_format"]:
             df = arrow_to_pandas(pq.read_table(f))
             # dates/datetimes == datetime / date
 
         else:
             raise ValueError(
-                f"Unknown data_format in metadata: {metadata['data_format']}."
+                f"Unknown file_format in metadata: {metadata['file_format']}."
             )
 
     if table_params.get("row-limit"):

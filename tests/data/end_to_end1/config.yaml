@@ -4,7 +4,7 @@ pass-base-path: s3://pass/
 log-base-path: s3://log/
 
 compress-data: true
-remove-tables-on-pass: true
+remove-tables-on-pass: false
 all-must-pass: false
 
 # Tables to validate
