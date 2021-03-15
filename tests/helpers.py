@@ -1,4 +1,8 @@
 import os
+from contextlib import contextmanager
+import io
+import boto3
+from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
 
 def set_up_s3(mocked_s3, test_folder, config):
@@ -46,3 +50,21 @@ def set_up_s3(mocked_s3, test_folder, config):
         for filename in files:
             full_path = os.path.join(test_folder, filename)
             mocked_s3.meta.client.upload_file(full_path, land_bucket, filename)
+
+
+class MockS3FilesystemReadInputStream:
+    @staticmethod
+    @contextmanager
+    def open_input_stream(s3_file_path_in: str) -> io.BytesIO:
+        s3_resource = boto3.resource("s3")
+        bucket, key = s3_path_to_bucket_key(s3_file_path_in)
+        obj_bytes = s3_resource.Object(bucket, key).get()["Body"].read()
+        obj_io_bytes = io.BytesIO(obj_bytes)
+        try:
+            yield obj_io_bytes
+        finally:
+            obj_io_bytes.close()
+
+
+def mock_get_file(*args, **kwargs):
+    return MockS3FilesystemReadInputStream()

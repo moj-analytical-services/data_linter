@@ -4,18 +4,22 @@ import pandas as pd
 
 int_not_null = pd.Series([1, 2, 3, 4, 5], dtype=pd.Int64Dtype())
 int_is_null = pd.Series([1, 2, None, 4, 5], dtype=pd.Int64Dtype())
+
 double_not_null = pd.Series([1.0, 2.23545, 3.532513, 4.35, 5.93567])
 double_is_null = pd.Series([1.0, 2.23545, 3.532513, None, 5.93567])
+
 str_not_null = pd.Series(
     ["cat", "dog", "fish", "apple", "pineapple"], dtype=pd.StringDtype()
 )
 str_is_null = pd.Series(
     ["cat", "dog", None, "apple", "pineapple"], dtype=pd.StringDtype()
 )
+
 date_str_not_null = pd.Series(
     ["01/01/2020", "29/12/3000", "25/06/1903"], dtype=pd.StringDtype()
 )
 date_str_is_null = pd.Series([None, "29/12/3000", "25/06/1903"], dtype=pd.StringDtype())
+
 datetime_str_not_null = pd.Series(
     ["2020-01-01 10:00:31", "3000-12-29 09:12:23", "1903-06-25 12:00:00"],
     dtype=pd.StringDtype(),

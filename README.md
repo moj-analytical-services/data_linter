@@ -145,14 +145,104 @@ pv.get_names_of_column_failures()  # [], i.e. no cols failed
 ```
 
 
+### Parallel Running
+
+Data Linter can also work in parallel to trigger multiple validations at once (only supports use of S3 atm). An example below:
+
+In this scenario we use the parallisation process to init the process split the job into 4 validators and then run the closedown.
+
+- **The init stage** splits the config into 4 chunks, based on the file size of the data sitting in the specified land path. It split configs are written to a temporary path in S3 for each validator to pick up and run in parallel.
+- **The validator stage** can be ran in parallel (for simplicity they are run sequentially in the example below). Each validator will take the config in the temp folder path and process the files given in that subsetting config.
+- **The closedown stage** will take all the logs all validator runs, conbine them then move the data based on the validators results. It will then finally clean up the temp folder.
+
+```python
+# Simple example running DL with multiple validators (in this case 4)
+# [init] -> [validator]x4 -> [closedown]
+import yaml
+from data_linter import validation
+from dataengineeringutils3.s3 import get_filepaths_from_s3_folder
+
+
+simple_yaml_config = """
+land-base-path: s3://land/
+fail-base-path: s3://fail/
+pass-base-path: s3://pass/
+log-base-path: s3://log/
+
+compress-data: false
+remove-tables-on-pass: true
+all-must-pass: true
+
+# Tables to validate
+tables:
+  table1:
+    required: true
+    metadata: tests/data/end_to_end1/meta_data/table1.json
+    expect-header: true
+
+  table2:
+    required: true
+    pattern: ^table2
+    metadata: tests/data/end_to_end1/meta_data/table2.json
+"""
+
+test_folder = "tests/data/end_to_end1/land/"
+config = yaml.safe_load(simple_yaml_config)
+
+# Init stage
+validation.para_run_init(4, config)
+
+# Validation stage (although ran sequencially this can be ran in parallel)
+for i in range(4):
+    validation.para_run_validation(i, config)
+
+# Closedown stage
+validation.para_collect_all_status(config)
+validation.para_collect_all_logs(config)
+```
+
+> There are more parallelisation examples, which can be found in the [test_simple_examples.py test module](tests/test_simple_examples.py)
+
 ## Validators
 
-
 ### Pandas
+
+THis is the default validator used by data_linter as of the version 5 release.
+
+#### Dealing with timestamps and dates
+
+Timestamps are always a pain to deal with especially when using different file types. The Pandas Validator has tried to keep true to the file types based on the tests it runs.
+
+If the file type stores date/timestamp information as a string (i.e. CSV and JSONL) then the pandas Validator will read in the timestamp / date columns as strings. It will then apply validation tests against those columns checking if the string representation of the dates in the data is a valid date. For timestamp and date types these tests assume ISO standard string representation `%Y-%m-%d %H:%M:%S` and `%Y-%m-%d`. If your timestamp/date types are comming in as strings that do not conform to the ISO standard format then you can provide you column in the metadata with a `datetime_format` property that specifies the exected format e.g.
+
+```json
+...
+"columns": [
+    {
+        "name": "date_in_uk",
+        "type": "date64",
+        "datetime_format": "%d/%m/%Y"
+    },
+...
 ```
-# - Add notes on dates/datetimes
-# - Add data format notes
+
+Often you might recieve data that is exported from a system that might encode your timestamp as a date but is written to a format that encodes the data as a timestamp. In this scenario you would expect your dates (in a str timestamp format) to always have a time component of `00:00:00`. You can also use data_linter to validate this by specifing the datetime_format of your column as the expected timestamp in format but still specify that the data type is a date e.g.
+
+```json
+...
+"columns": [
+    {
+        "name": "date_in_uk",
+        "type": "date64",
+        "datetime_format": "%d/%m/%Y 00:00:00"
+    },
+...
 ```
+
+In the above data_linter will attempt to fist parse the column with the specified `datetime_format` and then as the column type is date it will check that it it truely a date (and not have a time component).
+
+If the file_format is `parquet` then timestamps are encoded in the filetype and there are just read in as is. Currently data_linter doesn't support minimum and maximum tests for timestamps/dates and also does not currently have tests for time types. 
+
 
 ### Frictionless
 

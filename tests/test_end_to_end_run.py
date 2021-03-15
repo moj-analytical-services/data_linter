@@ -3,35 +3,16 @@ import yaml
 import gzip
 import tempfile
 import pytest
-import boto3
-import io
 
 from pyarrow import fs
 
-from tests.helpers import set_up_s3
-
-from contextlib import contextmanager
-
-from dataengineeringutils3.s3 import s3_path_to_bucket_key
-
-
-class MockS3FilesystemReadInputStream:
-    @staticmethod
-    @contextmanager
-    def open_input_stream(s3_file_path_in: str) -> io.BytesIO:
-        s3_resource = boto3.resource("s3")
-        bucket, key = s3_path_to_bucket_key(s3_file_path_in)
-        obj_bytes = s3_resource.Object(bucket, key).get()["Body"].read()
-        obj_io_bytes = io.BytesIO(obj_bytes)
-        try:
-            yield obj_io_bytes
-        finally:
-            obj_io_bytes.close()
+from tests.helpers import (
+    set_up_s3,
+    mock_get_file,
+)
 
 
 def test_end_to_end(s3, monkeypatch):
-    def mock_get_file(*args, **kwargs):
-        return MockS3FilesystemReadInputStream()
 
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
@@ -55,8 +36,6 @@ def test_end_to_end(s3, monkeypatch):
 
 @pytest.mark.parametrize("validator", ["pandas", "frictionless", "great-expectations"])
 def test_end_to_end_all_validators(s3, monkeypatch, validator):
-    def mock_get_file(*args, **kwargs):
-        return MockS3FilesystemReadInputStream()
 
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
@@ -125,8 +104,6 @@ def test_compression(s3):
 def test_end_to_end_full_path_spectrum(
     s3, tmpdir_factory, monkeypatch, land_path, fail_path, pass_path, log_path
 ):
-    def mock_get_file(*args, **kwargs):
-        return MockS3FilesystemReadInputStream()
 
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
@@ -172,9 +149,6 @@ def test_end_to_end_full_path_spectrum_parallel(
     pass_path,
     log_path,
 ):
-    def mock_get_file(*args, **kwargs):
-        return MockS3FilesystemReadInputStream()
-
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
     from data_linter import validation
@@ -210,8 +184,6 @@ def test_end_to_end_full_path_spectrum_parallel(
 
 @pytest.mark.parametrize("max_bin_count", [1, 3, 10])
 def test_bin_count(s3, monkeypatch, max_bin_count):
-    def mock_get_file(*args, **kwargs):
-        return MockS3FilesystemReadInputStream()
 
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
@@ -234,8 +206,6 @@ def test_bin_count(s3, monkeypatch, max_bin_count):
 
 
 def test_end_to_end_single_file_config(s3, monkeypatch):
-    def mock_get_file(*args, **kwargs):
-        return MockS3FilesystemReadInputStream()
 
     monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
 
