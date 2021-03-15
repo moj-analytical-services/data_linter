@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Migrated to the new metadata schemas ([#140](https://github.com/moj-analytical-services/data_linter/issues/140))
 - Single process validator can run locally ([#121](https://github.com/moj-analytical-services/data_linter/issues/121))
 - Full log now writes to it's own folder ([#130](https://github.com/moj-analytical-services/data_linter/issues/130))
+- Renamed default branch of repo from master -> main
 
 ```
 [ALL CLOSED ISSUES]
