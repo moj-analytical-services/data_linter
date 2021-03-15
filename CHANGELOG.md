@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 5.0.0 - 2021-03-15
+
+- Created Pandas Validator (now replaces frictionless as the default validator) ([issue #120](https://github.com/moj-analytical-services/data_linter/issues/120), [issue #98](https://github.com/moj-analytical-services/data_linter/issues/98))
+- Enabled parallelisation of validators ([#122](https://github.com/moj-analytical-services/data_linter/issues/122))
+- Migrated to the new metadata schemas ([#140](https://github.com/moj-analytical-services/data_linter/issues/140))
+- Single process validator can run locally ([#121](https://github.com/moj-analytical-services/data_linter/issues/121))
+- Full log now writes to it's own folder ([#130](https://github.com/moj-analytical-services/data_linter/issues/130))
+
+```
+[ALL CLOSED ISSUES]
+- issue #140 
+- issue #139
+- issue #133 
+- issue #132
+- issue #131 
+- issue #130 
+- issue #129 
+- issue #128 
+- issue #125
+- issue #122 
+- issue #121 
+- issue #120 
+- issue #110 
+- issue #100 
+- issue #98
+- issue #87
+- issue #70
+```
 
 ## 4.1.0 - 2020-11-24
 
