@@ -1,3 +1,4 @@
+# the tables parameter will fail as it is type array (list) not object (dict)
 land-base-path: s3://land-bucket/my-folder/  # Where to get the data from
 fail-base-path: s3://fail-bucket/my-folder/  # Where to write the data if failed
 pass-base-path: s3://pass-bucket/my-folder/  # Where to write the data if passed
@@ -13,5 +14,7 @@ fail-unknown-files:
 
 # Tables to validate
 tables:
-    table_blah:
-        pattern: null
+    - table_blah:
+      required: true  # Does the table have to exist
+      pattern: null  # Assumes file is called table1
+      linter: goodtables  # jsonschema?

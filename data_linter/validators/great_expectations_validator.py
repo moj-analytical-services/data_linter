@@ -1,7 +1,10 @@
 import logging
-from data_linter.validators.base import BaseTableValidator
+from data_linter.validators.base import (
+    BaseTableValidator,
+    ValidatorResult,
+)
+
 from copy import deepcopy
-from typing import List
 
 optional_import_errors = ""
 try:
@@ -22,89 +25,19 @@ except ImportError as e:
     optional_import_errors += " " + str(e)
 
 numerical_conversion = {
-    "int": "Int64",
-    "long": "Int64",
-    "double": np.float,
+    "integer": "Int64",
     "float": np.float,
 }
 
 default_pd_in_type = "str"
 
 pd_conversion = deepcopy(numerical_conversion)
-pd_conversion["datetime"] = "str"
-pd_conversion["date"] = "str"
+pd_conversion["timestamp"] = "str"
 pd_conversion["boolean"] = "str"
-pd_conversion["character"] = "str"
+pd_conversion["string"] = "str"
 
 
 log = logging.getLogger("root")
-
-
-class ValidatorResult(object):
-    """
-    Little class to manage adding to validator dict
-    """
-
-    def __init__(self, result_dict={}):
-        if result_dict:
-            self.result = result_dict
-        else:
-            self.result = {"valid": True}
-
-    def get_result(self, copy=True):
-        if copy:
-            return deepcopy(self.result)
-        else:
-            return self.result
-
-    def init_col(self, colname):
-        if colname not in self.result:
-            self.result[colname] = {"valid": True}
-
-    def get_names_of_column_failures(self, test_names: List[str] = []):
-        """
-
-        Return col names which have an overall fail. If test_names is given
-        only returns cols that failed those particular tests is given.
-        Args:
-            test_name (List[str], optional): [description]. List of tests to
-            check against Defaults to [].
-        """
-        non_column_names = ["valid", "validator-table-test-"]
-        failed_cols = []
-        for colname in self.result:
-            if colname in non_column_names:
-                continue
-
-            if test_names:
-                overall_success = True
-                for k, v in self.result[colname].items():
-                    if k in test_names:
-                        overall_success = overall_success and v.get("success", True)
-            else:
-                overall_success = self.result[colname].get("valid", True)
-
-            if not overall_success:
-                failed_cols.append(colname)
-
-        return failed_cols
-
-    def add_table_test(self, testname, test_result):
-        # Same setup - treats overall test as a colname
-        self.init_col(testname)
-        self.result[testname] = test_result
-        if "success" in test_result:
-            self.result["valid"] = self.result["valid"] and test_result["success"]
-
-    def add_test_to_col(self, colname, testname, test_result):
-        self.init_col(colname)
-
-        self.result[colname][testname] = test_result
-        if "success" in test_result:
-            self.result["valid"] = self.result["valid"] and test_result["success"]
-            self.result[colname]["valid"] = (
-                self.result[colname]["valid"] and test_result["success"]
-            )
 
 
 class GreatExpectationsValidator(BaseTableValidator):
@@ -120,7 +53,9 @@ class GreatExpectationsValidator(BaseTableValidator):
         default_result_fmt="COMPLETE",
         ignore_missing_cols=False,
     ):
-        super().__init__(filepath, table_params, metadata)
+        super().__init__(
+            filepath, table_params, metadata, validator_valid_key_name="success"
+        )
 
         if optional_import_errors:
             imp_err = (
@@ -132,7 +67,6 @@ class GreatExpectationsValidator(BaseTableValidator):
         self.default_result_fmt = default_result_fmt
         self.ignore_missing_cols = ignore_missing_cols
 
-        self.response = ValidatorResult()
         self.valid = self.response.result["valid"]
 
     def write_validation_errors_to_log(self):
@@ -159,7 +93,7 @@ class GreatExpectationsValidator(BaseTableValidator):
             nrows=self.table_params.get("row-limit"),
         )
 
-        if self.metadata["data_format"] != "parquet":
+        if self.metadata["file_format"] != "parquet":
             df = _convert_df_to_meta_for_testing(df, self.metadata, self.response)
 
         validate_df_with_ge(
@@ -182,10 +116,10 @@ def _convert_df_to_meta_for_testing(df, metadata, result: ValidatorResult):
 
     for c in cols:
         try:
-            if c["type"] in numerical_conversion:
+            if c["type_category"] in numerical_conversion:
                 df[c["name"]] = pd.to_numeric(df[c["name"]])
                 df[c["name"]] = df[c["name"]].astype(
-                    numerical_conversion[c["type"]]
+                    numerical_conversion[c["type_category"]]
                 )  # in case pandas converts to int rather than float
             else:
                 df[c["name"]] = df[c["name"]].astype("string")
@@ -193,7 +127,7 @@ def _convert_df_to_meta_for_testing(df, metadata, result: ValidatorResult):
                 c["name"], "test-type-conversion", {"success": True, "desc": None}
             )
         except Exception as e:
-            t = numerical_conversion.get(c["type"], "string")
+            t = numerical_conversion.get(c["type_category"], "string")
             e = (
                 f"Column {c['name']} could not be cast to pandas type {t}."
                 f"Error: {str(e)}"
@@ -218,7 +152,7 @@ def _parse_data_to_pandas(
 
     pandas_kwargs = table_params.get("pandas-kwargs", {})
 
-    if metadata["data_format"] == "csv":
+    if "csv" in metadata["file_format"]:
         names = None
         header = "infer" if table_params.get("expect-header", True) else None
         if header is None:
@@ -243,7 +177,7 @@ def _parse_data_to_pandas(
                 **pandas_kwargs,
             )
 
-    elif metadata["data_format"] == "json":
+    elif "json" in metadata["file_format"]:
         if filepath.startswith("s3://"):
             df = wr.s3.read_json(
                 [filepath],
@@ -261,16 +195,16 @@ def _parse_data_to_pandas(
                 **pandas_kwargs,
             )
 
-    elif metadata["data_format"] == "parquet":
+    elif "parquet" in metadata["file_format"]:
         if filepath.startswith("s3://"):
             df = wr.s3.read_parquet([filepath], nrows=nrows, **pandas_kwargs)
         else:
             df = pd.read_parquet(filepath, nrows=nrows, **pandas_kwargs)
 
     else:
-        data_fmt = metadata["data_format"]
         raise ValueError(
-            f"metadata data_format ({data_fmt}) not supported for GE validator."
+            f"metadata file_format ({metadata['file_format']})"
+            "not supported for GE validator."
         )
 
     if table_params.get("headers-ignore-case"):
@@ -346,7 +280,7 @@ def column_validation(dfe, metacol, result: ValidatorResult, result_format):
     if not metacol.get("nullable", True):
         result.add_test_to_col(n, "nullable", ge_nullable_test(dfe, n, result_format))
 
-    if metacol["type"] in ["date", "datetime"]:
+    if metacol["type"].startswith("date") or metacol["type"].startswith("timestamp"):
         result.add_test_to_col(
             n,
             "datetime-format",
@@ -386,7 +320,7 @@ def column_validation(dfe, metacol, result: ValidatorResult, result_format):
 
 def ge_test_datetime_format(dfe, colname, coltype, date_format, result_format=None):
     if date_format is None:
-        date_format = "%Y-%m-%d" if coltype == "date" else "%Y-%m-%d %H:%M:%S"
+        date_format = "%Y-%m-%d" if coltype.startswith("date") else "%Y-%m-%d %H:%M:%S"
     result = dfe.expect_column_values_to_match_strftime_format(
         colname,
         strftime_format=date_format,

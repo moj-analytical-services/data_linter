@@ -1,5 +1,5 @@
 {
-    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/table/v1.0.0.json",
+    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json",
     "name": "teams",
     "description": "month snapshot of which employee with working in what team",
     "data_format": "parquet",
@@ -7,7 +7,8 @@
     "columns": [
         {
             "name": "team_id",
-            "type": "character",
+            "type": "string",
+            "type_category": "string",
             "description": "ID given to each team",
             "nullable" : false,
             "unique": true,
@@ -15,26 +16,30 @@
         },
         {
             "name": "team_name",
-            "type": "character",
+            "type": "string",
+            "type_category": "string",
             "description": "name of the team"
         },
         {
             "name": "employee_id",
-            "type": "character",
+            "type": "string",
+            "type_category": "string",
             "description": "primary key for each employee in the employees table",
             "minLength": 8,
             "maxLength": 8
         },
         {
             "name": "snapshot_year",
-            "type": "int",
+            "type": "int64",
+            "type_category": "integer",
             "description": "year at which snapshot of workforce was taken",
             "minimum": 2010,
             "maximum": 2020
         },
         {
             "name": "snapshot_month",
-            "type": "int",
+            "type": "int64",
+            "type_category": "integer",
             "description": "month at which snapshot of workforce was taken",
             "enum" : [1,2,3,4,5,6,7,8,9,10,11,12]
         }

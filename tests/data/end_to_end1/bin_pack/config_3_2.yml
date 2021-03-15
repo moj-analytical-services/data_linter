@@ -1,0 +1,20 @@
+all-must-pass: true
+compress-data: true
+fail-base-path: s3://alpha-mojap-de-courts-team/stephen/fail/
+land-base-path: s3://alpha-mojap-de-courts-team/stephen/land/
+log-base-path: s3://alpha-mojap-de-courts-team/stephen/log/
+pass-base-path: s3://alpha-mojap-de-courts-team/stephen/pass/
+remove-tables-on-pass: false
+tables:
+  table1:
+    linter: goodtables
+    matched_files:
+      - s3://alpha-mojap-de-courts-team/stephen/land/table1.csv
+    metadata: /Users/stephen/Documents/data_linter/tests/data/end_to_end1/meta_data/table1.json
+    required: true
+  table2:
+    matched_files:
+      - s3://alpha-mojap-de-courts-team/stephen/land/table2_reordered_cols.jsonl
+    metadata: /Users/stephen/Documents/data_linter/tests/data/end_to_end1/meta_data/table2.json
+    pattern: ^table2
+    required: true

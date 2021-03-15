@@ -4,7 +4,7 @@ pass-base-path: s3://pass/
 log-base-path: s3://log/
 
 compress-data: true
-remove-tables-on-pass: false
+remove-tables-on-pass: true
 all-must-pass: false
 
 # Tables to validate
@@ -13,8 +13,14 @@ tables:
     required: true
     metadata: tests/data/end_to_end1/meta_data/table1.json
     expect-header: true
+    matched_files:
+      - s3://land/table1.csv
 
   table2:
     required: true
     pattern: ^table2
     metadata: tests/data/end_to_end1/meta_data/table2.json
+    matched_files:
+      - s3://land/table2.jsonl
+      - s3://land/table2_extra.jsonl
+      - s3://land/table2_reordered_cols.jsonl
