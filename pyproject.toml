@@ -20,7 +20,7 @@ jsonschema = "^3.2.0"
 pyyaml = "^5.3.1"
 iam_builder = "^3.7.0"
 pandas = "^1.2"
-mojap-metadata = {url = "https://github.com/moj-analytical-services/mojap-metadata", tag = "v1.1.0", extras = ["arrow"]}
+mojap-metadata = {git = "https://github.com/moj-analytical-services/mojap-metadata", tag = "v1.1.0", extras = ["arrow"]}
 arrow-pd-parser = { git = "https://github.com/moj-analytical-services/mojap-arrow-pd-parser", tag = "v0.1.0"}
 great-expectations = { version = "0.12.9", optional = true }
 awswrangler = {version = "2.3.0", optional = true}
