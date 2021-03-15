@@ -280,10 +280,7 @@ def column_validation(dfe, metacol, result: ValidatorResult, result_format):
     if not metacol.get("nullable", True):
         result.add_test_to_col(n, "nullable", ge_nullable_test(dfe, n, result_format))
 
-    if (
-        metacol["type"].startswith("date")
-        or metacol["type"].startswith("timestamp")
-    ):
+    if metacol["type"].startswith("date") or metacol["type"].startswith("timestamp"):
         result.add_test_to_col(
             n,
             "datetime-format",

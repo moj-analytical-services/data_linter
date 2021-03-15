@@ -143,6 +143,7 @@ def check_run_validation_for_meta(func):
 
     Will return nothing if function should not be called.
     """
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         sig = inspect.signature(func)
@@ -166,14 +167,12 @@ def check_run_validation_for_meta(func):
             [None, True], [mc.get("nullable")]
         ):
             return func(*args, **kwargs)
-        elif (
-            func.__name__ == "_date_format_test"
-            and mc.get("type", "").startswith("date")
+        elif func.__name__ == "_date_format_test" and mc.get("type", "").startswith(
+            "date"
         ):
             return func(*args, **kwargs)
-        elif (
-            func.__name__ == "_datetime_format_test"
-            and mc.get("type", "").startswith("timestamp")
+        elif func.__name__ == "_datetime_format_test" and mc.get("type", "").startswith(
+            "timestamp"
         ):
             return func(*args, **kwargs)
         else:
@@ -429,7 +428,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
 
             po = json.ParseOptions(
                 newlines_in_values=True,
-                explicit_schema=ts_as_str_schema if ts_as_str_schema else None
+                explicit_schema=ts_as_str_schema if ts_as_str_schema else None,
             )
 
             df = pa_read_json_to_pandas(

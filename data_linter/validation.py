@@ -46,7 +46,7 @@ from data_linter.utils import (
 from data_linter.validators import (
     FrictionlessValidator,
     GreatExpectationsValidator,
-    PandasValidator
+    PandasValidator,
 )
 
 log, log_stringio = logging_setup()
