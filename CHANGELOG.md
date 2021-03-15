@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 5.0.0 - 2021-03-15
 
+- Updated github repo dependencies in `pyproject.toml`
+
+
+## 5.0.0 - 2021-03-15
+
 - Created Pandas Validator (now replaces frictionless as the default validator) ([issue #120](https://github.com/moj-analytical-services/data_linter/issues/120), [issue #98](https://github.com/moj-analytical-services/data_linter/issues/98))
 - Enabled parallelisation of validators ([#122](https://github.com/moj-analytical-services/data_linter/issues/122))
 - Migrated to the new metadata schemas ([#140](https://github.com/moj-analytical-services/data_linter/issues/140))
