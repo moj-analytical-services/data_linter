@@ -31,4 +31,4 @@ def test_load_and_validate_config_pass():
 def test_pyproject_toml_matches_version():
     with open("pyproject.toml") as f:
         proj = toml.load(f)
-    dl.__version__ == proj["tool"]["poetry"]["version"]
+    assert dl.__version__ == proj["tool"]["poetry"]["version"]
