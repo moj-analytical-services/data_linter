@@ -181,6 +181,12 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         config = load_and_validate_config(config)
         log_path = get_main_log_path_from_config(config)
 
+        temp_log_path = get_temp_log_path_from_config(config)
+        if temp_log_path.startswith("s3://"):
+            delete_s3_folder_contents(temp_log_path)
+        else:
+            shutil.rmtree(temp_log_path, ignore_errors=True)
+
         log.info("Running validation")
 
         config = match_files_in_land_to_config(config)
