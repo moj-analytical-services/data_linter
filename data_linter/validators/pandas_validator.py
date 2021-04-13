@@ -110,7 +110,10 @@ class PandasValidator(BaseTableValidator):
             self.response.add_test_to_col(col_name, "pattern_test", res_dict)
 
     def enum_test(self, col, meta_col):
-        res_dict = _enum_test(col, meta_col)
+        # do we want to list the enum values in the log?
+        val_eng_params = self.metadata.get("validator-engine-params")
+        suppress_enum_set = val_eng_params.get("supress-enum-list-in-logs")
+        res_dict = _enum_test(col, meta_col, suppress_enum_set)
         col_name = meta_col["name"]
         if res_dict is not None:
             self.response.add_test_to_col(col_name, "enum_test", res_dict)
@@ -227,12 +230,15 @@ def _pattern_test(col: pd.Series, meta_col: dict) -> dict:
 
 
 @check_run_validation_for_meta
-def _enum_test(col: pd.Series, meta_col: dict) -> dict:
+def _enum_test(col: pd.Series, meta_col: dict, suppress_enum_set: bool) -> dict:
 
     col_name = meta_col["name"]
     enum = meta_col.get("enum")
 
-    test_inputs = {"column": col_name, "enum_value_set": enum}
+    if not suppress_enum_set:
+        test_inputs = {"column": col_name, "enum_value_set": enum}
+    else:
+        test_inputs = {"column": col_name}
 
     res_dict = _result_dict("enum", test_inputs)
 
