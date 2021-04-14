@@ -112,7 +112,7 @@ class PandasValidator(BaseTableValidator):
     def enum_test(self, col, meta_col):
         # do we want to list the enum values in the log?
         val_eng_params = self.metadata.get("validator-engine-params", {})
-        suppress_enum_set = val_eng_params.get("supress-enum-list-in-logs", True)
+        suppress_enum_set = val_eng_params.get("supress-enum-set-in-logs", True)
         res_dict = _enum_test(col, meta_col, suppress_enum_set)
         col_name = meta_col["name"]
         if res_dict is not None:
