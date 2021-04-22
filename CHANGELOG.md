@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 5.0.5 2021-04-22
+
+- enum set removed from response dict for enum test to stop logs from being filled with potentially long enum sets
+
 ## 5.0.4 - 2021-03-22
 
 - temporary storage is now removed at the beginning of a run as leftover files would remain after a failed run and potentially cause errors
