@@ -232,7 +232,7 @@ def _enum_test(col: pd.Series, meta_col: dict) -> dict:
     col_name = meta_col["name"]
     enum = meta_col.get("enum")
 
-    test_inputs = {"column": col_name, "enum_value_set": enum}
+    test_inputs = {"column": col_name}
 
     res_dict = _result_dict("enum", test_inputs)
 
