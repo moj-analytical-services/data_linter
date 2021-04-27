@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("/Users/stephen/Documents/data_linter")
 
 import logging
@@ -82,7 +83,7 @@ class PandasValidator(BaseTableValidator):
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
 
         # log diff in columns maybe? it can be confusing in the instance when there
-        # are no matching columns 
+        # are no matching columns
 
         for m in meta_cols:
             self.validate_col(df[m["name"]], m)
@@ -397,7 +398,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             for c in metadata["columns"]
             if c["name"] not in metadata.get("partitions", [])
         ]
-        # match it to the actual name taken from the data 
+        # match it to the actual name taken from the data
         meta_col_names = [
             name for name in actual_col_names if name.lower() in col_names_from_meta
         ]
@@ -422,11 +423,12 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
                 c["type"] = "string"
                 c["type_category"] = "string"
 
-                # if the case is ignored, the meta needs the header is in the data 
+                # if the case is ignored, the meta needs the header is in the data
                 # as this is inherently case sensitive on read
                 if table_params.get("headers-ignore-case"):
                     pot_name = [
-                        name for name in meta_col_names \
+                        name
+                        for name in meta_col_names
                         if name.lower() == c["name".lower()]
                     ][0]
                     cols_to_force_str_read_in.append(pot_name)
