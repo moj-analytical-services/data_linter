@@ -1,3 +1,6 @@
+import sys
+sys.path.append("/Users/stephen/Documents/data_linter")
+
 import logging
 import pandas as pd
 import inspect
@@ -77,6 +80,9 @@ class PandasValidator(BaseTableValidator):
     def validate_df(self, df):
 
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
+
+        # log diff in columns maybe? it can be confusing in the instance when there
+        # are no matching columns 
 
         for m in meta_cols:
             self.validate_col(df[m["name"]], m)
@@ -361,12 +367,47 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     Reads in the data from the given filepath and returns
     a dataframe
     """
+    # Set the reader type
+    if filepath.startswith("s3://"):
+        reader_fs = fs.S3FileSystem(region="eu-west-1")
+        fp_for_file_reader = filepath.replace("s3://", "", 1)
 
-    meta_col_names = [
-        c["name"]
-        for c in metadata["columns"]
-        if c["name"] not in metadata.get("partitions", [])
-    ]
+    else:
+        reader_fs = fs.LocalFileSystem()
+        fp_for_file_reader = filepath
+
+    actual_col_names = []
+
+    # very jank, not cool - until arrow allows readline
+    if table_params.get("headers-ignore-case") and table_params["expect-header"]:
+        header_line = b""
+        line_terminator = b"\r\n"
+        with reader_fs.open_input_stream(fp_for_file_reader) as f:
+            # read the data byte by byte (because line by line is not available)
+            while not header_line.endswith(line_terminator):
+                header_line += f.read(1)
+            if "csv" in metadata["file_format"]:
+                tmp_pa_tab = csv.read_csv(pa.py_buffer(header_line))
+                actual_col_names.extend(tmp_pa_tab.column_names)
+            elif "json" in metadata["file_format"]:
+                print("bruh")
+        # get the column names as specified in the metadata
+        col_names_from_meta = [
+            c["name"]
+            for c in metadata["columns"]
+            if c["name"] not in metadata.get("partitions", [])
+        ]
+        # match it to the actual name taken from the data 
+        meta_col_names = [
+            name for name in actual_col_names if name.lower() in col_names_from_meta
+        ]
+
+    else:
+        meta_col_names = [
+            c["name"]
+            for c in metadata["columns"]
+            if c["name"] not in metadata.get("partitions", [])
+        ]
 
     # For string based file types convert make arrow readers read them in as strings
     # validators will still treat these as dates but will run validation against strings
@@ -380,7 +421,19 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             if c["type"].startswith("time") or c["type"].startswith("date"):
                 c["type"] = "string"
                 c["type_category"] = "string"
-                cols_to_force_str_read_in.append(c["name"])
+
+                # if the case is ignored, the meta needs the header is in the data 
+                # as this is inherently case sensitive on read
+                if table_params.get("headers-ignore-case"):
+                    pot_name = [
+                        name for name in meta_col_names \
+                        if name.lower() == c["name".lower()]
+                    ][0]
+                    cols_to_force_str_read_in.append(pot_name)
+                    c["name"] = pot_name
+
+                else:
+                    cols_to_force_str_read_in.append(c["name"])
 
         md_obj.columns = cols
         ac = ArrowConverter()
@@ -389,15 +442,6 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         ts_as_str_schema = pa.schema([])
         for cname in cols_to_force_str_read_in:
             ts_as_str_schema = ts_as_str_schema.append(arrow_schema.field(cname))
-
-    # Set the reader type
-    if filepath.startswith("s3://"):
-        reader_fs = fs.S3FileSystem(region="eu-west-1")
-        fp_for_file_reader = filepath.replace("s3://", "", 1)
-
-    else:
-        reader_fs = fs.LocalFileSystem()
-        fp_for_file_reader = filepath
 
     with reader_fs.open_input_stream(fp_for_file_reader) as f:
         if "csv" in metadata["file_format"]:
@@ -451,6 +495,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
 
+    # This only works if the column names in the metadata are lowercase
     if table_params.get("headers-ignore-case"):
         df_cols = [c.lower() for c in df.columns]
         df.columns = df_cols
