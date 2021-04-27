@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append("/Users/stephen/Documents/data_linter")
-
 import logging
 import pandas as pd
 import inspect
