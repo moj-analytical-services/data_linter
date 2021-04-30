@@ -1,6 +1,12 @@
+import sys
+
+sys.path.append("/Users/stephen/Documents/data_linter")
+
 import logging
 import pandas as pd
 import inspect
+
+import awswrangler as wr
 
 from functools import wraps
 
@@ -9,6 +15,7 @@ from datetime import datetime
 from arrow_pd_parser.parse import (
     pa_read_csv_to_pandas,
     pa_read_json_to_pandas,
+    cast_pandas_column_to_schema,
 )
 
 from typing import Union
@@ -364,139 +371,41 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     Reads in the data from the given filepath and returns
     a dataframe
     """
+    data_is_not_parquet = True
+
     # Set the reader type
     if filepath.startswith("s3://"):
-        reader_fs = fs.S3FileSystem(region="eu-west-1")
-        fp_for_file_reader = filepath.replace("s3://", "", 1)
-
+        reader = wr.s3
     else:
-        reader_fs = fs.LocalFileSystem()
-        fp_for_file_reader = filepath
+        reader = pd
 
-    actual_col_names = []
-
-    # very jank, not cool - until arrow allows readline
-    if table_params.get("headers-ignore-case") and table_params["expect-header"]:
-        header_line = b""
-        line_terminator = b"\r\n"
-        with reader_fs.open_input_stream(fp_for_file_reader) as f:
-            # read the data byte by byte (because line by line is not available)
-            while not header_line.endswith(line_terminator):
-                header_line += f.read(1)
-            if "csv" in metadata["file_format"]:
-                tmp_pa_tab = csv.read_csv(pa.py_buffer(header_line))
-                actual_col_names.extend(tmp_pa_tab.column_names)
-            elif "json" in metadata["file_format"]:
-                print("bruh")
-        # get the column names as specified in the metadata
-        col_names_from_meta = [
-            c["name"]
-            for c in metadata["columns"]
-            if c["name"] not in metadata.get("partitions", [])
-        ]
-        # match it to the actual name taken from the data
-        meta_col_names = [
-            name for name in actual_col_names if name.lower() in col_names_from_meta
-        ]
-
+    # read the data
+    if "csv" in metadata["file_format"]:
+        df = reader.read_csv(filepath, dtype=str, low_memory=False)
+    elif "json" in metadata["file_format"]:
+        df = reader.read_json(filepath, dtype=str, lines = True)
+    elif "parquet" in metadata["file_format"]:
+        data_is_not_parquet = False
+        df = reader.read_parquet(filepath)
     else:
-        meta_col_names = [
-            c["name"]
-            for c in metadata["columns"]
-            if c["name"] not in metadata.get("partitions", [])
-        ]
+        raise ValueError(
+            f"Unknown file_format in metadata: {metadata['file_format']}."
+        )        
 
-    # For string based file types convert make arrow readers read them in as strings
-    # validators will still treat these as dates but will run validation against strings
-    # cols expecting values to match a timestamp format
-    if "json" in metadata["file_format"] or "csv" in metadata["file_format"]:
-        md_obj = Metadata.from_dict(metadata)
-        cols = md_obj.columns
+    # eliminate case sensitivity, if requested
+    if table_params.get("headers-ignore-case"):
+        for c in metadata["columns"]:
+            c["name"] = c["name"].lower()
+        df.columns = [c.lower() for c in df.columns]
 
-        cols_to_force_str_read_in = []
-        for c in cols:
-            if c["type"].startswith("time") or c["type"].startswith("date"):
-                c["type"] = "string"
-                c["type_category"] = "string"
-
-                # if the case is ignored, the meta needs the header is in the data
-                # as this is inherently case sensitive on read
-                if table_params.get("headers-ignore-case"):
-                    pot_name = [
-                        name
-                        for name in meta_col_names
-                        if name.lower() == c["name".lower()]
-                    ][0]
-                    cols_to_force_str_read_in.append(pot_name)
-                    c["name"] = pot_name
-
-                else:
-                    cols_to_force_str_read_in.append(c["name"])
-
-        md_obj.columns = cols
-        ac = ArrowConverter()
-        arrow_schema = ac.generate_from_meta(md_obj)
-
-        ts_as_str_schema = pa.schema([])
-        for cname in cols_to_force_str_read_in:
-            ts_as_str_schema = ts_as_str_schema.append(arrow_schema.field(cname))
-
-    with reader_fs.open_input_stream(fp_for_file_reader) as f:
-        if "csv" in metadata["file_format"]:
-
-            # Safer CSV load for newlines_in_values set to True
-            if table_params.get("expect-header", True):
-                po = csv.ParseOptions(newlines_in_values=True)
-            else:
-                po = csv.ParseOptions(
-                    newlines_in_values=True, column_names=meta_col_names
-                )
-
-            if ts_as_str_schema:
-                co = csv.ConvertOptions(column_types=ts_as_str_schema)
-            else:
-                co = None
-
-            df = pa_read_csv_to_pandas(
-                input_file=f,
-                schema=arrow_schema,
-                expect_full_schema=False,
-                parse_options=po,
-                convert_options=co,
-            )
-            # dates/datetimes == string
-
-        elif "json" in metadata["file_format"]:
-
-            po = json.ParseOptions(
-                newlines_in_values=True,
-                explicit_schema=ts_as_str_schema if ts_as_str_schema else None,
-            )
-
-            df = pa_read_json_to_pandas(
-                input_file=f,
-                schema=arrow_schema,
-                expect_full_schema=False,
-                parse_options=po,
-            )
-            # dates/datetimes == string
-
-        elif "parquet" in metadata["file_format"]:
-            df = arrow_to_pandas(pq.read_table(f))
-            # dates/datetimes == datetime / date
-
-        else:
-            raise ValueError(
-                f"Unknown file_format in metadata: {metadata['file_format']}."
-            )
+    # cast table column by column, except timestamps
+    for c in metadata["columns"]:
+        if not c["type_category"].startswith("timestamp"):
+            df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
+    # df = cast_pandas_table_to_schema(df, metadata)
 
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
-
-    # This only works if the column names in the metadata are lowercase
-    if table_params.get("headers-ignore-case"):
-        df_cols = [c.lower() for c in df.columns]
-        df.columns = df_cols
 
     if table_params.get("only-test-cols-in-metadata", False):
         keep_cols = [c for c in df.columns if c in meta_col_names]

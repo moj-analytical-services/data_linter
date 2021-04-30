@@ -7,6 +7,8 @@ import boto3
 import shutil
 import io
 
+from mojap_metadata.metadata.metadata import Metadata
+
 from typing import Union, List
 
 from datetime import datetime
@@ -366,8 +368,9 @@ def validate_data(config: dict):
                 "metadata", f"meta_data/{table_name}.json"
             )
 
-            with open(meta_file_path) as sfile:
-                metadata = json.load(sfile)
+            meta_obj = Metadata.from_json(meta_file_path)
+            meta_obj.set_col_type_category_from_types()
+            metadata = meta_obj.to_dict()
 
             for i, matched_file in enumerate(table_params["matched_files"]):
 

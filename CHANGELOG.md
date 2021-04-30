@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## 5.0.6 2021-04-27
 
-- fixed issue with capitalisation of data in the header of source (csv) data not allowing the casting of timestamps correctly
+- fixed issue with capitalisation of data in the header of source (csv) data not allowing the casting of timestamps correctly by using new pandas parser from arrow-pd-parser
 
 ## 5.0.5 2021-04-22
 
