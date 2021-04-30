@@ -14,8 +14,6 @@ from arrow_pd_parser.parse import (
 
 from typing import Union
 
-from arrow_pd_parser.pa_pd import arrow_to_pandas
-
 import pyarrow as pa
 from pyarrow import parquet as pq, fs, csv, json
 
