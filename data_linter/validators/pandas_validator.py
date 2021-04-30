@@ -85,8 +85,14 @@ class PandasValidator(BaseTableValidator):
 
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
 
-        # log diff in columns maybe? it can be confusing in the instance when there
-        # are no matching columns
+        cols_not_tested = [
+            col for col in self.metadata["columns"] if col["name"] not in df
+        ]
+        if cols_not_tested:
+            log.info(
+                "some columns will not be tested as not present in metadata: "
+                f"{cols_not_tested}"
+            )
 
         for m in meta_cols:
             self.validate_col(df[m["name"]], m)
@@ -383,14 +389,12 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if "csv" in metadata["file_format"]:
         df = reader.read_csv(filepath, dtype=str, low_memory=False)
     elif "json" in metadata["file_format"]:
-        df = reader.read_json(filepath, dtype=str, lines = True)
+        df = reader.read_json(filepath, dtype=str, lines=True)
     elif "parquet" in metadata["file_format"]:
         data_is_not_parquet = False
         df = reader.read_parquet(filepath)
     else:
-        raise ValueError(
-            f"Unknown file_format in metadata: {metadata['file_format']}."
-        )        
+        raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
 
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):
