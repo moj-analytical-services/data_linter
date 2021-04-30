@@ -1,7 +1,3 @@
-import sys
-
-sys.path.append("/Users/stephen/Documents/data_linter")
-
 import logging
 import pandas as pd
 import inspect
@@ -13,8 +9,6 @@ from functools import wraps
 from datetime import datetime
 
 from arrow_pd_parser.parse import (
-    pa_read_csv_to_pandas,
-    pa_read_json_to_pandas,
     cast_pandas_column_to_schema,
 )
 
@@ -377,7 +371,6 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     Reads in the data from the given filepath and returns
     a dataframe
     """
-    data_is_not_parquet = True
 
     # Set the reader type
     if filepath.startswith("s3://"):
@@ -391,7 +384,6 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     elif "json" in metadata["file_format"]:
         df = reader.read_json(filepath, dtype=str, lines=True)
     elif "parquet" in metadata["file_format"]:
-        data_is_not_parquet = False
         df = reader.read_parquet(filepath)
     else:
         raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
@@ -412,6 +404,11 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         df = df.sample(table_params.get("row-limit"))
 
     if table_params.get("only-test-cols-in-metadata", False):
+        meta_col_names = [
+            c["name"]
+            for c in metadata["columns"]
+            if c["name"] not in metadata.get("partitions", [])
+        ]
         keep_cols = [c for c in df.columns if c in meta_col_names]
         df = df[keep_cols]
 
