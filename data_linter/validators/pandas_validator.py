@@ -18,8 +18,6 @@ from data_linter.validators.base import (
     BaseTableValidator,
 )
 
-from mojap_metadata.converters.arrow_converter import ArrowConverter
-
 log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
