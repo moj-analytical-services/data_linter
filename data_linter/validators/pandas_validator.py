@@ -14,14 +14,10 @@ from arrow_pd_parser.parse import (
 
 from typing import Union
 
-import pyarrow as pa
-from pyarrow import parquet as pq, fs, csv, json
-
 from data_linter.validators.base import (
     BaseTableValidator,
 )
 
-from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
 
 log = logging.getLogger("root")
