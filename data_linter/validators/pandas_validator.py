@@ -173,10 +173,16 @@ def check_run_validation_for_meta(func):
         elif func.__name__ == "_date_format_test" and mc.get("type", "").startswith(
             "date"
         ):
+            if not isinstance(args[0].dtype, pd.StringDtype):
+                log.info(f"datetime encoded data column {args[1]['name']} not tested")
+                return
             return func(*args, **kwargs)
         elif func.__name__ == "_datetime_format_test" and mc.get("type", "").startswith(
             "timestamp"
         ):
+            if not isinstance(args[0].dtype, pd.StringDtype):
+                log.info(f"datetime encoded data column {args[0]['name']} not tested")
+                return
             return func(*args, **kwargs)
         else:
             pass
@@ -268,10 +274,6 @@ def _date_format_test(col: pd.Series, meta_col) -> dict:
 
     col_name = meta_col["name"]
 
-    if not isinstance(col.dtype, pd.StringDtype):
-        log.info(f"datetime encoded data column {col_name} not tested")
-        return
-
     datetime_format = meta_col.get("datetime_format", default_date_format)
     test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
@@ -287,10 +289,6 @@ def _date_format_test(col: pd.Series, meta_col) -> dict:
 def _datetime_format_test(col: pd.Series, meta_col):
 
     col_name = meta_col["name"]
-
-    if not isinstance(col.dtype, pd.StringDtype):
-        log.info(f"datetime encoded data column {col_name} not tested")
-        return
 
     datetime_format = meta_col.get("datetime_format", default_datetime_format)
     test_inputs = {"column": col_name, "datetime_format": datetime_format}
