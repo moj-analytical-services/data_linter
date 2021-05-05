@@ -43,7 +43,9 @@ def set_up_s3(mocked_s3, test_folder, config):
         )
 
     files = [
-        f for f in os.listdir(test_folder) if f.endswith(".csv") or f.endswith(".jsonl")
+        f for f in os.listdir(test_folder) if f.endswith(".csv") 
+        or f.endswith(".jsonl")
+        or f.endswith("parquet")
     ]
 
     if land_base_path_is_s3:

@@ -306,3 +306,34 @@ def test_read_all_file_body(s3, land_path):
     table_1_body_actual = table_1_body_actual.replace("\r\n", "\n")
 
     assert table_1_body == table_1_body_actual
+
+
+def test_parquet_linting(s3, monkeypatch):
+
+    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
+
+    from data_linter.validation import run_validation
+
+    config = {
+        "land-base-path": "s3://land/",
+        "fail-base-path": "s3://fail/",
+        "pass-base-path": "s3://pass/",
+        "log-base-path": "s3://log/",
+        "compress-data": True,
+        "remove-tables-on-pass": True,
+        "all-must-pass": True,
+        "tables": {
+            "table3": {
+                "required": True,
+                "metadata": "tests/data/end_to_end1/meta_data/table3.json",
+                "expect-header": True,
+            }
+        },
+    }
+
+    test_folder = "tests/data/end_to_end1/"
+    land_folder = "tests/data/end_to_end1/land/"
+
+    set_up_s3(s3, land_folder, config)
+    
+    run_validation(config)

@@ -1,0 +1,39 @@
+{
+    "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json",
+    "name": "table3",
+    "description": "test meta for table3",
+    "file_format": "parquet",
+    "location": "table3/",
+    "columns": [
+        {
+            "name": "my_int",
+            "type": "int64",
+            "type_category": "integer",
+            "minimum": 10,
+            "maximum": 20,
+            "nullable": false
+        },
+        {
+            "name": "animal",
+            "type": "string",
+            "type_category": "string",
+            "enum": ["cat", "dog", "fish", "chicken"],
+            "nullable": false
+        },
+        {
+            "name": "my_email",
+            "type": "string",
+            "type_category": "string"
+        },
+        {
+            "name": "my_datetime",
+            "type": "timestamp(s)",
+            "type_category": "timestamp"
+        },
+        {
+            "name": "my_date",
+            "type": "date64",
+            "type_category": "timestamp"
+        }
+    ]
+}

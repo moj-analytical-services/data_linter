@@ -10,6 +10,7 @@ from datetime import datetime
 
 from arrow_pd_parser.parse import (
     cast_pandas_column_to_schema,
+    pa_read_parquet_to_pandas,
 )
 
 from typing import Union
@@ -378,7 +379,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     elif "json" in metadata["file_format"]:
         df = reader.read_json(filepath, lines=True)
     elif "parquet" in metadata["file_format"]:
-        df = reader.read_parquet(filepath)
+        df = pa_read_parquet_to_pandas(filepath)
         data_is_not_parquet = False
     else:
         raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
@@ -389,7 +390,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             c["name"] = c["name"].lower()
         df.columns = [c.lower() for c in df.columns]
 
-    # cast table column by column, except timestamps
+    # cast table column by column if it's not parquet, except timestamps
     if data_is_not_parquet:
         for c in metadata["columns"]:
             if not c["type_category"].startswith("timestamp"):
