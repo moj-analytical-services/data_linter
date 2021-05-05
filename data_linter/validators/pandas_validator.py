@@ -181,7 +181,7 @@ def check_run_validation_for_meta(func):
             "timestamp"
         ):
             if not isinstance(args[0].dtype, pd.StringDtype):
-                log.info(f"datetime encoded data column {args[0]['name']} not tested")
+                log.info(f"datetime encoded data column {args[1]['name']} not tested")
                 return
             return func(*args, **kwargs)
         else:
