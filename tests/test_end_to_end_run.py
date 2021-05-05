@@ -4,11 +4,12 @@ import gzip
 import tempfile
 import pytest
 
-from pyarrow import fs
+from pyarrow import fs, parquet
 
 from tests.helpers import (
     set_up_s3,
     mock_get_file,
+    mock_get_arrow_table,
 )
 
 
@@ -308,9 +309,7 @@ def test_read_all_file_body(s3, land_path):
     assert table_1_body == table_1_body_actual
 
 
-def test_parquet_linting(s3, monkeypatch):
-
-    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
+def test_parquet_linting(s3):
 
     from data_linter.validation import run_validation
 
@@ -320,7 +319,7 @@ def test_parquet_linting(s3, monkeypatch):
         "pass-base-path": "s3://pass/",
         "log-base-path": "s3://log/",
         "compress-data": True,
-        "remove-tables-on-pass": True,
+        "remove-tables-on-pass": False,
         "all-must-pass": True,
         "tables": {
             "table3": {
@@ -331,9 +330,10 @@ def test_parquet_linting(s3, monkeypatch):
         },
     }
 
-    test_folder = "tests/data/end_to_end1/"
-    land_folder = "tests/data/end_to_end1/land/"
+    land_folder = "tests/data/end_to_end1/parquet/"
 
     set_up_s3(s3, land_folder, config)
-    
+
+    config["land-base-path"] = land_folder
+
     run_validation(config)

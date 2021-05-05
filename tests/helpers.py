@@ -1,9 +1,8 @@
 import os
-from contextlib import contextmanager
 import io
 import boto3
+from contextlib import contextmanager
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
-
 
 def set_up_s3(mocked_s3, test_folder, config):
     """
@@ -43,7 +42,7 @@ def set_up_s3(mocked_s3, test_folder, config):
         )
 
     files = [
-        f for f in os.listdir(test_folder) if f.endswith(".csv") 
+        f for f in os.listdir(test_folder) if f.endswith(".csv")
         or f.endswith(".jsonl")
         or f.endswith("parquet")
     ]
