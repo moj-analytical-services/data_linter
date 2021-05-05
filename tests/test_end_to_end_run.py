@@ -4,12 +4,11 @@ import gzip
 import tempfile
 import pytest
 
-from pyarrow import fs, parquet
+from pyarrow import fs
 
 from tests.helpers import (
     set_up_s3,
     mock_get_file,
-    mock_get_arrow_table,
 )
 
 

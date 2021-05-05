@@ -4,6 +4,7 @@ import boto3
 from contextlib import contextmanager
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
+
 def set_up_s3(mocked_s3, test_folder, config):
     """
     Used to setup mocked s3 before a run that expects data in S3
