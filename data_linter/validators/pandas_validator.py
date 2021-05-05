@@ -364,6 +364,8 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     a dataframe
     """
 
+    data_is_not_parquet = True
+
     # Set the reader type
     if filepath.startswith("s3://"):
         reader = wr.s3
@@ -374,9 +376,10 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if "csv" in metadata["file_format"]:
         df = reader.read_csv(filepath, dtype=str, low_memory=False)
     elif "json" in metadata["file_format"]:
-        df = reader.read_json(filepath, dtype=str, lines=True)
+        df = reader.read_json(filepath, lines=True)
     elif "parquet" in metadata["file_format"]:
         df = reader.read_parquet(filepath)
+        data_is_not_parquet = False
     else:
         raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
 
@@ -387,10 +390,10 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         df.columns = [c.lower() for c in df.columns]
 
     # cast table column by column, except timestamps
-    for c in metadata["columns"]:
-        if not c["type_category"].startswith("timestamp"):
-            df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
-    # df = cast_pandas_table_to_schema(df, metadata)
+    if data_is_not_parquet:
+        for c in metadata["columns"]:
+            if not c["type_category"].startswith("timestamp"):
+                df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
 
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
