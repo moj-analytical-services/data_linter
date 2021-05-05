@@ -234,14 +234,14 @@ def test_date_format_test_pass(col):
 )
 def test_datetime_format_test_pass(col):
     meta_col = {
-        "name": "test_col", 
-        "type": "date32", 
-        "datetime_format": 
-        "%Y-%m-%d %H:%M:%S"
+        "name": "test_col",
+        "type": "date32",
+        "datetime_format": "%Y-%m-%d %H:%M:%S"
     }
     res = pv._date_format_test(col, meta_col)
     assert isinstance(res, dict)
     assert res["valid"]
+
 
 @pytest.mark.parametrize(
     "col,meta_col",
