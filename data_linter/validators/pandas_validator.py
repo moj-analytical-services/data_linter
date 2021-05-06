@@ -152,41 +152,55 @@ def check_run_validation_for_meta(func):
         sig = inspect.signature(func)
         argmap = sig.bind_partial(*args, **kwargs).arguments
         mc = argmap.get("meta_col")
+        col_is_str = (
+            isinstance(argmap.get("col").dtype, pd.StringDtype)
+            or isinstance(argmap.get("col").dtype, str)
+        )
+        call_method = False
         if func.__name__ == "_min_max_test" and _check_meta_has_params(
             ["minimum", "maximum"], mc
         ):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_min_max_length_test" and _check_meta_has_params(
             ["minLength", "maxLength"], mc
         ):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_pattern_test" and _check_meta_has_params(
             ["pattern"], mc
         ):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_enum_test" and _check_meta_has_params(["enum"], mc):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_nullable_test" and not _check_meta_has_params(
             [None, True], [mc.get("nullable")]
         ):
-            return func(*args, **kwargs)
-        elif func.__name__ == "_date_format_test" and mc.get("type", "").startswith(
-            "date"
+            call_method = True
+        elif (
+            func.__name__ == "_date_format_test"
+            and mc.get("type", "").startswith("date")
+            and col_is_str
         ):
-            if not isinstance(args[0].dtype, pd.StringDtype):
-                log.info(f"datetime encoded data column {args[1]['name']} not tested")
-                return
-            return func(*args, **kwargs)
-        elif func.__name__ == "_datetime_format_test" and mc.get("type", "").startswith(
-            "timestamp"
+            call_method = True
+        elif (
+            func.__name__ == "_datetime_format_test"
+            and mc.get("type", "").startswith("timestamp")
+            and col_is_str
         ):
-            if not isinstance(args[0].dtype, pd.StringDtype):
-                log.info(f"datetime encoded data column {args[1]['name']} not tested")
-                return
-            return func(*args, **kwargs)
+            call_method = True
+        elif (
+            func.__name__ in ["_datetime_format_test", "_date_format_test"]
+            and mc.get("type", "").startswith(("date", "timestamp"))
+            and not col_is_str
+        ):
+            msg = (
+                f"Column {mc['name']} not tested."
+                "Tests for datetime encoded data are not yet implemented."
+            )
+            log.info(msg)
         else:
             pass
 
+        return func(*args, **kwargs) if call_method else None
     return wrapper
 
 

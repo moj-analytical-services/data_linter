@@ -1,9 +1,9 @@
 {
     "$schema": "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json",
-    "name": "table3",
-    "description": "test meta for table3",
+    "name": "table1",
+    "description": "test meta for table1.csv but as parquet file",
     "file_format": "parquet",
-    "location": "table3/",
+    "location": "table1/",
     "columns": [
         {
             "name": "my_int",
