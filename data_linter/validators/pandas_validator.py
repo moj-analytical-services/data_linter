@@ -178,25 +178,28 @@ def check_run_validation_for_meta(func):
         elif (
             func.__name__ == "_date_format_test"
             and mc.get("type", "").startswith("date")
-            and col_is_str
         ):
-            call_method = True
+            if col_is_str:
+                call_method = True
+            else:
+                msg = (
+                    f"Column {mc['name']} not tested. "
+                    "Tests for datetime encoded columns are not yet implemented."
+                )
+                log.info(msg)
         elif (
             func.__name__ == "_datetime_format_test"
             and mc.get("type", "").startswith("timestamp")
-            and col_is_str
         ):
-            call_method = True
-        elif (
-            func.__name__ in ["_datetime_format_test", "_date_format_test"]
-            and mc.get("type", "").startswith(("date", "timestamp"))
-            and not col_is_str
-        ):
-            msg = (
-                f"Column {mc['name']} not tested."
-                "Tests for datetime encoded data are not yet implemented."
-            )
-            log.info(msg)
+            if col_is_str:
+                call_method = True
+            else:
+                msg = (
+                    f"Column {mc['name']} not tested. "
+                    "Tests for datetime encoded columns are not yet implemented."
+                )
+                log.info(msg)
+
         else:
             pass
 
