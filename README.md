@@ -36,7 +36,7 @@ To run the validation, at most simple you can use the following:
 **In Python:**
 
 ```python
-from data_linter import run_validation
+from data_linter.validation import run_validation
 
 config_path = "config.yaml"
 
