@@ -1,14 +1,16 @@
 import os
-from contextlib import contextmanager
 import io
 import boto3
+from contextlib import contextmanager
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
 
-def set_up_s3(mocked_s3, test_folder, config):
+def set_up_s3(mocked_s3, test_folder, config, ext_filter=None):
     """
     Used to setup mocked s3 before a run that expects data in S3
     """
+    if ext_filter is None:
+        ext_filter = (".csv", ".jsonl", ".parquet")
     from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
     land_base_path = config.get("land-base-path", "s3://land/")
@@ -42,9 +44,10 @@ def set_up_s3(mocked_s3, test_folder, config):
             CreateBucketConfiguration={"LocationConstraint": "eu-west-1"},
         )
 
-    files = [
-        f for f in os.listdir(test_folder) if f.endswith(".csv") or f.endswith(".jsonl")
-    ]
+    files = [f for f in os.listdir(test_folder)]
+
+    if ext_filter:
+        files = [f for f in files if f.endswith(ext_filter)]
 
     if land_base_path_is_s3:
         for filename in files:

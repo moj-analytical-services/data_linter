@@ -2,28 +2,22 @@ import logging
 import pandas as pd
 import inspect
 
+import awswrangler as wr
+
 from functools import wraps
 
 from datetime import datetime
 
 from arrow_pd_parser.parse import (
-    pa_read_csv_to_pandas,
-    pa_read_json_to_pandas,
+    cast_pandas_column_to_schema,
+    pa_read_parquet_to_pandas,
 )
 
 from typing import Union
 
-from arrow_pd_parser.pa_pd import arrow_to_pandas
-
-import pyarrow as pa
-from pyarrow import parquet as pq, fs, csv, json
-
 from data_linter.validators.base import (
     BaseTableValidator,
 )
-
-from mojap_metadata import Metadata
-from mojap_metadata.converters.arrow_converter import ArrowConverter
 
 log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
@@ -77,6 +71,15 @@ class PandasValidator(BaseTableValidator):
     def validate_df(self, df):
 
         meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
+
+        cols_not_tested = [
+            col for col in self.metadata["columns"] if col["name"] not in df
+        ]
+        if cols_not_tested:
+            log.info(
+                "some columns will not be tested as not present in metadata: "
+                f"{cols_not_tested}"
+            )
 
         for m in meta_cols:
             self.validate_col(df[m["name"]], m)
@@ -149,35 +152,58 @@ def check_run_validation_for_meta(func):
         sig = inspect.signature(func)
         argmap = sig.bind_partial(*args, **kwargs).arguments
         mc = argmap.get("meta_col")
+        col_is_str = (
+            isinstance(argmap.get("col").dtype, pd.StringDtype)
+            or isinstance(argmap.get("col").dtype, str)
+        )
+        call_method = False
         if func.__name__ == "_min_max_test" and _check_meta_has_params(
             ["minimum", "maximum"], mc
         ):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_min_max_length_test" and _check_meta_has_params(
             ["minLength", "maxLength"], mc
         ):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_pattern_test" and _check_meta_has_params(
             ["pattern"], mc
         ):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_enum_test" and _check_meta_has_params(["enum"], mc):
-            return func(*args, **kwargs)
+            call_method = True
         elif func.__name__ == "_nullable_test" and not _check_meta_has_params(
             [None, True], [mc.get("nullable")]
         ):
-            return func(*args, **kwargs)
-        elif func.__name__ == "_date_format_test" and mc.get("type", "").startswith(
-            "date"
+            call_method = True
+        elif (
+            func.__name__ == "_date_format_test"
+            and mc.get("type", "").startswith("date")
         ):
-            return func(*args, **kwargs)
-        elif func.__name__ == "_datetime_format_test" and mc.get("type", "").startswith(
-            "timestamp"
+            if col_is_str:
+                call_method = True
+            else:
+                msg = (
+                    f"Column {mc['name']} not tested. "
+                    "Tests for datetime encoded columns are not yet implemented."
+                )
+                log.info(msg)
+        elif (
+            func.__name__ == "_datetime_format_test"
+            and mc.get("type", "").startswith("timestamp")
         ):
-            return func(*args, **kwargs)
+            if col_is_str:
+                call_method = True
+            else:
+                msg = (
+                    f"Column {mc['name']} not tested. "
+                    "Tests for datetime encoded columns are not yet implemented."
+                )
+                log.info(msg)
+
         else:
             pass
 
+        return func(*args, **kwargs) if call_method else None
     return wrapper
 
 
@@ -264,6 +290,7 @@ def _nullable_test(col: pd.Series, meta_col: dict) -> dict:
 def _date_format_test(col: pd.Series, meta_col) -> dict:
 
     col_name = meta_col["name"]
+
     datetime_format = meta_col.get("datetime_format", default_date_format)
     test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
@@ -279,6 +306,7 @@ def _date_format_test(col: pd.Series, meta_col) -> dict:
 def _datetime_format_test(col: pd.Series, meta_col):
 
     col_name = meta_col["name"]
+
     datetime_format = meta_col.get("datetime_format", default_datetime_format)
     test_inputs = {"column": col_name, "datetime_format": datetime_format}
 
@@ -362,100 +390,46 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     a dataframe
     """
 
-    meta_col_names = [
-        c["name"]
-        for c in metadata["columns"]
-        if c["name"] not in metadata.get("partitions", [])
-    ]
-
-    # For string based file types convert make arrow readers read them in as strings
-    # validators will still treat these as dates but will run validation against strings
-    # cols expecting values to match a timestamp format
-    if "json" in metadata["file_format"] or "csv" in metadata["file_format"]:
-        md_obj = Metadata.from_dict(metadata)
-        cols = md_obj.columns
-
-        cols_to_force_str_read_in = []
-        for c in cols:
-            if c["type"].startswith("time") or c["type"].startswith("date"):
-                c["type"] = "string"
-                c["type_category"] = "string"
-                cols_to_force_str_read_in.append(c["name"])
-
-        md_obj.columns = cols
-        ac = ArrowConverter()
-        arrow_schema = ac.generate_from_meta(md_obj)
-
-        ts_as_str_schema = pa.schema([])
-        for cname in cols_to_force_str_read_in:
-            ts_as_str_schema = ts_as_str_schema.append(arrow_schema.field(cname))
+    data_is_not_parquet = True
 
     # Set the reader type
     if filepath.startswith("s3://"):
-        reader_fs = fs.S3FileSystem(region="eu-west-1")
-        fp_for_file_reader = filepath.replace("s3://", "", 1)
-
+        reader = wr.s3
     else:
-        reader_fs = fs.LocalFileSystem()
-        fp_for_file_reader = filepath
+        reader = pd
 
-    with reader_fs.open_input_stream(fp_for_file_reader) as f:
-        if "csv" in metadata["file_format"]:
+    # read the data
+    if "csv" in metadata["file_format"]:
+        df = reader.read_csv(filepath, dtype=str, low_memory=False)
+    elif "json" in metadata["file_format"]:
+        df = reader.read_json(filepath, lines=True)
+    elif "parquet" in metadata["file_format"]:
+        df = pa_read_parquet_to_pandas(filepath)
+        data_is_not_parquet = False
+    else:
+        raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
 
-            # Safer CSV load for newlines_in_values set to True
-            if table_params.get("expect-header", True):
-                po = csv.ParseOptions(newlines_in_values=True)
-            else:
-                po = csv.ParseOptions(
-                    newlines_in_values=True, column_names=meta_col_names
-                )
+    # eliminate case sensitivity, if requested
+    if table_params.get("headers-ignore-case"):
+        for c in metadata["columns"]:
+            c["name"] = c["name"].lower()
+        df.columns = [c.lower() for c in df.columns]
 
-            if ts_as_str_schema:
-                co = csv.ConvertOptions(column_types=ts_as_str_schema)
-            else:
-                co = None
-
-            df = pa_read_csv_to_pandas(
-                input_file=f,
-                schema=arrow_schema,
-                expect_full_schema=False,
-                parse_options=po,
-                convert_options=co,
-            )
-            # dates/datetimes == string
-
-        elif "json" in metadata["file_format"]:
-
-            po = json.ParseOptions(
-                newlines_in_values=True,
-                explicit_schema=ts_as_str_schema if ts_as_str_schema else None,
-            )
-
-            df = pa_read_json_to_pandas(
-                input_file=f,
-                schema=arrow_schema,
-                expect_full_schema=False,
-                parse_options=po,
-            )
-            # dates/datetimes == string
-
-        elif "parquet" in metadata["file_format"]:
-            df = arrow_to_pandas(pq.read_table(f))
-            # dates/datetimes == datetime / date
-
-        else:
-            raise ValueError(
-                f"Unknown file_format in metadata: {metadata['file_format']}."
-            )
+    # cast table column by column if it's not parquet, except timestamps
+    if data_is_not_parquet:
+        for c in metadata["columns"]:
+            if not c["type_category"].startswith("timestamp"):
+                df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
 
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
 
-    if table_params.get("headers-ignore-case"):
-        df_cols = [c.lower() for c in df.columns]
-        df.columns = df_cols
-
     if table_params.get("only-test-cols-in-metadata", False):
+        meta_col_names = [
+            c["name"]
+            for c in metadata["columns"]
+            if c["name"] not in metadata.get("partitions", [])
+        ]
         keep_cols = [c for c in df.columns if c in meta_col_names]
         df = df[keep_cols]
 

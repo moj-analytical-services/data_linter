@@ -28,6 +28,14 @@ datetime_str_is_null = pd.Series(
     [None, "3000-12-29 09:12:23", "1903-06-25 12:00:00"], dtype=pd.StringDtype()
 )
 
+datetime_str_not_null_midnight = pd.Series(
+    ["2020-01-01 00:00:00", "3000-12-29 00:00:00", "1903-06-25 00:00:00"],
+    dtype=pd.StringDtype(),
+)
+datetime_str_is_null_midnight = pd.Series(
+    [None, "3000-12-29 00:00:00", "1903-06-25 00:00:00"], dtype=pd.StringDtype()
+)
+
 
 @pytest.mark.parametrize(
     "col,expected_valid",
@@ -216,15 +224,21 @@ def test_date_format_test_pass(col):
     assert isinstance(res, dict)
     assert res["valid"]
 
-    # Test datetime format can be safely cast to dates
-    meta_col2 = {
+
+@pytest.mark.parametrize(
+    "col",
+    [
+        datetime_str_is_null_midnight,
+        datetime_str_not_null_midnight,
+    ],
+)
+def test_datetime_format_test_pass(col):
+    meta_col = {
         "name": "test_col",
         "type": "date32",
-        "datetime_format": "%d/%m/%Y %H:%M:%S",
+        "datetime_format": "%Y-%m-%d %H:%M:%S"
     }
-    # Add zeros to date str
-    col2 = col.apply(lambda x: x + " 00:00:00" if not pd.isna(x) else x)
-    res = pv._date_format_test(col2, meta_col2)
+    res = pv._date_format_test(col, meta_col)
     assert isinstance(res, dict)
     assert res["valid"]
 
