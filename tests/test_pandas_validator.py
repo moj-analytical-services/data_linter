@@ -1,5 +1,8 @@
 import pytest
 from data_linter.validators import pandas_validator as pv
+from datetime import datetime
+
+import numpy as np
 import pandas as pd
 
 int_not_null = pd.Series([1, 2, 3, 4, 5], dtype=pd.Int64Dtype())
@@ -236,7 +239,7 @@ def test_datetime_format_test_pass(col):
     meta_col = {
         "name": "test_col",
         "type": "date32",
-        "datetime_format": "%Y-%m-%d %H:%M:%S"
+        "datetime_format": "%Y-%m-%d %H:%M:%S",
     }
     res = pv._date_format_test(col, meta_col)
     assert isinstance(res, dict)
@@ -316,3 +319,27 @@ def test_validation_function_skips():
     assert pv._enum_test(str_is_null, {"name": "c"}) is None
     assert pv._datetime_format_test(str_is_null, {"name": "c"}) is None
     assert pv._date_format_test(str_is_null, {"name": "c"}) is None
+
+
+@pytest.mark.parametrize(
+    "s, expected",
+    [
+        # str dtype
+        (pd.Series(["string", "another string"], dtype=str), True),
+        (pd.Series(["string", np.nan], dtype=str), True),
+        # string dtype
+        (pd.Series(["string", pd.NA], dtype=pd.StringDtype()), True),
+        (pd.Series(["string", "another string"], dtype=pd.StringDtype()), True),
+        # object dtype (should be same as str but you never know)
+        (pd.Series(["string", "another string"], dtype=object), True),
+        (pd.Series(["string", np.nan], dtype=object), True),
+        # object dtype (but with datetime / date objects)
+        (pd.Series([datetime(2021, 1, 1), None], dtype=object), False),
+        (pd.Series([datetime(2021, 1, 1, 12, 11, 10), None], dtype=object), False),
+        (pd.Series([datetime(2021, 1, 1).date(), None], dtype=object), False),
+        # Timestamp[ns] dtype
+        (pd.to_datetime(pd.Series(["2021-01-01 12:11:10", None])), False),
+    ],
+)
+def test_check_pandas_series_is_str(s, expected):
+    assert pv._check_pandas_series_is_str(s) == expected

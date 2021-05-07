@@ -1,19 +1,16 @@
 import logging
-import pandas as pd
 import inspect
-
-import awswrangler as wr
-
 from functools import wraps
-
 from datetime import datetime
+from typing import Union
+
+import pandas as pd
+import awswrangler as wr
 
 from arrow_pd_parser.parse import (
     cast_pandas_column_to_schema,
     pa_read_parquet_to_pandas,
 )
-
-from typing import Union
 
 from data_linter.validators.base import (
     BaseTableValidator,
@@ -152,10 +149,10 @@ def check_run_validation_for_meta(func):
         sig = inspect.signature(func)
         argmap = sig.bind_partial(*args, **kwargs).arguments
         mc = argmap.get("meta_col")
-        col_is_str = (
-            isinstance(argmap.get("col").dtype, pd.StringDtype)
-            or isinstance(argmap.get("col").dtype, str)
-        )
+
+        # Check if column is string or str dtype
+        col_is_str = _check_pandas_series_is_str(argmap.get("col"))
+
         call_method = False
         if func.__name__ == "_min_max_test" and _check_meta_has_params(
             ["minimum", "maximum"], mc
@@ -175,9 +172,8 @@ def check_run_validation_for_meta(func):
             [None, True], [mc.get("nullable")]
         ):
             call_method = True
-        elif (
-            func.__name__ == "_date_format_test"
-            and mc.get("type", "").startswith("date")
+        elif func.__name__ == "_date_format_test" and mc.get("type", "").startswith(
+            "date"
         ):
             if col_is_str:
                 call_method = True
@@ -187,9 +183,8 @@ def check_run_validation_for_meta(func):
                     "Tests for datetime encoded columns are not yet implemented."
                 )
                 log.info(msg)
-        elif (
-            func.__name__ == "_datetime_format_test"
-            and mc.get("type", "").startswith("timestamp")
+        elif func.__name__ == "_datetime_format_test" and mc.get("type", "").startswith(
+            "timestamp"
         ):
             if col_is_str:
                 call_method = True
@@ -204,6 +199,7 @@ def check_run_validation_for_meta(func):
             pass
 
         return func(*args, **kwargs) if call_method else None
+
     return wrapper
 
 
@@ -434,3 +430,26 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         df = df[keep_cols]
 
     return df
+
+
+def _check_pandas_series_is_str(s: pd.Series, na_as=True):
+    """
+    Checks if a pandas series is a str or string. No I can't use
+    pd.api.types.is_string_dtype. See issue #164.
+
+    Args:
+        s (pd.Series): A Pandas Series to check
+        na_as (bool, optional): How you want to treat NAs or None.
+          True (default) means any NA is a string. This is fine because
+          Any other value that is not missing should be accurately
+          determined as a string or not a string.
+    """
+
+    def check(x):
+        if pd.isna(x) or x is None:
+            return na_as
+        else:
+            return isinstance(x, tuple([str, pd.StringDtype]))
+
+    out = s.apply(check)
+    return out.all()
