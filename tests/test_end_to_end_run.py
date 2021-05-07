@@ -321,15 +321,15 @@ def test_parquet_linting(s3):
         "remove-tables-on-pass": False,
         "all-must-pass": True,
         "tables": {
-            "table3": {
+            "table1": {
                 "required": True,
-                "metadata": "tests/data/end_to_end1/meta_data/table3.json",
+                "metadata": "tests/data/end_to_end2/metadata/table1.json",
                 "expect-header": True,
             }
         },
     }
 
-    land_folder = "tests/data/end_to_end1/parquet/"
+    land_folder = "tests/data/end_to_end2/land/"
 
     set_up_s3(s3, land_folder, config)
 
