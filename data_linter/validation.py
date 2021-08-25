@@ -105,7 +105,6 @@ def _read_and_replace_config_underscores(config: dict):
         "pandas_kwargs",
         "row_limit",
         "only_test_cols_in_metadata",
-        
     ]
     for param in base_params:
         if param in config:

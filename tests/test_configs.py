@@ -26,7 +26,7 @@ def test_load_and_validate_config_fail(test_input, expected):
 
 @pytest.mark.parametrize(
     "test_input", [
-        "example_config_pass.yaml", 
+        "example_config_pass.yaml",
         "example_config_pass_underscores.yaml"
     ]
 )
