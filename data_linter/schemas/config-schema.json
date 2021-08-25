@@ -4,19 +4,20 @@
     "type": "object",
     "title": "The Root Schema",
     "description": "The root schema comprises the entire JSON document.",
-    "required": [
-        "land-base-path",
-        "fail-base-path",
-        "pass-base-path",
-        "log-base-path",
-        "compress-data",
-        "remove-tables-on-pass",
-        "all-must-pass",
-        "tables"
-    ],
     "properties": {
         "timestamp-partition-name": {
             "$id": "#/properties/timestamp-partition-name",
+            "type": "string",
+            "title": "The timestamp-partition-name Schema",
+            "description": "If you want to write your data out to be partitioned by timestamp give the name of partition column. Otherwise if null data is not partitioned by timestamp.",
+            "default": null,
+            "examples": [
+                "mojap_land_time_stamp",
+                "run_timestamp"
+            ]
+        },
+        "timestamp_partition_name": {
+            "$id": "#/properties/timestamp_partition_name",
             "type": "string",
             "title": "The timestamp-partition-name Schema",
             "description": "If you want to write your data out to be partitioned by timestamp give the name of partition column. Otherwise if null data is not partitioned by timestamp.",
@@ -30,7 +31,24 @@
             "$id": "#/properties/validator-engine",
             "type": "string",
             "title": "The validator-engine to use",
-            "description": "If you want to use frictionless or great-expectations",
+            "description": "validator to use frictionless, great-expectations, or pandas",
+            "default": "pandas",
+            "examples": [
+                "pandas",
+                "great-expectations",
+                "frictionless"
+            ],
+            "enum": [
+                "pandas",
+                "great-expectations",
+                "frictionless"
+            ]
+        },
+        "validator_engine": {
+            "$id": "#/properties/validator_engine",
+            "type": "string",
+            "title": "The validator-engine to use",
+            "description": "validator to use frictionless, great-expectations, or pandas",
             "default": "pandas",
             "examples": [
                 "pandas",
@@ -50,8 +68,26 @@
             "description": "Additional Parameters to pass to validator",
             "default": {}
         },
+        "validator_engine_params": {
+            "$id": "#/properties/validator_engine_params",
+            "type": "object",
+            "title": "Additional Parameters to pass to validator",
+            "description": "Additional Parameters to pass to validator",
+            "default": {}
+        },
         "land-base-path": {
             "$id": "#/properties/land-base-path",
+            "type": "string",
+            "title": "The Land-base-path Schema",
+            "description": "This is where data should arrive for a pipeline",
+            "default": "",
+            "examples": [
+                "s3://land-bucket/my-folder/",
+                "data/land"
+            ]
+        },
+        "land_base_path": {
+            "$id": "#/properties/land_base_path",
             "type": "string",
             "title": "The Land-base-path Schema",
             "description": "This is where data should arrive for a pipeline",
@@ -75,8 +111,33 @@
                 "data/fail"
             ]
         },
+        "fail_base_path": {
+            "$id": "#/properties/fail_base_path",
+            "type": [
+                "string",
+                "null"
+            ],
+            "title": "The Fail-base-path Schema",
+            "description": "Data which does not pass validation will end up here.",
+            "default": "",
+            "examples": [
+                "s3://fail-bucket/my-folder/",
+                "data/fail"
+            ]
+        },
         "pass-base-path": {
             "$id": "#/properties/pass-base-path",
+            "type": "string",
+            "title": "The Pass-base-path Schema",
+            "description": "Data which passes validation will end up here",
+            "default": "",
+            "examples": [
+                "s3://pass-bucket/my-folder/",
+                "data/pass"
+            ]
+        },
+        "pass_base_path": {
+            "$id": "#/properties/pass_base_path",
             "type": "string",
             "title": "The Pass-base-path Schema",
             "description": "Data which passes validation will end up here",
@@ -97,8 +158,29 @@
                 "data/log"
             ]
         },
+        "log_base_path": {
+            "$id": "#/properties/log_base_path",
+            "type": "string",
+            "title": "The Log-base-path Schema",
+            "description": "This validation will produce detailed logs. They will be stored here.",
+            "default": "",
+            "examples": [
+                "s3://log-bucket/my-folder/",
+                "data/log"
+            ]
+        },
         "iam-role-name": {
             "$id": "#/properties/iam-role-name",
+            "type": "string",
+            "title": "The Iam-role-name Schema",
+            "description": "The name of the iam role",
+            "default": "",
+            "examples": [
+                "role-name"
+            ]
+        },
+        "iam_role_name": {
+            "$id": "#/properties/iam_role_name",
             "type": "string",
             "title": "The Iam-role-name Schema",
             "description": "The name of the iam role",
@@ -117,8 +199,28 @@
                 true
             ]
         },
+        "compress_data": {
+            "$id": "#/properties/compress_data",
+            "type": "boolean",
+            "title": "The Compress-data Schema",
+            "description": "Should data be compressed when moving",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
         "remove-tables-on-pass": {
             "$id": "#/properties/remove-tables-on-pass",
+            "type": "boolean",
+            "title": "The Remove-tables-on-pass Schema",
+            "description": "Delete table if it passes validation",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
+        "remove_tables_on_pass": {
+            "$id": "#/properties/remove_tables_on_pass",
             "type": "boolean",
             "title": "The Remove-tables-on-pass Schema",
             "description": "Delete table if it passes validation",
@@ -137,6 +239,16 @@
                 true
             ]
         },
+        "all_must_pass": {
+            "$id": "#/properties/all_must_pass",
+            "type": "boolean",
+            "title": "The All-must-pass Schema",
+            "description": "Only move data if all tables pass",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
         "run-paralell": {
             "$id": "#/properties/run-paralell",
             "type": "boolean",
@@ -147,8 +259,56 @@
                 true
             ]
         },
+        "run_paralell": {
+            "$id": "#/properties/run_paralell",
+            "type": "boolean",
+            "title": "The Run-paralell Schema",
+            "description": "Process tables in paralell",
+            "default": false,
+            "examples": [
+                true
+            ]
+        },
         "fail-unknown-files": {
             "$id": "#/properties/fail-unknown-files",
+            "type": "object",
+            "title": "The Fail-unknown-files Schema",
+            "description": "If a file is not expected and not part of the exceptions list, fail validation",
+            "default": {},
+            "examples": [
+                {
+                    "exceptions": [
+                        "additional_file.txt",
+                        "another_additional_file.txt"
+                    ]
+                }
+            ],
+            "required": [
+                "exceptions"
+            ],
+            "properties": {
+                "exceptions": {
+                    "$id": "#/properties/fail-unknown-files/properties/exceptions",
+                    "type": "array",
+                    "title": "The Exceptions Schema",
+                    "description": "Exceptions to unknown files",
+                    "default": [],
+                    "items": {
+                        "$id": "#/properties/fail-unknown-files/properties/exceptions/items",
+                        "type": "string",
+                        "title": "The Items Schema",
+                        "description": "A list of exceptions",
+                        "default": "",
+                        "examples": [
+                            "additional_file.txt",
+                            "another_additional_file.txt"
+                        ]
+                    }
+                }
+            }
+        },
+        "fail_unknown_files": {
+            "$id": "#/properties/fail_unknown_files",
             "type": "object",
             "title": "The Fail-unknown-files Schema",
             "description": "If a file is not expected and not part of the exceptions list, fail validation",
@@ -253,6 +413,16 @@
                                     1000
                                 ]
                             },
+                            "row_limit": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/row_limit",
+                                "type": "integer",
+                                "title": "The row-limit Schema",
+                                "description": "The number of rows to validate",
+                                "examples": [
+                                    10,
+                                    1000
+                                ]
+                            },
                             "expect-header": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
                                 "type": "boolean",
@@ -263,8 +433,28 @@
                                     false
                                 ]
                             },
+                            "expect_header":{
+                                "$id": "#/properties/tables/items/properties/table1/properties/expect_header",
+                                "type": "boolean",
+                                "title": "The expect-header Schema",
+                                "description": "If the file is a csv, does it have headers? If true will take header names from the metadata",
+                                "examples": [
+                                    true,
+                                    false
+                                ]
+                            },
                             "headers-ignore-case": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
+                                "type": "boolean",
+                                "title": "The headers-ignore-case Schema",
+                                "description": "Set to ignore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
+                                "examples": [
+                                    true,
+                                    false
+                                ]
+                            },
+                            "headers_ignore_case": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/expect_header",
                                 "type": "boolean",
                                 "title": "The headers-ignore-case Schema",
                                 "description": "Set to ignore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
@@ -284,17 +474,96 @@
                                 ],
                                 "default": false
                             },
+                            "only_test_cols_in_metadata": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/only_test_cols_in_metadata",
+                                "type": "boolean",
+                                "title": "The only-test-cols-in-metadata Schema",
+                                "description": "Set to avoid testing new cols and failing if all expected cols pass but new unknown columns also exist. Only for ge validator-engine.",
+                                "examples": [
+                                    true,
+                                    false
+                                ],
+                                "default": false
+                            },
                             "pandas-kwargs": {
                                 "$id": "#/properties/tables/items/properties/table1/properties/pandas-kwargs",
                                 "type": "object",
                                 "title": "The pandas-kwargs Schema",
                                 "description": "kwargs to pass to pandas when using Great Expectations parser",
                                 "default": {}
+                            },
+                            "pandas_kwargs": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/pandas_kwargs",
+                                "type": "object",
+                                "title": "The pandas-kwargs Schema",
+                                "description": "kwargs to pass to pandas when using Great Expectations parser",
+                                "default": {}
                             }
-                        }
+                        },
+                        "oneOf": [
+                            {
+                                "optional": [
+                                    "row-limit",
+                                    "expect-header",
+                                    "headers-ignore-case",
+                                    "only-test-cols-in-metadata",
+                                    "pandas-kwargs"
+                                ]
+                            },
+                            {
+                                "optional": [
+                                    "row_limit",
+                                    "expect_header",
+                                    "headers_ignore_case",
+                                    "only_test_cols_in_metadata",
+                                    "pandas_kwargs"
+                                ]
+                            }
+                        ]
                     }
                 }
             }
         }
-    }
+    },
+    "oneOf": [
+        {
+            "required": [
+                "land-base-path",
+                "fail-base-path",
+                "pass-base-path",
+                "log-base-path",
+                "compress-data",
+                "remove-tables-on-pass",
+                "all-must-pass",
+                "tables"
+            ],
+            "optional": [
+                "timestamp-partition-name",
+                "validator-engine",
+                "validator-engine-params",
+                "iam-role-name",
+                "run-paralell",
+                "fail-unknown-files"
+            ]
+        },
+        {
+            "required": [
+                "land_base_path",
+                "fail_base_path",
+                "pass_base_path",
+                "log_base_path",
+                "compress_data",
+                "remove_tables_on_pass",
+                "all_must_pass"
+            ],
+            "optional": [
+                "timestamp_partition_name",
+                "validator_engine",
+                "validator_engine_params",
+                "iam_role_name",
+                "run_paralell",
+                "fail_unknown_files"
+            ]
+        }
+    ]
 }

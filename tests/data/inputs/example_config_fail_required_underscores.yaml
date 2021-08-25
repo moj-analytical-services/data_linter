@@ -1,0 +1,20 @@
+# required field "land-base-path" missing causing schema validation failuire
+fail_base_path: s3://fail-bucket/my-folder/  # Where to write the data if failed
+pass_base_path: s3://pass-bucket/my-folder/  # Where to write the data if passed
+log_base_path: s3://log-bucket/my-folder/  # Where to write logs
+iam_role_name: role-name
+compress_data: true  # Compress data when moving elsewhere
+remove_tables_on_pass: true  # Delete the tables if pass
+all_must_pass: true  # Only move data if all tables have passed
+fail_unknown_files:
+    exceptions:
+        - additional_file.txt
+        - another_additional_file.txt
+
+# Tables to validate
+tables:
+    table_blah:
+      required: true  # Does the table have to exist
+      pattern: null  # Assumes file is called table1
+      linter: goodtables  # jsonschema?
+

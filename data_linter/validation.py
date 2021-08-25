@@ -73,8 +73,6 @@ def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
     else:
         raise TypeError("Input 'config' must be a str or dict.")
 
-    config = _read_and_replace_config_underscores(config)
-
     return _validate_and_clean_config(config)
 
 
@@ -94,10 +92,20 @@ def _read_and_replace_config_underscores(config: dict):
         "compress_data",
         "remove_tables_on_pass",
         "all_must_pass",
+        "fail_unknown_files",
+        "timestamp_partition-name",
+        "validator_engine",
+        "validator_engine_params",
+        "iam_role_name",
+        "run_paralell"
     ]
     table_params = [
         "expect_header",
         "headers_ignore_case",
+        "pandas_kwargs",
+        "row_limit",
+        "only_test_cols_in_metadata",
+        
     ]
     for param in base_params:
         if param in config:
@@ -123,6 +131,7 @@ def _validate_and_clean_config(config: dict) -> dict:
         dict: The same config but with default params added.
     """
     json_validate(config, config_schema)
+    config = _read_and_replace_config_underscores(config)
 
     for table_name, params in config["tables"].items():
         if (not params.get("expect-header")) and params.get("headers-ignore-case"):
