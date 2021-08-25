@@ -73,7 +73,43 @@ def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
     else:
         raise TypeError("Input 'config' must be a str or dict.")
 
+    config = _read_and_replace_config_underscores(config)
+
     return _validate_and_clean_config(config)
+
+
+def _read_and_replace_config_underscores(config: dict):
+    """
+    Looks for input params and makes them into datalinter expected
+    keys ones (dashes instead of underscores). Could use pydantic.dict(by_alias=True)
+    but that would have to be applied to the parse_inputs fun which is used
+    for all tasks and we may not want to rename fields to aliases for all tasks.
+    """
+    base_params = [
+        "land_base_path",
+        "land_base_path",
+        "fail_base_path",
+        "pass_base_path",
+        "log_base_path",
+        "compress_data",
+        "remove_tables_on_pass",
+        "all_must_pass",
+    ]
+    table_params = [
+        "expect_header",
+        "headers_ignore_case",
+    ]
+    for param in base_params:
+        if param in config:
+            config[param.replace("_", "-")] = config.pop(param)
+
+    for table_name in config.get("tables", []):
+        for table_param in table_params:
+            if table_param in config["tables"][table_name]:
+                config["tables"][table_name][table_param.replace("_", "-")] = config[
+                    "tables"
+                ][table_name].pop(table_param)
+    return config
 
 
 def _validate_and_clean_config(config: dict) -> dict:
