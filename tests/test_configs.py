@@ -13,6 +13,9 @@ import os
         ("example_config_fail_required.yaml", r"required"),
         ("example_config_fail_enum.yaml", r"enum"),
         ("example_config_fail_type.yaml", r"type"),
+        ("example_config_fail_required_underscores.yaml", r"required"),
+        ("example_config_fail_enum_underscores.yaml", r"enum"),
+        ("example_config_fail_type_underscores.yaml", r"type"),
     ],
 )
 def test_load_and_validate_config_fail(test_input, expected):
@@ -21,10 +24,16 @@ def test_load_and_validate_config_fail(test_input, expected):
         assert e.validator == expected
 
 
-def test_load_and_validate_config_pass():
+@pytest.mark.parametrize(
+    "test_input", [
+        "example_config_pass.yaml",
+        "example_config_pass_underscores.yaml"
+    ]
+)
+def test_load_and_validate_config_pass(test_input):
     with open("tests/data/expected/expected_pass.json", "r") as f:
         expected_pass = json.load(f)
-    c = load_and_validate_config("tests/data/inputs/example_config_pass.yaml")
+    c = load_and_validate_config(os.path.join("tests/data/inputs", test_input))
     assert c == expected_pass
 
 

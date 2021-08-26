@@ -18,3 +18,4 @@ tables:
         pattern: null  # Assumes file is called table_blah
         metadata: metadata/table_blah.json
         linter: goodtables  # jsonschema?
+        expect-header: true

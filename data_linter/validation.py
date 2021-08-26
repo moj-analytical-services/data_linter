@@ -76,6 +76,49 @@ def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
     return _validate_and_clean_config(config)
 
 
+def _read_and_replace_config_underscores(config: dict):
+    """
+    Looks for input params and makes them into datalinter expected
+    keys ones (dashes instead of underscores). Could use pydantic.dict(by_alias=True)
+    but that would have to be applied to the parse_inputs fun which is used
+    for all tasks and we may not want to rename fields to aliases for all tasks.
+    """
+    base_params = [
+        "land_base_path",
+        "land_base_path",
+        "fail_base_path",
+        "pass_base_path",
+        "log_base_path",
+        "compress_data",
+        "remove_tables_on_pass",
+        "all_must_pass",
+        "fail_unknown_files",
+        "timestamp_partition-name",
+        "validator_engine",
+        "validator_engine_params",
+        "iam_role_name",
+        "run_paralell"
+    ]
+    table_params = [
+        "expect_header",
+        "headers_ignore_case",
+        "pandas_kwargs",
+        "row_limit",
+        "only_test_cols_in_metadata",
+    ]
+    for param in base_params:
+        if param in config:
+            config[param.replace("_", "-")] = config.pop(param)
+
+    for table_name in config.get("tables", []):
+        for table_param in table_params:
+            if table_param in config["tables"][table_name]:
+                config["tables"][table_name][table_param.replace("_", "-")] = config[
+                    "tables"
+                ][table_name].pop(table_param)
+    return config
+
+
 def _validate_and_clean_config(config: dict) -> dict:
     """Validates a config as a dict. And adds default
     properties to that config.
@@ -87,6 +130,7 @@ def _validate_and_clean_config(config: dict) -> dict:
         dict: The same config but with default params added.
     """
     json_validate(config, config_schema)
+    config = _read_and_replace_config_underscores(config)
 
     for table_name, params in config["tables"].items():
         if (not params.get("expect-header")) and params.get("headers-ignore-case"):

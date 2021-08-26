@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 5.0.8 2021-08-25
+
+- updated schema and config parsing to allow for underscores or hypens used in parameter names
+
 ## 5.0.7 2021-05-07
 
 - fixed issue #164 where col validation function wrapper was misclassifying str cols as not strings.

@@ -16,7 +16,8 @@
                 "required": true,
                 "pattern": null,
                 "metadata": "metadata/table_blah.json",
-                "linter": "goodtables"
+                "linter": "goodtables",
+                "expect-header": true
             }
         
     }
