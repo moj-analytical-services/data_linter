@@ -444,7 +444,7 @@
                                 ]
                             },
                             "headers-ignore-case": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
+                                "$id": "#/properties/tables/items/properties/table1/properties/headers-ignore-case",
                                 "type": "boolean",
                                 "title": "The headers-ignore-case Schema",
                                 "description": "Set to ignore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
@@ -454,7 +454,7 @@
                                 ]
                             },
                             "headers_ignore_case": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/expect_header",
+                                "$id": "#/properties/tables/items/properties/table1/properties/headers_ignore_case",
                                 "type": "boolean",
                                 "title": "The headers-ignore-case Schema",
                                 "description": "Set to ignore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
