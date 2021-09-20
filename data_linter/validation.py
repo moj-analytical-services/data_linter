@@ -418,7 +418,10 @@ def validate_data(config: dict):
 
             for i, matched_file in enumerate(table_params["matched_files"]):
 
-                log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
+                log.info(
+                    f"{matched_file} ...file {i+1} " 
+                    f"of {len(table_params['matched_files'])}"
+                )
                 validator = get_validator[validator_engine](
                     matched_file, table_params, metadata, **validator_params
                 )
@@ -471,8 +474,12 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
                 suffix=".json", prefix=og_file_name
             ) as tmp_file:
 
-                with open(tmp_file.name, "w") as json_out:
-                    json.dump(table_response, json_out)
+                try:
+                    with open(tmp_file.name, "w") as json_out:
+                        json.dumps(table_response, json_out)
+                except Exception as e:
+                    log.info(table_response)
+                    raise e
 
                 tmp_file_name = os.path.basename(tmp_file.name)
                 s3_temp_path = os.path.join(temp_status_basepath, tmp_file_name)
@@ -484,8 +491,12 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
                 os.makedirs(temp_status_basepath, exist_ok=True)
             tmp_file_resp = tempfile.mkstemp(suffix=".json", dir=temp_status_basepath)
             tmp_filename = tmp_file_resp[1]
-            with open(tmp_filename, "w") as json_out:
-                json.dump(table_response, json_out)
+            try:
+                with open(tmp_filename, "w") as json_out:
+                    json.dump(table_response, json_out)
+            except Exception as e:
+                log.info(table_response)
+                raise e
 
 
 def collect_all_status(config: dict):
