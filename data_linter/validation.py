@@ -476,7 +476,7 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
 
                 try:
                     with open(tmp_file.name, "w") as json_out:
-                        json.dumps(table_response, json_out)
+                        json.dump(table_response, json_out)
                 except Exception as e:
                     log.info(table_response)
                     raise e
