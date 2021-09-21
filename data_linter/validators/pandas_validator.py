@@ -353,7 +353,7 @@ def _fill_res_dict(col, col_oob, res_dict) -> dict:
     if not valid:
         col_oob = col_oob.fillna(False)
         unexpected_index_list = col_oob.index[col_oob].tolist()
-        unexpected_list = col[unexpected_index_list].to_string(na_rep="null").tolist()
+        unexpected_list = col[unexpected_index_list].astype(str).tolist()
 
         res_dict["unexpected_index_list"] = unexpected_index_list
         res_dict["unexpected_list"] = unexpected_list
