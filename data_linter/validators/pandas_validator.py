@@ -21,8 +21,10 @@ log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
 
+
 class ColumnError(Exception):
     pass
+
 
 class PandasValidator(BaseTableValidator):
     """
@@ -404,12 +406,12 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             c["name"] = c["name"].lower()
         df.columns = [c.lower() for c in df.columns]
 
-
     allow_missing_cols = table_params.get("allow-missing-cols", False)
     allow_unexpected_data = table_params.get("allow-unexpected-data", False)
 
-    meta_col_names = [ 
-        c["name"] for c in metadata["columns"]
+    meta_col_names = [
+        c["name"]
+        for c in metadata["columns"]
         if c["name"] not in metadata.get("partitions", [])
     ]
     cols_in_meta_but_not_data = [c for c in meta_col_names if c not in df.columns]
@@ -434,7 +436,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             meta_tmp.remove_column(col)
         metadata = meta_tmp.to_dict()
         log.info("not testing " + msg_1)
-    
+
     # error if there is unexepcted data, unless allowed
     msg_2 = f"columns present in data but not in metadata: {cols_in_data_but_not_meta}"
     if not allow_unexpected_data and cols_in_data_but_not_meta:
