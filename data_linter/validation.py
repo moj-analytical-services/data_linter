@@ -419,7 +419,7 @@ def validate_data(config: dict):
             for i, matched_file in enumerate(table_params["matched_files"]):
 
                 log.info(
-                    f"{matched_file} ...file {i+1} " 
+                    f"{matched_file} ...file {i+1} "
                     f"of {len(table_params['matched_files'])}"
                 )
                 validator = get_validator[validator_engine](
