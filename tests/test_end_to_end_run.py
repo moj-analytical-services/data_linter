@@ -337,6 +337,7 @@ def test_parquet_linting(s3):
 
     run_validation(config)
 
+
 @pytest.mark.parametrize(
     "config,expected_pass",
     [
@@ -357,27 +358,21 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": False,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc1.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc1.csv"],
                     },
                     "all_types_sc2": {
                         "required": True,
                         "metadata": "tests/data/mitigations/meta/all_types_sc2.json",
                         "expect-header": True,
                         "allow-missing-cols": True,
-                        "matched_files": [
-                            "s3://land/all_types_sc2.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc2.csv"],
                     },
                     "all_types_sc3": {
                         "required": True,
                         "metadata": "tests/data/mitigations/meta/all_types_sc3.json",
                         "expect-header": True,
                         "allow-unexpected-data": True,
-                        "matched_files": [
-                            "s3://land/all_types_sc3.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc3.csv"],
                     },
                     "all_types_sc4": {
                         "required": True,
@@ -385,15 +380,13 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": True,
                         "allow-missing-cols": True,
-                        "matched_files": [
-                            "s3://land/all_types_sc4.csv"
-                        ]
-                    }
-                }
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
+                    },
+                },
             },
-            True
+            True,
         ),
-        # failures 
+        # failures
         (
             {
                 "land-base-path": "s3://land/",
@@ -409,18 +402,14 @@ def test_parquet_linting(s3):
                         "metadata": "tests/data/mitigations/meta/all_types_sc2.json",
                         "expect-header": True,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc2.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc2.csv"],
                     },
                     "all_types_sc3": {
                         "required": True,
                         "metadata": "tests/data/mitigations/meta/all_types_sc3.json",
                         "expect-header": True,
                         "allow-unexpected-data": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc3.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc3.csv"],
                     },
                     "all_types_sc4-a": {
                         "required": True,
@@ -428,9 +417,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": False,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc4.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
                     },
                     "all_types_sc4-b": {
                         "required": True,
@@ -438,9 +425,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": False,
                         "allow-missing-cols": True,
-                        "matched_files": [
-                            "s3://land/all_types_sc4.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
                     },
                     "all_types_sc4-c": {
                         "required": True,
@@ -448,9 +433,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": True,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc4.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
                     },
                     "all_types_sc4-d": {
                         "required": True,
@@ -458,9 +441,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": False,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc4.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
                     },
                     "all_types_sc5-a": {
                         "required": True,
@@ -468,9 +449,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": True,
                         "allow-missing-cols": True,
-                        "matched_files": [
-                            "s3://land/all_types_sc5.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
                     },
                     "all_types_sc5-b": {
                         "required": True,
@@ -478,9 +457,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": True,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc5.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
                     },
                     "all_types_sc5-c": {
                         "required": True,
@@ -488,9 +465,7 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": False,
                         "allow-missing-cols": True,
-                        "matched_files": [
-                            "s3://land/all_types_sc5.csv"
-                        ]
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
                     },
                     "all_types_sc5-d": {
                         "required": True,
@@ -498,15 +473,13 @@ def test_parquet_linting(s3):
                         "expect-header": True,
                         "allow-unexpected-data": False,
                         "allow-missing-cols": False,
-                        "matched_files": [
-                            "s3://land/all_types_sc5.csv"
-                        ]
-                    }
-                }
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
+                    },
+                },
             },
-            False
-        )
-    ]
+            False,
+        ),
+    ],
 )
 def test_mitigations(s3, config, expected_pass):
     from data_linter.validation import validate_data
