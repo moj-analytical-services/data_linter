@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - removed `only-test-columns-in-metadata` from config and replaced it with two (`allow-unexpected-data` and `allow-missing-cols`) that
 allow there to be some misallignment between the meta and the data
 - if there is no commanilty between the data, then an error is raised regardless of the two new mitigations
+- when an exception is raised during linting, data contiues to be processed so that all errors are apparent at the end of linting
+- updated dependancies to be in line with other mojap packages
 
 ## 5.1.0 2021-08-25
 
