@@ -1,5 +1,7 @@
 import logging
 import inspect
+import traceback
+
 from functools import wraps
 from datetime import datetime
 from mojap_metadata import Metadata
@@ -63,11 +65,21 @@ class PandasValidator(BaseTableValidator):
 
         Data is read using pd_arrow_parser.
         """
+        fail_response_dict = {self.response.vvkn: False}
+        try:
+            df, self.metadata = _parse_data_to_pandas(
+                self.filepath, self.table_params, self.metadata
+            )
+        except Exception:
+            self.response.add_table_test("parse_data_to_pandas", fail_response_dict)
 
-        df, self.metadata = _parse_data_to_pandas(
-            self.filepath, self.table_params, self.metadata
-        )
-        self.validate_df(df)
+        if df is not None:
+            try:
+                self.validate_df(df)
+            except Exception:
+                self.response.add_table_test("overall_validation", fail_response_dict)
+        else:
+            self.response.add_table_test("overall_validation", fail_response_dict)
 
     def get_response_dict(self):
         return self.response.get_result()
@@ -409,6 +421,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     allow_missing_cols = table_params.get("allow-missing-cols", False)
     allow_unexpected_data = table_params.get("allow-unexpected-data", False)
 
+    # get the required sets of column names
     meta_col_names = [
         c["name"]
         for c in metadata["columns"]
@@ -422,6 +435,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if not cols_in_data_and_meta:
         raise ColumnError("There is no commonality between the data and metadata")
 
+    # this is so that both mitigations can be checked and both errors are made visible
     raise_column_error = False
     err_msg = ""
 
@@ -450,14 +464,23 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if raise_column_error:
         raise ColumnError(err_msg)
 
-    # cast table column by column if it's not parquet, except timestamps
-    if data_is_not_parquet:
-        for c in metadata["columns"]:
-            if not c["type_category"].startswith("timestamp"):
-                df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
-
+    # sample the data, if required
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
+
+    # cast table column by column if it's not parquet, except timestamps
+    try:
+        if data_is_not_parquet:
+            for c in metadata["columns"]:
+                if not c["type_category"].startswith("timestamp"):
+                    df[c["name"]] = cast_pandas_column_to_schema(
+                        df[c["name"]], metacol=c
+                    )
+    except Exception:
+        log.info(f"could not cast dataframe to metadata traceback: ")
+        log.error(traceback.format_exc())
+        df = None
+        metadata = None
 
     return df, metadata
 
