@@ -72,12 +72,15 @@ class PandasValidator(BaseTableValidator):
             )
         except Exception:
             self.response.add_table_test("parse_data_to_pandas", fail_response_dict)
+            log.error(traceback.format_exc())
+            df = None
 
         if df is not None:
             try:
                 self.validate_df(df)
             except Exception:
                 self.response.add_table_test("overall_validation", fail_response_dict)
+                log.error(traceback.format_exc())
         else:
             self.response.add_table_test("overall_validation", fail_response_dict)
 
@@ -469,18 +472,10 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         df = df.sample(table_params.get("row-limit"))
 
     # cast table column by column if it's not parquet, except timestamps
-    try:
-        if data_is_not_parquet:
-            for c in metadata["columns"]:
-                if not c["type_category"].startswith("timestamp"):
-                    df[c["name"]] = cast_pandas_column_to_schema(
-                        df[c["name"]], metacol=c
-                    )
-    except Exception:
-        log.info(f"could not cast dataframe to metadata traceback: ")
-        log.error(traceback.format_exc())
-        df = None
-        metadata = None
+    if data_is_not_parquet:
+        for c in metadata["columns"]:
+            if not c["type_category"].startswith("timestamp"):
+                df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
 
     return df, metadata
 
