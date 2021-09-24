@@ -444,7 +444,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
 
     # remove columns from meta that aren't in the data if allowed
     msg_1 = f"columns present in metadata but not in data: {cols_in_meta_but_not_data}"
-    if not allow_missing_cols and cols_in_meta_but_not_data:
+    if (not allow_missing_cols) and cols_in_meta_but_not_data:
         err_msg += msg_1
         raise_column_error = True
     elif allow_missing_cols and cols_in_meta_but_not_data:
@@ -456,7 +456,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
 
     # error if there is unexepcted data, unless allowed
     msg_2 = f"columns present in data but not in metadata: {cols_in_data_but_not_meta}"
-    if not allow_unexpected_data and cols_in_data_but_not_meta:
+    if (not allow_unexpected_data) and cols_in_data_but_not_meta:
         err_msg += f"\n{msg_2}"
         raise_column_error = True
     elif allow_unexpected_data and cols_in_data_but_not_meta:
