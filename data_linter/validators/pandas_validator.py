@@ -71,8 +71,10 @@ class PandasValidator(BaseTableValidator):
                 self.filepath, self.table_params, self.metadata
             )
         except Exception:
+            traceback_message = traceback.format_exc()
+            fail_response_dict["traceback"] = traceback_message
             self.response.add_table_test("parse_data_to_pandas", fail_response_dict)
-            log.error(traceback.format_exc())
+            log.error(traceback_message)
             df = None
 
         if df is not None:
@@ -81,8 +83,6 @@ class PandasValidator(BaseTableValidator):
             except Exception:
                 self.response.add_table_test("overall_validation", fail_response_dict)
                 log.error(traceback.format_exc())
-        else:
-            self.response.add_table_test("overall_validation", fail_response_dict)
 
     def get_response_dict(self):
         return self.response.get_result()
