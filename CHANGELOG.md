@@ -11,6 +11,7 @@ allow there to be some misallignment between the meta and the data
 - if there is no commanilty between the data, then an error is raised regardless of the two new mitigations
 - when an exception is raised during linting, data contiues to be processed so that all errors are apparent at the end of linting
 - updated dependancies to be in line with other mojap packages
+- updated CI/CD tests
 
 ## 5.1.0 2021-08-25
 

@@ -1,4 +1,4 @@
-name: Build and run tests in container
+name: Run tests with package dependencies
 
 on: pull_request
 
@@ -8,29 +8,26 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.7, 3.8]
+        python-version: [3.7, 3.8, 3.9]
+        poetry-install: [from-lock-file, fresh-install]
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    - name: Install dependencies ${{ matrix.poetry-install }}
       run: |
-        python -m pip install --upgrade pip==20.3.3
+        if [ "${{ matrix.poetry-install }}" == "from-lock-file" ]; then
+          echo "Installing dependencies from lock file"
+        else
+          echo "Removing lock file and installing latest possible dependencies"
+          rm poetry.lock
+        fi
+        python -m pip install --upgrade pip
         pip install poetry
         poetry config virtualenvs.create false \
           && poetry install --extras "ge frictionless" --no-interaction --no-ansi
+    - name: Run Tests
+      run: |
         pytest tests/ -vv
-
-  docker-run-tests:
-    runs-on: ubuntu-latest
-
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Build image
-      run: docker build . --file tests/Dockerfile --tag validator-tests
-
-    - name: Run tests
-      run: docker run -t validator-tests
