@@ -51,6 +51,8 @@ from data_linter.validators import (
     PandasValidator,
 )
 
+from data_linter.validators.base import ValidatorResult
+
 log, log_stringio = logging_setup()
 
 get_validator = {
@@ -394,7 +396,7 @@ def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
         raise ValueError("Local land path not supported for parrallel running")
 
 
-def validate_data(config: dict):
+def validate_data(config: dict) -> ValidatorResult:
 
     validator_engine = config.get("validator-engine", "pandas")
     validator_params = config.get("validator-engine-params", {})
@@ -449,6 +451,8 @@ def validate_data(config: dict):
 
     if all_table_responses:
         save_completion_status(config, all_table_responses)
+
+    return validator.response
 
 
 def save_completion_status(config: dict, all_table_responses: List[dict]):

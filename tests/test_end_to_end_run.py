@@ -488,8 +488,11 @@ def test_mitigations(s3, config, expected_pass):
     land_folder = "tests/data/mitigations/data/"
     set_up_s3(s3, land_folder, config)
 
-    if expected_pass:
-        validate_data(config)
-    else:
-        with pytest.raises(ColumnError):
-            validate_data(config)
+    response = validate_data(config)
+    assert response.result["valid"] == expected_pass
+
+    # if expected_pass:
+    #     validate_data(config)
+    # else:
+    #     with pytest.raises(ColumnError):
+    #         validate_data(config)

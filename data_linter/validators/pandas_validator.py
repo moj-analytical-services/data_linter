@@ -10,10 +10,8 @@ from typing import Union
 import pandas as pd
 import awswrangler as wr
 
-from arrow_pd_parser.parse import (
-    cast_pandas_column_to_schema,
-    pa_read_parquet_to_pandas,
-)
+from arrow_pd_parser import reader
+from arrow_pd_parser.caster import cast_pandas_table_to_schema
 
 from data_linter.validators.base import (
     BaseTableValidator,
@@ -396,24 +394,22 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     a dataframe
     """
 
-    data_is_not_parquet = True
+    # get the required sets of column names
+    meta_col_names = [
+        c["name"]
+        for c in metadata["columns"]
+        if c["name"] not in metadata.get("partitions", [])
+    ]
 
-    # Set the reader type
-    if filepath.startswith("s3://"):
-        reader = wr.s3
+    # read data (and do headers stuff if csv)
+    if metadata["file_format"] == "csv":
+        expect_header = table_params.get("expect-header", True)
+        header = 0 if expect_header else None
+        df = reader.read(filepath, header=header)
+        if not expect_header:
+            df.columns = meta_col_names
     else:
-        reader = pd
-
-    # read the data
-    if "csv" in metadata["file_format"]:
-        df = reader.read_csv(filepath, dtype=str, low_memory=False)
-    elif "json" in metadata["file_format"]:
-        df = reader.read_json(filepath, dtype=str, lines=True)
-    elif "parquet" in metadata["file_format"]:
-        df = pa_read_parquet_to_pandas(filepath)
-        data_is_not_parquet = False
-    else:
-        raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
+        df = reader.read(filepath)
 
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):
@@ -424,12 +420,6 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     allow_missing_cols = table_params.get("allow-missing-cols", False)
     allow_unexpected_data = table_params.get("allow-unexpected-data", False)
 
-    # get the required sets of column names
-    meta_col_names = [
-        c["name"]
-        for c in metadata["columns"]
-        if c["name"] not in metadata.get("partitions", [])
-    ]
     cols_in_meta_but_not_data = [c for c in meta_col_names if c not in df.columns]
     cols_in_data_but_not_meta = [c for c in df.columns if c not in meta_col_names]
     cols_in_data_and_meta = [c for c in df.columns if c in meta_col_names]
@@ -471,11 +461,8 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
 
-    # cast table column by column if it's not parquet, except timestamps
-    if data_is_not_parquet:
-        for c in metadata["columns"]:
-            if not c["type_category"].startswith("timestamp"):
-                df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
+    if metadata["file_format"] not in ["parquet", "snappy.parquet"]:
+        df = cast_pandas_table_to_schema(df, metadata)
 
     return df, metadata
 
