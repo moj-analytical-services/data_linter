@@ -483,16 +483,9 @@ def test_parquet_linting(s3):
 )
 def test_mitigations(s3, config, expected_pass):
     from data_linter.validation import validate_data
-    from data_linter.validators.pandas_validator import ColumnError
 
     land_folder = "tests/data/mitigations/data/"
     set_up_s3(s3, land_folder, config)
 
     response = validate_data(config)
     assert response.result["valid"] == expected_pass
-
-    # if expected_pass:
-    #     validate_data(config)
-    # else:
-    #     with pytest.raises(ColumnError):
-    #         validate_data(config)

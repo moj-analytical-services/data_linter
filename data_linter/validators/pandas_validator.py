@@ -8,7 +8,6 @@ from mojap_metadata import Metadata
 from typing import Union
 
 import pandas as pd
-import awswrangler as wr
 
 from arrow_pd_parser import reader
 from arrow_pd_parser.caster import cast_pandas_table_to_schema
