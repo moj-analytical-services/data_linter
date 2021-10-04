@@ -45,21 +45,13 @@ from data_linter.utils import (
     read_all_file_body,
 )
 
-from data_linter.validators import (
-    FrictionlessValidator,
-    GreatExpectationsValidator,
-    PandasValidator,
-)
+from data_linter.validators import PandasValidator
 
 from data_linter.validators.base import ValidatorResult
 
 log, log_stringio = logging_setup()
 
-get_validator = {
-    "pandas": PandasValidator,
-    "frictionless": FrictionlessValidator,
-    "great-expectations": GreatExpectationsValidator,
-}
+get_validator = {"pandas": PandasValidator}
 
 
 def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
