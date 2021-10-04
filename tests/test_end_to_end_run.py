@@ -34,23 +34,6 @@ def test_end_to_end(s3, monkeypatch):
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
 
 
-@pytest.mark.parametrize("validator", ["pandas", "frictionless", "great-expectations"])
-def test_end_to_end_all_validators(s3, monkeypatch, validator):
-
-    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
-
-    from data_linter.validation import run_validation
-
-    test_folder = "tests/data/end_to_end1/"
-    land_folder = "tests/data/end_to_end1/land/"
-    config_path = os.path.join(test_folder, "config.yaml")
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-    config["validator-engine"] = validator
-    set_up_s3(s3, land_folder, config)
-    run_validation(config)
-
-
 def test_end_to_end_no_creds_error():
 
     from data_linter.validation import run_validation
