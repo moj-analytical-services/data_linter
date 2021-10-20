@@ -35,10 +35,12 @@ class PandasValidator(BaseTableValidator):
         filepath: str,
         table_params: dict,
         metadata: dict,
-        ignore_missing_cols=False,
+        log_verbosity: int = None,
+        ignore_missing_cols: bool=False,
     ):
         super().__init__(filepath, table_params, metadata)
-
+        global global_log_verbosity 
+        global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
         self.ignore_missing_cols = ignore_missing_cols
 
     @property
@@ -352,18 +354,35 @@ def _result_dict(test_name: str, test_inputs: dict) -> dict:
     return d
 
 
-def _fill_res_dict(col, col_oob, res_dict) -> dict:
+def _fill_res_dict(col: pd.Series, col_oob: pd.Series, res_dict: dict) -> dict:
 
     valid = not col_oob.any()
     res_dict["valid"] = valid
 
     if not valid:
         col_oob = col_oob.fillna(False)
-        unexpected_index_list = col_oob.index[col_oob].tolist()
-        unexpected_list = col[unexpected_index_list].astype(str).tolist()
+        n = global_log_verbosity
 
-        res_dict["unexpected_index_list"] = unexpected_index_list
-        res_dict["unexpected_list"] = unexpected_list
+        # get the unexpected values
+        unexpected_index = col_oob.index[col_oob]
+        unexpected_values = col[unexpected_index].astype(str)
+
+        res_dict["percentage_of_column_is_error"] = (
+            len(unexpected_index) / len(col) * 100
+        )
+
+        if n is not None:
+            # if the global_log_verbosity is not 0, sample
+            if n != 0:
+                # asking for a higher sample than is there?
+                if global_log_verbosity > len(unexpected_values):
+                    n = len(unexpected_values)
+                # sample the requested amount
+                unexpected_values = unexpected_values.sample(n=n)
+                unexpected_index = unexpected_values[unexpected_values.index]
+            # log the required unexpected values
+            res_dict["unexpected_index_sample"] = unexpected_index.tolist()
+            res_dict["unexpected_values_sample"] = unexpected_values.tolist()
 
     return res_dict
 
@@ -401,7 +420,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     ]
 
     # read data (and do headers stuff if csv)
-    if metadata["file_format"] == "csv":
+    if filepath.lower().endswith("csv"):
         expect_header = table_params.get("expect-header", True)
         header = 0 if expect_header else None
         df = reader.read(filepath, header=header)

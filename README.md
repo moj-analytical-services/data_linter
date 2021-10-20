@@ -2,32 +2,17 @@
 
 A python package to to allow automatic validation of data as part of a Data Engineering pipeline. It is designed to read in and validate tabular data against a given schema for the data. The schemas provided adhere to [our metadata schemas standards](https://github.com/moj-analytical-services/mojap-metadata/) for data. This package can also be used to manage movement of data from a landing area (s3 or locally) to a new location based on the result of the validation.
 
-This package implements different validators using different packages based on the users preference:
-- `pandas`: (default) Uses our own lightweight pandas dataframe operations to run simple validation tests on the columns based on the datatype and additional tags in the metadata. Utilises pyarrow for reading data.
-- `frictionless`: Uses Frictionless data to validate the data against our metadata schemas. More information can be found [here](https://github.com/frictionlessdata/frictionless-py/)
-- `great-expectations`: Uses the Great Expectations data to validate the data against our metadata schemas. More information can be found [here](https://github.com/great-expectations/great_expectations)
-
+This package uses own lightweight pandas dataframe operations to run simple validation tests on the columns based on the datatype and additional tags in the metadata. Utilises [mojap-arrow-pd-parser](https://github.com/moj-analytical-services/mojap-arrow-pd-parser) for reading data.
 
 ## Installation
 
 ```bash
-pip install data_linter # pandas validator only
+pip install data_linter
 ```
-
-Or to install the necessary dependencies for the non-default validators.
-
-```bash
-pip install data_linter[frictionless] # To include packages required for the frictionless validator
-
-# OR
-
-pip install data_linter[ge] # To include packages required for teh great-expectations validator
-```
-
 
 ## Usage
 
-This package takes a `yaml` based config file written by the user (see example below), and validates data in the specified s3 folder path against specified metadata. If the data conforms to the metadata, it is moved to the specified s3 folder path for the next step in the pipeline (note can also provide local paths for running locally). Any failed checks are passed to a separate location for testing. The package also generates logs to allow you to explore issues in more detail.
+This package takes a `yaml` based config file written by the user (see example below), and validates data in the specified s3 folder path against specified metadata. If the data conforms to the metadata, it is moved to the specified s3 folder path for the next step in the pipeline (note can also provide local paths). Any failed checks are passed to a separate location for testing. The package also generates logs to allow you to explore issues in more detail.
 
 ### Simple Use
 
@@ -64,8 +49,8 @@ fail-unknown-files:
         - additional_file.txt
         - another_additional_file.txt
 
-validator-engine: pandas # will default to this if unspecified
-# (but other options are `frictionless` and `great-expectations`)
+validator-engine-params:
+    log_verbosity: 2 # how many samples of incorrect data to include in logs, 0 means all. Pandas validator only. 
 
 # Tables to validate
 tables:
@@ -73,13 +58,20 @@ tables:
         required: true  # Does the table have to exist
         pattern: null  # Assumes file is called table1 (same as key)
         metadata: meta_data/table1.json # local path to metadata
+        log_verbosity: 5 # overrides the validator-engine-params log verbosity for this table only
+        allow-missing-cols: False # allows there to be data in the metadata but not actual data
 
     table2:
         required: true
         pattern: ^table2
         metadata: meta_data/table2.json
         row-limit: 10000 # for big tables - only take the first x rows
+        allow-unexpected-data: True # allows there to be columns present in the data but not the metadata
 ```
+**unexpected data and missing columns**
+To allow flexibilty in what is validated in the data, the parameters `allow-unexpected-data` and `allow-missing-cols` has been added. These can be described neatly in one diagram:
+
+![](images/data_misalignment.png)
 
 You can also run the validator as part of a python script, where you might want to dynamically generate your config:
 
@@ -94,8 +86,6 @@ base_config = {
     "compress-data": False,
     "remove-tables-on-pass": False,
     "all-must-pass": False,
-    "validator-engine": "great-expectations",
-    "validator-engine-params": {"default_result_fmt": "BASIC", "ignore_missing_cols": True},
     "tables": {}
 }
 
@@ -106,7 +96,6 @@ def get_table_config(table_name):
         "metadata": f"metadata/{table_name}.json",
         "pattern": r"^{}\.jsonl$".format(table_name),
         "headers-ignore-case": True,
-        "only-test-cols-in-metadata": True # Only currently supported by great-expectations validator
     }
     return d
 
@@ -143,7 +132,6 @@ pv.response.get_result()  # Returns dict of all tests ran against data
 # The response object of for the PandasValidator in itself, and has it's own functions
 pv.get_names_of_column_failures()  # [], i.e. no cols failed
 ```
-
 
 ### Parallel Running
 
@@ -192,7 +180,7 @@ config = yaml.safe_load(simple_yaml_config)
 # Init stage
 validation.para_run_init(4, config)
 
-# Validation stage (although ran sequencially this can be ran in parallel)
+# Validation stage (although ran sequentially this can be ran in parallel)
 for i in range(4):
     validation.para_run_validation(i, config)
 
@@ -242,19 +230,6 @@ Often you might recieve data that is exported from a system that might encode yo
 In the above data_linter will attempt to fist parse the column with the specified `datetime_format` and then as the column type is date it will check that it it truely a date (and not have a time component).
 
 If the file_format is `parquet` then timestamps are encoded in the filetype and there are just read in as is. Currently data_linter doesn't support minimum and maximum tests for timestamps/dates and also does not currently have tests for time types. 
-
-
-### Frictionless
-
-Known errors / gotchas:
-- Frictionless will drop cols in a jsonl files if keys are not present in the first row (would recommend using the `great-expectations` validator for jsonl as it uses pandas to read in the data). [Link to raised issue](https://github.com/frictionlessdata/frictionless-py/issues/490).
-
-
-### Great Expectations
-
-Known errors / gotchas:
-- When setting the "default_result_fmt" to "COMPLETE" current default behavour of codebase. You may get errors due to the fact that the returned result from great expectations tries to serialise a `pd.NA` (as a value sample in you row that failed an expectation) when writing the result as a json blob. This can be avoided by setting the "default_result_fmt" to "BASIC" as seen in the Python example above. [Link to raised issue](https://github.com/great-expectations/great_expectations/issues/2029).
-
 
 #### Additional Parameters
 
