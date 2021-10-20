@@ -91,7 +91,7 @@ def _read_and_replace_config_underscores(config: dict):
         "validator_engine",
         "validator_engine_params",
         "iam_role_name",
-        "run_paralell"
+        "run_paralell",
     ]
     table_params = [
         "expect_header",
@@ -462,9 +462,9 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
     temp_status_basepath = os.path.join(get_temp_log_basepath(config), "status")
     for table_response in all_table_responses:
         if log_base_path_is_s3:
-            og_file_name = os.path.basename(
-                table_response["original-path"]
-            ).split(".")[0]
+            og_file_name = os.path.basename(table_response["original-path"]).split(".")[
+                0
+            ]
 
             with tempfile.NamedTemporaryFile(
                 suffix=".json", prefix=og_file_name

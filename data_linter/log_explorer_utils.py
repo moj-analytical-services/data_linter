@@ -9,7 +9,7 @@ def summary_of_all_tables(config_path: str):
     """
     Summary measures:
         - overall validitiy
-        - total number files that have failed as a percentage and number 
+        - total number files that have failed as a percentage and number
         - count of failures per table
     """
     # get the config
@@ -21,12 +21,12 @@ def summary_of_all_tables(config_path: str):
     # get overall valid
     overall_valid = "✅" if logs_df["valid"].all() else "❌"
     # get percentage of files that failed
-    percentage_fails = logs_df[
-        "valid"
-    ].value_counts(normalize=True).mul(100).to_dict().get(False, 0.0)
-    # get number of failures
+    percentage_fails = (
+        logs_df["valid"].value_counts(normalize=True).mul(100).to_dict().get(False, 0.0)
+    )
+    # get number of failures
     count_fails = logs_df["valid"].value_counts().to_dict().get(False, 0)
-    # make the summary markdown 
+    # make the summary markdown
     summary_markdown = (
         "overall valid | fail percentage | fail count\n"
         "--- | --- | ---\n"
@@ -43,13 +43,15 @@ def summary_of_all_tables(config_path: str):
         # just get this tables deets
         table_log_df = logs_df[logs_df["table-name"] == table_name]
         # get percentage of fails
-        table_percentage_fails = table_log_df[
-            "valid"
-        ].value_counts(normalize=True).mul(100).to_dict().get(False, 0.0)
+        table_percentage_fails = (
+            table_log_df["valid"]
+            .value_counts(normalize=True)
+            .mul(100)
+            .to_dict()
+            .get(False, 0.0)
+        )
         # get count of fails
-        table_count_fails = table_log_df[
-            "valid"
-        ].value_counts().to_dict().get(False, 0)
+        table_count_fails = table_log_df["valid"].value_counts().to_dict().get(False, 0)
         # add results to markdown
         table_fails_markdown += (
             f"{table_name} | {table_percentage_fails} | {table_count_fails}\n"

@@ -36,10 +36,10 @@ class PandasValidator(BaseTableValidator):
         table_params: dict,
         metadata: dict,
         log_verbosity: int = None,
-        ignore_missing_cols: bool=False,
+        ignore_missing_cols: bool = False,
     ):
         super().__init__(filepath, table_params, metadata)
-        global global_log_verbosity 
+        global global_log_verbosity
         global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
         self.ignore_missing_cols = ignore_missing_cols
 
