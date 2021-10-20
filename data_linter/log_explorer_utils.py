@@ -73,7 +73,7 @@ def get_failed_files(config_path: str, table_name: str = None) -> Markdown:
     # read the logs
     logs_df = reader.read(pull_logs_from, file_format="jsonl")
     # get all the failed paths
-    trimmed = logs_df[logs_df["valid"] == False][["table-name", "original-path"]]
+    trimmed = logs_df[logs_df["valid"] is False][["table-name", "original-path"]]
     # return it as markdown
     return Markdown(trimmed.to_markdown())
 
