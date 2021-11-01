@@ -91,7 +91,7 @@ def get_all_errors_for_file(config_path: str, file_path: str):
     # than one lint run, lets tell the user that
     if len(file_logs) > 1:
         print(
-            "More than one log for file, output may contain duplicate entires\n\n"
+            "More than one log for file, output may contain duplicate entries\n\n"
             "Entries show most recent first"
         )
     # extract the timestamps from the log files
