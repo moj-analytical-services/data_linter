@@ -36,7 +36,7 @@ def summary_of_all_tables(config_path: str):
     table_list = list(logs_df["table-name"].unique())
     # get the failure count per table
     table_fails_markdown = (
-        "table | percentange of files failed | number of failed files\n"
+        "table | percentage of files failed | number of failed files\n"
         "--- | --- | ---\n"
     )
     for table_name in table_list:
