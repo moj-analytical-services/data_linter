@@ -92,7 +92,7 @@ def get_all_errors_for_file(config_path: str, file_path: str):
     if len(file_logs) > 1:
         print(
             "More than one log for file, output may contain duplicate entires\n\n"
-            "Entires show most recent first"
+            "Entries show most recent first"
         )
     # extract the timestamps from the log files
     file_logs["ts"] = file_logs["archived-path"].apply(
