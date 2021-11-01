@@ -8,7 +8,7 @@ from IPython.display import Markdown
 def summary_of_all_tables(config_path: str):
     """
     Summary measures:
-        - overall validitiy
+        - overall validity
         - total number files that have failed as a percentage and number
         - count of failures per table
     """
