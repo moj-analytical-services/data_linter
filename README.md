@@ -231,13 +231,6 @@ In the above data_linter will attempt to fist parse the column with the specifie
 
 If the file_format is `parquet` then timestamps are encoded in the filetype and there are just read in as is. Currently data_linter doesn't support minimum and maximum tests for timestamps/dates and also does not currently have tests for time types. 
 
-#### Additional Parameters
-
-- `default_result_fmt`: This is passed to the GE validator, if unset default option is to set the value to `"COMPLETE"`. This value sets out how much information to be returned in the result from each "expectation". For more information [see here](https://docs.greatexpectations.io/en/v0.4.0/result_format.html). Also note the safest option is to set it to `"BASIC"` for reasons discussed in the gotcha section above.
-
-- `ignore_missing_cols`: Will not fail if columns don't exist in data but do in metadata (it ignores this).
-
-
 ## Process Diagram
 
 How logic works
