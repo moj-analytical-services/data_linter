@@ -20,11 +20,12 @@ def summary_of_all_tables(config_path: str):
     logs_df = reader.read(pull_logs_from, file_format="jsonl")
     # get overall valid
     overall_valid = "✅" if logs_df["valid"].all() else "❌"
-    # get percentage of files that failed
-    percentage_fails = (
-        logs_df["valid"].value_counts(normalize=True).mul(100).to_dict().get(False, 0.0)
-    )
+    total = len(logs_df["valid"])
+    count_successes = logs_df["valid"].sum()
     # get number of failures
+    count_fails = total - count_successes
+    # get percentage of files that failed
+    percentage_fails = (count_fails / total) * 100
     count_fails = logs_df["valid"].value_counts().to_dict().get(False, 0)
     # make the summary markdown
     summary_markdown = (
