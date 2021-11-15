@@ -444,7 +444,7 @@
                                 ]
                             },
                             "headers-ignore-case": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/expect-header",
+                                "$id": "#/properties/tables/items/properties/table1/properties/headers-ignore-case",
                                 "type": "boolean",
                                 "title": "The headers-ignore-case Schema",
                                 "description": "Set to ignore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
@@ -454,7 +454,7 @@
                                 ]
                             },
                             "headers_ignore_case": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/expect_header",
+                                "$id": "#/properties/tables/items/properties/table1/properties/headers_ignore_case",
                                 "type": "boolean",
                                 "title": "The headers-ignore-case Schema",
                                 "description": "Set to ignore case of the header names. Linter will lowercase to match naming convention in metadata schemas. To be used in conjunction with expect-header = true",
@@ -463,10 +463,10 @@
                                     false
                                 ]
                             },
-                            "only-test-cols-in-metadata": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/only-test-cols-in-metadata",
+                            "allow-missing-cols": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/allow-missing-cols",
                                 "type": "boolean",
-                                "title": "The only-test-cols-in-metadata Schema",
+                                "title": "The allow-missing-cols Schema",
                                 "description": "Set to avoid testing new cols and failing if all expected cols pass but new unknown columns also exist. Only for ge validator-engine.",
                                 "examples": [
                                     true,
@@ -474,10 +474,32 @@
                                 ],
                                 "default": false
                             },
-                            "only_test_cols_in_metadata": {
-                                "$id": "#/properties/tables/items/properties/table1/properties/only_test_cols_in_metadata",
+                            "allow_missing_cols": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/allow_missing_cols",
                                 "type": "boolean",
-                                "title": "The only-test-cols-in-metadata Schema",
+                                "title": "The allow_missing_cols Schema",
+                                "description": "Set to avoid testing new cols and failing if all expected cols pass but new unknown columns also exist. Only for ge validator-engine.",
+                                "examples": [
+                                    true,
+                                    false
+                                ],
+                                "default": false
+                            },
+                            "allow-unexpected-data": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/allow-unexpected-data",
+                                "type": "boolean",
+                                "title": "The allow-unexpected-data Schema",
+                                "description": "Set to avoid testing new cols and failing if all expected cols pass but new unknown columns also exist. Only for ge validator-engine.",
+                                "examples": [
+                                    true,
+                                    false
+                                ],
+                                "default": false
+                            },
+                            "allow_unexpected_data": {
+                                "$id": "#/properties/tables/items/properties/table1/properties/allow_unexpected_data",
+                                "type": "boolean",
+                                "title": "The allow_unexpected_data Schema",
                                 "description": "Set to avoid testing new cols and failing if all expected cols pass but new unknown columns also exist. Only for ge validator-engine.",
                                 "examples": [
                                     true,
@@ -506,8 +528,9 @@
                                     "row-limit",
                                     "expect-header",
                                     "headers-ignore-case",
-                                    "only-test-cols-in-metadata",
-                                    "pandas-kwargs"
+                                    "allow-missing-cols",
+                                    "pandas-kwargs",
+                                    "allow-unexpected-data"
                                 ]
                             },
                             {
@@ -515,8 +538,9 @@
                                     "row_limit",
                                     "expect_header",
                                     "headers_ignore_case",
-                                    "only_test_cols_in_metadata",
-                                    "pandas_kwargs"
+                                    "allow_missing_cols",
+                                    "pandas_kwargs",
+                                    "allow_unexpected_data"
                                 ]
                             }
                         ]

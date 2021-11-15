@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## 5.0.8 2021-08-25
+## 6.0.0 2021-09-23
+
+- removed `only-test-columns-in-metadata` from config and replaced it with two (`allow-unexpected-data` and `allow-missing-cols`) that
+allow there to be some misallignment between the meta and the data
+- if there is no commanilty between the data, then an error is raised regardless of the two new mitigations
+- when an exception is raised during linting, data contiues to be processed so that all errors are apparent at the end of linting
+- updated dependancies to be in line with other mojap packages
+- updated CI/CD tests
+
+## 5.1.0 2021-08-25
 
 - updated schema and config parsing to allow for underscores or hypens used in parameter names
 

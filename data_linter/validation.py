@@ -45,19 +45,13 @@ from data_linter.utils import (
     read_all_file_body,
 )
 
-from data_linter.validators import (
-    FrictionlessValidator,
-    GreatExpectationsValidator,
-    PandasValidator,
-)
+from data_linter.validators import PandasValidator
+
+from data_linter.validators.base import ValidatorResult
 
 log, log_stringio = logging_setup()
 
-get_validator = {
-    "pandas": PandasValidator,
-    "frictionless": FrictionlessValidator,
-    "great-expectations": GreatExpectationsValidator,
-}
+get_validator = {"pandas": PandasValidator}
 
 
 def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
@@ -97,7 +91,7 @@ def _read_and_replace_config_underscores(config: dict):
         "validator_engine",
         "validator_engine_params",
         "iam_role_name",
-        "run_paralell"
+        "run_paralell",
     ]
     table_params = [
         "expect_header",
@@ -394,7 +388,7 @@ def validate_from_chunked_configs(config: dict, config_num: int) -> bool:
         raise ValueError("Local land path not supported for parrallel running")
 
 
-def validate_data(config: dict):
+def validate_data(config: dict) -> ValidatorResult:
 
     validator_engine = config.get("validator-engine", "pandas")
     validator_params = config.get("validator-engine-params", {})
@@ -418,7 +412,10 @@ def validate_data(config: dict):
 
             for i, matched_file in enumerate(table_params["matched_files"]):
 
-                log.info(f"...file {i+1} of {len(table_params['matched_files'])}")
+                log.info(
+                    f"{matched_file} ...file {i+1} "
+                    f"of {len(table_params['matched_files'])}"
+                )
                 validator = get_validator[validator_engine](
                     matched_file, table_params, metadata, **validator_params
                 )
@@ -447,6 +444,8 @@ def validate_data(config: dict):
     if all_table_responses:
         save_completion_status(config, all_table_responses)
 
+    return validator.response
+
 
 def save_completion_status(config: dict, all_table_responses: List[dict]):
     """
@@ -471,8 +470,12 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
                 suffix=".json", prefix=og_file_name
             ) as tmp_file:
 
-                with open(tmp_file.name, "w") as json_out:
-                    json.dump(table_response, json_out)
+                try:
+                    with open(tmp_file.name, "w") as json_out:
+                        json.dump(table_response, json_out)
+                except Exception as e:
+                    log.info(table_response)
+                    raise e
 
                 tmp_file_name = os.path.basename(tmp_file.name)
                 s3_temp_path = os.path.join(temp_status_basepath, tmp_file_name)
@@ -484,8 +487,12 @@ def save_completion_status(config: dict, all_table_responses: List[dict]):
                 os.makedirs(temp_status_basepath, exist_ok=True)
             tmp_file_resp = tempfile.mkstemp(suffix=".json", dir=temp_status_basepath)
             tmp_filename = tmp_file_resp[1]
-            with open(tmp_filename, "w") as json_out:
-                json.dump(table_response, json_out)
+            try:
+                with open(tmp_filename, "w") as json_out:
+                    json.dump(table_response, json_out)
+            except Exception as e:
+                log.info(table_response)
+                raise e
 
 
 def collect_all_status(config: dict):

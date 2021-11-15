@@ -25,10 +25,7 @@ def test_load_and_validate_config_fail(test_input, expected):
 
 
 @pytest.mark.parametrize(
-    "test_input", [
-        "example_config_pass.yaml",
-        "example_config_pass_underscores.yaml"
-    ]
+    "test_input", ["example_config_pass.yaml", "example_config_pass_underscores.yaml"]
 )
 def test_load_and_validate_config_pass(test_input):
     with open("tests/data/expected/expected_pass.json", "r") as f:

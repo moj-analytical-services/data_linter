@@ -1,0 +1,11 @@
+i,my_float,my_bool,my_nullable_bool,my_date,my_datetime,my_int,my_string
+0,124.1252513,True,True,2013-06-13,2013-06-13 05:11:07,,bhaskjfhsaf
+1,124.1252513,True,True,1995-04-30,1995-04-30 10:23:29,16,💩
+2,0.1252513,False,False,2017-10-15,2017-10-15 20:25:05,16,"dsfasd,dsffadsf"
+3,0.1252513,True,True,1991-12-27,1991-12-27 06:57:23,17,csjasof fweh lkia hfeaofh
+4,0.1252513,True,,1980-03-28,1980-03-28 07:31:18,18,aflhnas flk; h
+5,125195315,True,True,1984-04-21,1984-04-21 18:36:57,,NULL
+6,125195315.0,True,True,,1992-11-08 17:18:12,13,hjsaldfh
+7,1.000001,False,False,1972-10-21,,11,None
+8,,True,True,1973-05-18,1973-05-18 07:35:46,10,null
+9,1.000,True,True,1991-03-13,1991-03-13 15:48:11,11,

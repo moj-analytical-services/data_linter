@@ -2,20 +2,20 @@ import os
 import json
 import pytest
 
-from data_linter.validators.frictionless_validator import (
-    FrictionlessValidator,
+from data_linter.validators.pandas_validator import (
+    PandasValidator,
 )
 
 
 @pytest.mark.parametrize(
     "file_name,expected_result",
     [
-        ("table1.csv", [True, True, True]),
-        ("table1_mixed_headers.csv", [True, False, True]),
+        ("table1.csv", [False, True, True]),
+        ("table1_mixed_headers.csv", [False, False, True]),
         ("table1_no_header.csv", [True, False, False]),
         ("table2.jsonl", [True, True, True]),
-        ("table2_missing_keys.jsonl", [True, True, True]),
-        ("table2_mixed_headers.jsonl", [False, False, False]),
+        ("table2_missing_keys.jsonl", [False, False, False]),
+        ("table2_mixed_headers.jsonl", [False, False, True]),
         ("table2_wrong_headers.jsonl", [False, False, False]),
     ],
 )
@@ -48,9 +48,9 @@ def test_headers(file_name, expected_result):
 
     all_tests = []
     for table_param in table_params:
-        validator = FrictionlessValidator(full_file_path, table_param, metadata)
+        validator = PandasValidator(full_file_path, table_param, metadata)
         validator.read_data_and_validate()
         table_response = validator.response
-        all_tests.append(table_response["valid"])
+        all_tests.append(table_response.result["valid"])
 
     assert expected_result == all_tests

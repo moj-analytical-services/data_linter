@@ -1,0 +1,52 @@
+{
+    "$schema" : "https://moj-analytical-services.github.io/metadata_schema/mojap_metadata/v1.1.0.json",
+    "name": "all_types",
+    "description": "test meta for all_types",
+    "file_format": "csv",
+    "columns": [
+        {
+            "name": "i",
+            "type": "int64",
+            "type_category": "integer",
+            "nullable": false
+        },
+        {
+            "name": "my_float",
+            "type": "float64",
+            "type_category": "float"
+        },
+        {
+            "name": "my_bool",
+            "type": "bool_",
+            "type_category": "boolean",
+            "nullable": false
+        },
+        {
+            "name": "my_nullable_bool",
+            "type": "bool_",
+            "type_category": "boolean"
+        },
+        {
+            "name": "my_date",
+            "type": "date64",
+            "type_category": "timestamp"
+        },
+        {
+            "name": "my_datetime",
+            "type": "timestamp(s)",
+            "type_category": "timestamp"
+        },
+        {
+            "name": "my_int",
+            "type": "int64",
+            "type_category": "integer",
+            "minimum": 10,
+            "maximum": 20
+        },
+        {
+            "name": "my_string",
+            "type": "string",
+            "type_category": "string"
+        }
+    ]
+}

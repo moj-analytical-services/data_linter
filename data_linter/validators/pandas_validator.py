@@ -1,16 +1,16 @@
 import logging
 import inspect
+import traceback
+
 from functools import wraps
 from datetime import datetime
+from mojap_metadata import Metadata
 from typing import Union
 
 import pandas as pd
-import awswrangler as wr
 
-from arrow_pd_parser.parse import (
-    cast_pandas_column_to_schema,
-    pa_read_parquet_to_pandas,
-)
+from arrow_pd_parser import reader
+from arrow_pd_parser.caster import cast_pandas_table_to_schema
 
 from data_linter.validators.base import (
     BaseTableValidator,
@@ -19,6 +19,10 @@ from data_linter.validators.base import (
 log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
+
+
+class ColumnError(Exception):
+    pass
 
 
 class PandasValidator(BaseTableValidator):
@@ -31,10 +35,12 @@ class PandasValidator(BaseTableValidator):
         filepath: str,
         table_params: dict,
         metadata: dict,
-        ignore_missing_cols=False,
+        log_verbosity: int = None,
+        ignore_missing_cols: bool = False,
     ):
         super().__init__(filepath, table_params, metadata)
-
+        global global_log_verbosity
+        global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
         self.ignore_missing_cols = ignore_missing_cols
 
     @property
@@ -58,27 +64,30 @@ class PandasValidator(BaseTableValidator):
 
         Data is read using pd_arrow_parser.
         """
+        fail_response_dict = {self.response.vvkn: False}
+        try:
+            df, self.metadata = _parse_data_to_pandas(
+                self.filepath, self.table_params, self.metadata
+            )
+        except Exception:
+            traceback_message = traceback.format_exc()
+            fail_response_dict["traceback"] = traceback_message
+            self.response.add_table_test("parse_data_to_pandas", fail_response_dict)
+            log.error(traceback_message)
+            df = None
 
-        df = _parse_data_to_pandas(self.filepath, self.table_params, self.metadata)
-        self.validate_df(df)
+        if df is not None:
+            try:
+                self.validate_df(df)
+            except Exception:
+                self.response.add_table_test("overall_validation", fail_response_dict)
+                log.error(traceback.format_exc())
 
     def get_response_dict(self):
         return self.response.get_result()
 
     def validate_df(self, df):
-
-        meta_cols = [col for col in self.metadata["columns"] if col["name"] in df]
-
-        cols_not_tested = [
-            col for col in self.metadata["columns"] if col["name"] not in df
-        ]
-        if cols_not_tested:
-            log.info(
-                "some columns will not be tested as not present in metadata: "
-                f"{cols_not_tested}"
-            )
-
-        for m in meta_cols:
+        for m in self.metadata["columns"]:
             self.validate_col(df[m["name"]], m)
 
     def validate_col(self, col, meta_col):
@@ -345,18 +354,35 @@ def _result_dict(test_name: str, test_inputs: dict) -> dict:
     return d
 
 
-def _fill_res_dict(col, col_oob, res_dict) -> dict:
+def _fill_res_dict(col: pd.Series, col_oob: pd.Series, res_dict: dict) -> dict:
 
     valid = not col_oob.any()
     res_dict["valid"] = valid
 
     if not valid:
         col_oob = col_oob.fillna(False)
-        unexpected_index_list = col_oob.index[col_oob].tolist()
-        unexpected_list = col[unexpected_index_list].tolist()
+        n = global_log_verbosity
 
-        res_dict["unexpected_index_list"] = unexpected_index_list
-        res_dict["unexpected_list"] = unexpected_list
+        # get the unexpected values
+        unexpected_index = col_oob.index[col_oob]
+        unexpected_values = col[unexpected_index].astype(str)
+
+        res_dict["percentage_of_column_is_error"] = (
+            len(unexpected_index) / len(col) * 100
+        )
+
+        if n is not None:
+            # if the global_log_verbosity is not 0, sample
+            if n != 0:
+                # asking for a higher sample than is there?
+                if global_log_verbosity > len(unexpected_values):
+                    n = len(unexpected_values)
+                # sample the requested amount
+                unexpected_values = unexpected_values.sample(n=n)
+                unexpected_index = unexpected_values[unexpected_values.index]
+            # log the required unexpected values
+            res_dict["unexpected_index_sample"] = unexpected_index.tolist()
+            res_dict["unexpected_values_sample"] = unexpected_values.tolist()
 
     return res_dict
 
@@ -386,24 +412,22 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     a dataframe
     """
 
-    data_is_not_parquet = True
+    # get the required sets of column names
+    meta_col_names = [
+        c["name"]
+        for c in metadata["columns"]
+        if c["name"] not in metadata.get("partitions", [])
+    ]
 
-    # Set the reader type
-    if filepath.startswith("s3://"):
-        reader = wr.s3
+    # read data (and do headers stuff if csv)
+    if filepath.lower().endswith("csv"):
+        expect_header = table_params.get("expect-header", True)
+        header = 0 if expect_header else None
+        df = reader.read(filepath, header=header)
+        if not expect_header:
+            df.columns = meta_col_names
     else:
-        reader = pd
-
-    # read the data
-    if "csv" in metadata["file_format"]:
-        df = reader.read_csv(filepath, dtype=str, low_memory=False)
-    elif "json" in metadata["file_format"]:
-        df = reader.read_json(filepath, lines=True)
-    elif "parquet" in metadata["file_format"]:
-        df = pa_read_parquet_to_pandas(filepath)
-        data_is_not_parquet = False
-    else:
-        raise ValueError(f"Unknown file_format in metadata: {metadata['file_format']}.")
+        df = reader.read(filepath)
 
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):
@@ -411,25 +435,54 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
             c["name"] = c["name"].lower()
         df.columns = [c.lower() for c in df.columns]
 
-    # cast table column by column if it's not parquet, except timestamps
-    if data_is_not_parquet:
-        for c in metadata["columns"]:
-            if not c["type_category"].startswith("timestamp"):
-                df[c["name"]] = cast_pandas_column_to_schema(df[c["name"]], metacol=c)
+    allow_missing_cols = table_params.get("allow-missing-cols", False)
+    allow_unexpected_data = table_params.get("allow-unexpected-data", False)
 
+    cols_in_meta_but_not_data = [c for c in meta_col_names if c not in df.columns]
+    cols_in_data_but_not_meta = [c for c in df.columns if c not in meta_col_names]
+    cols_in_data_and_meta = [c for c in df.columns if c in meta_col_names]
+
+    # error if there are no common columns
+    if not cols_in_data_and_meta:
+        raise ColumnError("There is no commonality between the data and metadata")
+
+    # this is so that both mitigations can be checked and both errors are made visible
+    raise_column_error = False
+    err_msg = ""
+
+    # remove columns from meta that aren't in the data if allowed
+    msg_1 = f"columns present in metadata but not in data: {cols_in_meta_but_not_data}"
+    if (not allow_missing_cols) and cols_in_meta_but_not_data:
+        err_msg += msg_1
+        raise_column_error = True
+    elif allow_missing_cols and cols_in_meta_but_not_data:
+        meta_tmp = Metadata.from_dict(metadata)
+        for col in cols_in_meta_but_not_data:
+            meta_tmp.remove_column(col)
+        metadata = meta_tmp.to_dict()
+        log.info("not testing " + msg_1)
+
+    # error if there is unexepcted data, unless allowed
+    msg_2 = f"columns present in data but not in metadata: {cols_in_data_but_not_meta}"
+    if (not allow_unexpected_data) and cols_in_data_but_not_meta:
+        err_msg += f"\n{msg_2}"
+        raise_column_error = True
+    elif allow_unexpected_data and cols_in_data_but_not_meta:
+        log.info("not testing " + msg_2)
+        df = df[cols_in_data_and_meta]
+
+    # raise the error with all details, if required
+    if raise_column_error:
+        raise ColumnError(err_msg)
+
+    # sample the data, if required
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
 
-    if table_params.get("only-test-cols-in-metadata", False):
-        meta_col_names = [
-            c["name"]
-            for c in metadata["columns"]
-            if c["name"] not in metadata.get("partitions", [])
-        ]
-        keep_cols = [c for c in df.columns if c in meta_col_names]
-        df = df[keep_cols]
+    if metadata["file_format"] not in ["parquet", "snappy.parquet"]:
+        df = cast_pandas_table_to_schema(df, metadata)
 
-    return df
+    return df, metadata
 
 
 def _check_pandas_series_is_str(s: pd.Series, na_as=True):

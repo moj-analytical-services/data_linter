@@ -34,32 +34,14 @@ def test_end_to_end(s3, monkeypatch):
     os.system(f"python data_linter/command_line.py --config-path {config_path}")
 
 
-@pytest.mark.parametrize("validator", ["pandas", "frictionless", "great-expectations"])
-def test_end_to_end_all_validators(s3, monkeypatch, validator):
-
-    monkeypatch.setattr(fs, "S3FileSystem", mock_get_file)
-
-    from data_linter.validation import run_validation
-
-    test_folder = "tests/data/end_to_end1/"
-    land_folder = "tests/data/end_to_end1/land/"
-    config_path = os.path.join(test_folder, "config.yaml")
-    with open(config_path) as f:
-        config = yaml.safe_load(f)
-    config["validator-engine"] = validator
-    set_up_s3(s3, land_folder, config)
-    run_validation(config)
-
-
 def test_end_to_end_no_creds_error():
 
     from data_linter.validation import run_validation
-    from botocore.exceptions import NoCredentialsError
 
     test_folder = "tests/data/end_to_end1/"
     config_path = os.path.join(test_folder, "config.yaml")
 
-    with pytest.raises(NoCredentialsError):
+    with pytest.raises(Exception):
         run_validation(config_path)
 
 
@@ -336,3 +318,156 @@ def test_parquet_linting(s3):
     config["land-base-path"] = land_folder
 
     run_validation(config)
+
+
+@pytest.mark.parametrize(
+    "config,expected_pass",
+    [
+        # passes
+        (
+            {
+                "land-base-path": "s3://land/",
+                "fail-base-path": "s3://fail/",
+                "pass-base-path": "s3://pass/",
+                "log-base-path": "s3://log/",
+                "compress-data": True,
+                "remove-tables-on-pass": False,
+                "all-must-pass": True,
+                "tables": {
+                    "all_types_sc1": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc1.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc1.csv"],
+                    },
+                    "all_types_sc2": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc2.json",
+                        "expect-header": True,
+                        "allow-missing-cols": True,
+                        "matched_files": ["s3://land/all_types_sc2.csv"],
+                    },
+                    "all_types_sc3": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc3.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": True,
+                        "matched_files": ["s3://land/all_types_sc3.csv"],
+                    },
+                    "all_types_sc4": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc4.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": True,
+                        "allow-missing-cols": True,
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
+                    },
+                },
+            },
+            True,
+        ),
+        # failures
+        (
+            {
+                "land-base-path": "s3://land/",
+                "fail-base-path": "s3://fail/",
+                "pass-base-path": "s3://pass/",
+                "log-base-path": "s3://log/",
+                "compress-data": True,
+                "remove-tables-on-pass": False,
+                "all-must-pass": True,
+                "tables": {
+                    "all_types_sc2": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc2.json",
+                        "expect-header": True,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc2.csv"],
+                    },
+                    "all_types_sc3": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc3.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "matched_files": ["s3://land/all_types_sc3.csv"],
+                    },
+                    "all_types_sc4-a": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc4.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
+                    },
+                    "all_types_sc4-b": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc4.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "allow-missing-cols": True,
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
+                    },
+                    "all_types_sc4-c": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc4.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": True,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
+                    },
+                    "all_types_sc4-d": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc4.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc4.csv"],
+                    },
+                    "all_types_sc5-a": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc5.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": True,
+                        "allow-missing-cols": True,
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
+                    },
+                    "all_types_sc5-b": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc5.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": True,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
+                    },
+                    "all_types_sc5-c": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc5.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "allow-missing-cols": True,
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
+                    },
+                    "all_types_sc5-d": {
+                        "required": True,
+                        "metadata": "tests/data/mitigations/meta/all_types_sc5.json",
+                        "expect-header": True,
+                        "allow-unexpected-data": False,
+                        "allow-missing-cols": False,
+                        "matched_files": ["s3://land/all_types_sc5.csv"],
+                    },
+                },
+            },
+            False,
+        ),
+    ],
+)
+def test_mitigations(s3, config, expected_pass):
+    from data_linter.validation import validate_data
+
+    land_folder = "tests/data/mitigations/data/"
+    set_up_s3(s3, land_folder, config)
+
+    response = validate_data(config)
+    assert response.result["valid"] == expected_pass

@@ -85,7 +85,7 @@ def get_out_path(
 def get_table_log_path(basepath: str, table: str, ts: str, filenum: int = 0) -> str:
     final_filename = f"log-{table}-{filenum}-{ts}.json"
 
-    out_path = os.path.join(basepath, table, final_filename)
+    out_path = os.path.join(basepath, "tables", table, final_filename)
     return out_path
 
 

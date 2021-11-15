@@ -24,7 +24,8 @@
             "name": "employee_dob",
             "type": "date64",
             "type_category": "timestamp",
-            "description": "date of birth for the employee"
+            "description": "date of birth for the employee",
+            "nullable": false
         },
         {
             "name": "employee_email",
