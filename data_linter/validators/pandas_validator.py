@@ -35,7 +35,7 @@ class PandasValidator(BaseTableValidator):
         self,
         filepath: str,
         table_params: dict,
-        metadata: dict,
+        metadata: Union[dict, str, Metadata],
         log_verbosity: int = None,
         ignore_missing_cols: bool = False,
     ):
@@ -433,6 +433,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
         for c in metadata.columns:
             c["name"] = c["name"].lower()
         df.columns = [c.lower() for c in df.columns]
+        meta_col_names = [c.lower() for c in meta_col_names]
 
     allow_missing_cols = table_params.get("allow-missing-cols", False)
     allow_unexpected_data = table_params.get("allow-unexpected-data", False)
