@@ -129,7 +129,7 @@ pv.read_data_and_validate()
 pv.valid  # True (data in table1.csv is valid against metadata)
 pv.response.get_result()  # Returns dict of all tests ran against data
 
-# The response object of for the PandasValidator in itself, and has it's own functions
+# The response object of the PandasValidator in itself, and has it's own functions
 pv.response.get_names_of_column_failures()  # [], i.e. no cols failed
 ```
 

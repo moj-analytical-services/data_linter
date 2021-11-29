@@ -25,8 +25,7 @@ def test_headers(file_name, expected_result):
     - expected-headers is False
     - expected-headers is True and ignore-case is False
     - expected-headers is True and ignore-case is True
-    In that order. It also tests whether headers ignore case works for both upper and
-    lowercase headers in the metadata and data
+    In that order.
     Args:
         file_name ([str]): The filename in the dir tests/data/headers/
         expected_results ([Tuple(bool)]): expected results for the 3
