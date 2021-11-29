@@ -1,6 +1,6 @@
 import logging
 from copy import deepcopy
-from typing import List
+from typing import List, Union
 
 from mojap_metadata import Metadata
 from jsonschema.exceptions import ValidationError
@@ -103,7 +103,13 @@ class ValidatorResult:
 
 
 class BaseTableValidator:
-    def __init__(self, filepath: str, table_params: dict, metadata: dict, **kwargs):
+    def __init__(
+        self,
+        filepath: str,
+        table_params: dict,
+        metadata: Union[dict, str, Metadata],
+        **kwargs,
+    ):
         """Base class for validators. Not a useable,
         but used to be inherited for other validators.
 
@@ -115,7 +121,8 @@ class BaseTableValidator:
         """
         self.filepath = filepath
         self.table_params = table_params
-        self.metadata = metadata
+        self.metadata = Metadata.from_infer(metadata)
+        self.metadata.set_col_type_category_from_types()
 
         self.response = ValidatorResult(
             result_dict=kwargs.get("result_dict"),
