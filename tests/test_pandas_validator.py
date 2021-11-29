@@ -343,10 +343,3 @@ def test_validation_function_skips():
 )
 def test_check_pandas_series_is_str(s, expected):
     assert pv._check_pandas_series_is_str(s) == expected
-
-
-def test_single_table_run():
-    """
-    tests the single table run with and without type category present in meta
-    """
-    pass
