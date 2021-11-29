@@ -19,6 +19,7 @@ from data_linter.validators.base import (
 log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
+global_log_verbosity = 2
 
 
 class ColumnError(Exception):
@@ -39,7 +40,6 @@ class PandasValidator(BaseTableValidator):
         ignore_missing_cols: bool = False,
     ):
         super().__init__(filepath, table_params, metadata)
-        global global_log_verbosity
         global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
         self.ignore_missing_cols = ignore_missing_cols
 
@@ -406,7 +406,7 @@ def _check_meta_has_params(any_of: list, meta_col: dict):
     return any([a in meta_col for a in any_of])
 
 
-def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
+def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata):
     """
     Reads in the data from the given filepath and returns
     a dataframe
@@ -415,8 +415,8 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     # get the required sets of column names
     meta_col_names = [
         c["name"]
-        for c in metadata["columns"]
-        if c["name"] not in metadata.get("partitions", [])
+        for c in metadata.columns
+        if c["name"] not in metadata.partitions
     ]
 
     # read data (and do headers stuff if csv)
@@ -431,7 +431,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
 
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):
-        for c in metadata["columns"]:
+        for c in metadata.columns:
             c["name"] = c["name"].lower()
         df.columns = [c.lower() for c in df.columns]
 
@@ -456,10 +456,8 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
         err_msg += msg_1
         raise_column_error = True
     elif allow_missing_cols and cols_in_meta_but_not_data:
-        meta_tmp = Metadata.from_dict(metadata)
         for col in cols_in_meta_but_not_data:
-            meta_tmp.remove_column(col)
-        metadata = meta_tmp.to_dict()
+            metadata.remove_column(col)
         log.info("not testing " + msg_1)
 
     # error if there is unexepcted data, unless allowed
@@ -479,7 +477,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: dict):
     if table_params.get("row-limit"):
         df = df.sample(table_params.get("row-limit"))
 
-    if metadata["file_format"] not in ["parquet", "snappy.parquet"]:
+    if metadata.file_format not in ["parquet", "snappy.parquet"]:
         df = cast_pandas_table_to_schema(df, metadata)
 
     return df, metadata

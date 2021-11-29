@@ -8,7 +8,6 @@
         {
             "name": "my_int",
             "type": "int64",
-            "type_category": "integer",
             "minimum": 10,
             "maximum": 20,
             "nullable": false
@@ -16,24 +15,20 @@
         {
             "name": "animal",
             "type": "string",
-            "type_category": "string",
             "enum": ["cat", "dog", "fish", "chicken"],
             "nullable": false
         },
         {
             "name": "my_email",
-            "type": "string",
-            "type_category": "string"
+            "type": "string"
         },
         {
             "name": "my_datetime",
-            "type": "timestamp(s)",
-            "type_category": "timestamp"
+            "type": "timestamp(s)"
         },
         {
             "name": "my_date",
-            "type": "date64",
-            "type_category": "timestamp"
+            "type": "date64"
         }
     ]
 }
