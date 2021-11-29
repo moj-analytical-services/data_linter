@@ -87,7 +87,7 @@ class PandasValidator(BaseTableValidator):
         return self.response.get_result()
 
     def validate_df(self, df):
-        for m in self.metadata["columns"]:
+        for m in self.metadata.columns:
             self.validate_col(df[m["name"]], m)
 
     def validate_col(self, col, meta_col):

@@ -115,7 +115,8 @@ class BaseTableValidator:
         """
         self.filepath = filepath
         self.table_params = table_params
-        self.metadata = metadata
+        self.metadata = Metadata.from_infer(metadata)
+        self.metadata.set_col_type_category_from_types()
 
         self.response = ValidatorResult(
             result_dict=kwargs.get("result_dict"),
