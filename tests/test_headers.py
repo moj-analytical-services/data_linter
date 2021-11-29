@@ -73,7 +73,7 @@ def test_header_case_with_meta(
     full_file_path = os.path.join(test_folder, "table1.csv")
 
     # get the meta and set the correct case for the col names
-    metadata = Metadata.from_json(os.path.join(test_folder, f"meta_data/table1.json"))
+    metadata = Metadata.from_json(os.path.join(test_folder, "meta_data/table1.json"))
     if uppercase_meta:
         for c in metadata.columns:
             c["name"] = c["name"].upper()
