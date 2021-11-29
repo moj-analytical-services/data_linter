@@ -40,7 +40,11 @@ class PandasValidator(BaseTableValidator):
         ignore_missing_cols: bool = False,
     ):
         super().__init__(filepath, table_params, metadata)
-        global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
+        global global_log_verbosity
+        user_log_verbosity = table_params.get("log_verbosity", log_verbosity)
+        global_log_verbosity = (
+            user_log_verbosity if user_log_verbosity else global_log_verbosity
+        )
         self.ignore_missing_cols = ignore_missing_cols
 
     @property
@@ -414,9 +418,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
 
     # get the required sets of column names
     meta_col_names = [
-        c["name"]
-        for c in metadata.columns
-        if c["name"] not in metadata.partitions
+        c["name"] for c in metadata.columns if c["name"] not in metadata.partitions
     ]
 
     # read data (and do headers stuff if csv)
