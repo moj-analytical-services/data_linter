@@ -19,7 +19,7 @@ from data_linter.validators.base import (
 log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
-global_log_verbosity = 2
+global_log_verbosity = None
 
 
 class ColumnError(Exception):
@@ -41,10 +41,7 @@ class PandasValidator(BaseTableValidator):
     ):
         super().__init__(filepath, table_params, metadata)
         global global_log_verbosity
-        user_log_verbosity = table_params.get("log_verbosity", log_verbosity)
-        global_log_verbosity = (
-            user_log_verbosity if user_log_verbosity else global_log_verbosity
-        )
+        global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
         self.ignore_missing_cols = ignore_missing_cols
 
     @property
