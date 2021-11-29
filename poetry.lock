@@ -1,6 +1,6 @@
 [[package]]
 name = "arrow-pd-parser"
-version = "1.0.2"
+version = "1.0.3"
 description = "MoJ arrow-pd-parser"
 category = "main"
 optional = false
@@ -8,7 +8,7 @@ python-versions = ">=3.7.1,<3.10"
 
 [package.dependencies]
 awswrangler = ">=2.3.0,<3.0.0"
-mojap-metadata = {version = ">=1.2.2,<2.0.0", extras = ["arrow"]}
+mojap-metadata = {version = ">=1.3.0,<2.0.0", extras = ["arrow"]}
 pandas = ">=1.2"
 pyarrow = ">=5.0.0"
 
@@ -1157,12 +1157,12 @@ ge = []
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.7.1,<3.10"
-content-hash = "75564d562908e15e7c7cb6dc97fa814dd2b297142e0acbe1d869f99b85fafbeb"
+content-hash = "38e5d127d1124051db90fda493d5ec99eae60d30dff44032563ad6f858d86888"
 
 [metadata.files]
 arrow-pd-parser = [
-    {file = "arrow_pd_parser-1.0.2-py3-none-any.whl", hash = "sha256:32f848346976dab681a5e2447f8f01a66306b6f45bb36078bcd623fe07228fcc"},
-    {file = "arrow_pd_parser-1.0.2.tar.gz", hash = "sha256:5a581e84a6db54e3d8c5ef98e901273a9bc97b81e0477502c64d12285a512d62"},
+    {file = "arrow_pd_parser-1.0.3-py3-none-any.whl", hash = "sha256:c34eb5eeeb4ea82ca536106c9ae242a6f2ad9804afef21f076713b55ba113e64"},
+    {file = "arrow_pd_parser-1.0.3.tar.gz", hash = "sha256:24bcc9118f2aa10d74f08f1d465dddde39d6dc793b59b530062f4d3a15006df9"},
 ]
 asn1crypto = [
     {file = "asn1crypto-1.4.0-py2.py3-none-any.whl", hash = "sha256:4bcdf33c861c7d40bdcd74d8e4dd7661aac320fcdf40b9a3f95b4ee12fde2fa8"},

@@ -21,7 +21,7 @@ PyYAML = ">= 5.4.1"
 iam_builder = "^3.7.0"
 pandas = "^1.2"
 mojap-metadata = {version = "^1.3.0", extras = ["arrow"]}
-arrow-pd-parser = ">=1.0.2,<2"
+arrow-pd-parser = ">=1.0.3,<2"
 awswrangler = "^2.3.0"
 
 [tool.poetry.dev-dependencies]
