@@ -422,7 +422,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
     if filepath.lower().endswith("csv"):
         expect_header = table_params.get("expect-header", True)
         header = 0 if expect_header else None
-        df = reader.read(filepath, header=header)
+        df = reader.read(filepath, header=header, low_memory=False)
         if not expect_header:
             df.columns = meta_col_names
     else:
