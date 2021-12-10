@@ -221,11 +221,7 @@ def run_validation(config: Union[str, dict] = "config.yaml"):
         config = load_and_validate_config(config)
         log_path = get_main_log_path_from_config(config)
 
-        temp_log_path = get_temp_log_path_from_config(config)
-        if temp_log_path.startswith("s3://"):
-            delete_s3_folder_contents(temp_log_path)
-        else:
-            shutil.rmtree(temp_log_path, ignore_errors=True)
+        _del_path(get_temp_log_basepath(config))
 
         log.info("Running validation")
 
@@ -605,7 +601,7 @@ def collect_all_status(config: dict):
             else:
                 there_was_a_fail = True
                 final_outpath = get_out_path(
-                    pass_base_path,
+                    fail_base_path,
                     table_name,
                     utc_ts,
                     file_basename,
@@ -638,6 +634,7 @@ def collect_all_status(config: dict):
             log.info(f"{failed_table['table-name']} failed")
             log.info(f"...original path: {failed_table['original-path']}")
             log.info(f"...out path: {failed_table['archived-path']}")
+        _del_path(get_temp_log_basepath(config))
         raise ValueError("Tables did not pass linter")
 
     if not all_must_pass and there_was_a_fail:
@@ -645,10 +642,7 @@ def collect_all_status(config: dict):
         msg6 += " Check logs for details"
         log.info(msg6)
 
-    if log_base_path_is_s3:
-        delete_s3_folder_contents(temp_status_basepath)
-    else:
-        shutil.rmtree(temp_status_basepath, ignore_errors=True)
+    _del_path(get_temp_log_basepath(config))
 
 
 def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
@@ -657,13 +651,7 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
     log_path = None
     try:
         config = load_and_validate_config(config)
-        temp_log_path = get_temp_log_path_from_config(config)
-        if get_filepaths_from_s3_folder(temp_log_path):
-            log.info(
-                f"Found temp logs in {temp_log_path}."
-                "Deleting data in folder before run."
-            )
-            delete_s3_folder_contents(temp_log_path)
+        _del_path(get_temp_log_basepath(config))
 
         log_path = get_main_log_path_from_config(config)
 
@@ -684,7 +672,7 @@ def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
 
         raise e.with_traceback(e.__traceback__)
     else:
-        upload_log(log, log_stringio, temp_log_path)
+        upload_log(log, log_stringio, get_temp_log_path_from_config(config))
 
 
 def para_run_validation(config_num: int, config: Union[str, dict] = "config.yaml"):
@@ -780,7 +768,11 @@ def para_collect_all_logs(config: Union[str, dict] = "config.yaml"):
 
     log_path_del = os.path.join(log_base_path, "data_linter_temporary_fs")
 
-    if log_base_path_is_s3:
-        delete_s3_folder_contents(log_path_del)
+    _del_path(log_path_del)
+
+
+def _del_path(tmp_path: str):
+    if tmp_path.startswith("s3://"):
+        delete_s3_folder_contents(tmp_path)
     else:
-        shutil.rmtree(log_path_del, ignore_errors=True)
+        shutil.rmtree(tmp_path, ignore_errors=True)
