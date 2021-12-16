@@ -1,0 +1,5 @@
+boto3
+json
+mojap_metadata
+moto
+pytest
