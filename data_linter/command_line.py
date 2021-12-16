@@ -1,4 +1,5 @@
 import data_linter as dl
+from data_linter.validation import run_validation
 import argparse
 
 
@@ -12,7 +13,7 @@ def main():
     )
     parser.add_argument("-c", "--config_path", help="Path to a config.yaml")
     args = parser.parse_args()
-    dl.run_validation(args.config_path)
+    run_validation(args.config_path)
 
 
 if __name__ == "__main__":
