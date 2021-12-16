@@ -11,7 +11,6 @@ def set_up_s3(mocked_s3, test_folder, config, ext_filter=None):
     """
     if ext_filter is None:
         ext_filter = (".csv", ".jsonl", ".parquet")
-    from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
     land_base_path = config.get("land-base-path", "s3://land/")
     fail_base_path = config.get("fail-base-path", "s3://fail/")
