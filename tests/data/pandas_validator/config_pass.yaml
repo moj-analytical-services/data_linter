@@ -1,0 +1,20 @@
+land-base-path: s3://land/
+fail-base-path: s3://fail/
+pass-base-path: s3://pass/
+log-base-path: s3://log/
+compress-data: true
+remove-tables-on-pass: false
+all-must-pass: false
+pandas-kwargs:
+  keep_default_na: false
+  na_values: ['']
+
+# Tables to validate
+tables:
+    table1_na_test:
+        required: true
+        metadata: tests/data/pandas_validator/meta_data/table1.json
+        pattern: ^table1_na_test
+        expect-header: true
+        headers-ignore-case: true
+        
