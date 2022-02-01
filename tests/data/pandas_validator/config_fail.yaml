@@ -9,10 +9,9 @@ all-must-pass: false
 
 # Tables to validate
 tables:
-    table1_na_test:
-        required: true
-        metadata: tests/data/pandas_validator/meta_data/table1.json
-        pattern: ^table1_na_test
-        expect-header: true
-        headers-ignore-case: true
-        
+  table1_na_test:
+    required: true
+    metadata: tests/data/pandas_validator/meta_data/table1.json
+    pattern: ^table1_na_test
+    expect-header: true
+    headers-ignore-case: true
