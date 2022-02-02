@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+
+## 6.1.0 2022-02-01
+
+- Add optional `pandas_kwargs` param to the pandas validator, to allow passing of pandas keyword arguments
+
+## 6.0.3 2021-12-10
+
+- fixed issue with release version numbering
+
+## 6.0.2 2021-12-10
+
+- all files went to fail regardless
+- temp fs was never deleted causing issues on failed runs
+
+## 6.0.1 2021-11-29
+
+- fixed issue with type category not being present in metadata when required
+- fixed case sensitivity for metadata with capitalised col names
+
 ## 6.0.0 2021-09-23
 
 - removed `only-test-columns-in-metadata` from config and replaced it with two (`allow-unexpected-data` and `allow-missing-cols`) that
