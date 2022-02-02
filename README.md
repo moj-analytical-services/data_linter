@@ -195,7 +195,7 @@ validation.para_collect_all_logs(config)
 
 ### Pandas
 
-THis is the default validator used by data_linter as of the version 5 release.
+This is the default validator used by data_linter as of the version 5 release.
 
 #### Dealing with timestamps and dates
 
