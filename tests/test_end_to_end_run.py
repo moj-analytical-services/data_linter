@@ -487,7 +487,7 @@ def test_pandas_kwargs(s3, config_path, expected_pass):
     with open(config_path) as f:
         config = yaml.safe_load(f)
 
-    config["matched_files"] = [
+    config["tables"]["table1_na_test"]["matched_files"] = [
         "s3://land/tests/data/pandas_validator/table1_na_test.csv"
     ]
 
