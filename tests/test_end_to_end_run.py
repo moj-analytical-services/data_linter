@@ -477,15 +477,18 @@ def test_mitigations(s3, config, expected_pass):
     "config_path,expected_pass",
     [
         ("tests/data/pandas_validator/config_pass.yaml", True),
-        ("tests/data/pandas_validator/config_fail.yaml", False)
-    ]
+        ("tests/data/pandas_validator/config_fail.yaml", False),
+    ],
 )
 def test_pandas_kwargs(s3, config_path, expected_pass):
     from data_linter.validation import validate_data
+
     land_folder = "tests/data/pandas_validator/"
     with open(config_path) as f:
         config = yaml.safe_load(f)
     set_up_s3(s3, land_folder, config)
-    config["matched_files"] = ["s3://land/tests/data/pandas_validator/table1_na_test.csv"]
+    config["matched_files"] = [
+        "s3://land/tests/data/pandas_validator/table1_na_test.csv"
+    ]
     response = validate_data(config)
     assert response.result["valid"] == expected_pass
