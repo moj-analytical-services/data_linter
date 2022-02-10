@@ -91,7 +91,7 @@ def _read_and_replace_config_underscores(config: dict):
         "validator_engine",
         "validator_engine_params",
         "iam_role_name",
-        "run_paralell",
+        "run_parallel",
     ]
     table_params = [
         "expect_header",
@@ -647,7 +647,7 @@ def collect_all_status(config: dict):
 
 def para_run_init(max_bin_count: int, config: Union[str, dict] = "config.yaml"):
 
-    log.info("Loading config for paralellisation")
+    log.info("Loading config for parallelisation")
     log_path = None
     try:
         config = load_and_validate_config(config)

@@ -418,15 +418,17 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
         c["name"] for c in metadata.columns if c["name"] not in metadata.partitions
     ]
 
+    pandas_kwargs = table_params.get("pandas-kwargs", {})
+
     # read data (and do headers stuff if csv)
     if filepath.lower().endswith("csv"):
         expect_header = table_params.get("expect-header", True)
         header = 0 if expect_header else None
-        df = reader.read(filepath, header=header, low_memory=False)
+        df = reader.read(filepath, header=header, low_memory=False, **pandas_kwargs)
         if not expect_header:
             df.columns = meta_col_names
     else:
-        df = reader.read(filepath)
+        df = reader.read(filepath, **pandas_kwargs)
 
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):

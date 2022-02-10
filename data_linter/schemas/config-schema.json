@@ -249,21 +249,21 @@
                 true
             ]
         },
-        "run-paralell": {
-            "$id": "#/properties/run-paralell",
+        "run-parallel": {
+            "$id": "#/properties/run-parallel",
             "type": "boolean",
-            "title": "The Run-paralell Schema",
-            "description": "Process tables in paralell",
+            "title": "The Run-parallel Schema",
+            "description": "Process tables in parallel",
             "default": false,
             "examples": [
                 true
             ]
         },
-        "run_paralell": {
-            "$id": "#/properties/run_paralell",
+        "run_parallel": {
+            "$id": "#/properties/run_parallel",
             "type": "boolean",
-            "title": "The Run-paralell Schema",
-            "description": "Process tables in paralell",
+            "title": "The Run-parallel Schema",
+            "description": "Process tables in parallel",
             "default": false,
             "examples": [
                 true
@@ -566,7 +566,7 @@
                 "validator-engine",
                 "validator-engine-params",
                 "iam-role-name",
-                "run-paralell",
+                "run-parallel",
                 "fail-unknown-files"
             ]
         },
@@ -585,7 +585,7 @@
                 "validator_engine",
                 "validator_engine_params",
                 "iam_role_name",
-                "run_paralell",
+                "run_parallel",
                 "fail_unknown_files"
             ]
         }
