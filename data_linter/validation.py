@@ -43,6 +43,7 @@ from data_linter.utils import (
     get_filepaths_from_local_folder,
     local_file_to_s3,
     read_all_file_body,
+    get_file_lengths
 )
 
 from data_linter.validators import PandasValidator
@@ -275,13 +276,9 @@ def bin_pack_configs(config: dict, max_bin_count: int):
 
         # get the size of them all
         acum_file_size = 0
-        for i, file_dict in enumerate(file_list):
-            s3_client = boto3.client("s3")
-            file_name = file_dict["file-name"]
-            bucket, key = s3_path_to_bucket_key(file_name)
-            obj = s3_client.get_object(Bucket=bucket, Key=key)
-            file_size = obj.get("ContentLength")
-            file_list[i]["file-size"] = file_size
+        file_sizes = get_file_lengths(file_list)
+        for index, file_size in file_sizes:
+            file_list[index]["file-size"] = file_size
             acum_file_size += file_size
 
         target_bin_size = acum_file_size / max_bin_count

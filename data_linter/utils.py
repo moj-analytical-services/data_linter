@@ -4,7 +4,8 @@ import boto3
 import gzip
 import tempfile
 
-from typing import Union
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Tuple, Union, List
 from pathlib import Path
 
 from dataengineeringutils3.s3 import (
@@ -182,3 +183,64 @@ def read_all_file_body(file_path: str) -> str:
         return file_obj_body.decode("utf-8")
     else:
         return file_obj_body
+
+
+def _get_file_length(
+    file_index: int,
+    file_name: str,
+    client: Union[object, None] = None
+) -> Tuple[int, int]:
+    """
+    Returns a tuple consiting of the files original index and file length
+    as stored in s3
+
+    Args:
+        file_index: original index of file in a given list of files
+        file_name: A string specifying the location of the file to check in s3
+    """
+    # If client not given, create one
+    if client is None:
+        client = boto3.client('s3')
+
+    # Read object content length from meta
+    bucket, key = s3_path_to_bucket_key(file_name)
+    resp = client.head_object(Bucket=bucket, Key=key)
+
+    return_val = resp.get("ContentLength")
+
+    return (file_index, return_val)
+
+
+def get_file_lengths(
+    file_list: list
+) -> List[Tuple[int, int]]:
+    """
+    Returns a list of tuples containing the original index of the file in
+    the given file list and it's content length
+
+    Args:
+        file_list: A list of s3 file objects consisting of dictionaries which
+        includes the key "file-name" e.g. [{"file-name": "bucket/key"}]
+    """
+    # Create s3 client
+    session = boto3.session.Session()
+    s3_client = session.client('s3')
+
+    # Start executor
+    with ThreadPoolExecutor() as executor:
+        # Create futures for concurrent running
+        head_futures = [
+            executor.submit(
+                _get_file_length,
+                i,
+                file_dict["file-name"],
+                s3_client
+            ) for i, file_dict in enumerate(file_list)
+        ]
+
+        # Get results as futures complete
+        results = [
+            future.result() for future in as_completed(head_futures)
+        ]
+
+    return results
