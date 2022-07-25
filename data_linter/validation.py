@@ -171,7 +171,9 @@ def match_files_in_land_to_config(config: dict) -> dict:
             table_params["matched_files"] = [
                 land_file
                 for land_file in land_files
-                if land_file.replace(land_base_path, "").startswith(table_name)
+                if land_file.replace(land_base_path, "").startswith(
+                    table_name + "/"
+                )
             ]
 
         if not table_params["matched_files"] and table_params.get("required"):
