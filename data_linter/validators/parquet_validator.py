@@ -26,9 +26,9 @@ class ParquetValidator(BaseTableValidator):
         super().__init__(filepath, table_params, metadata)
 
     def read_data_and_validate(self):
-        table_arrow_schema = pq.read_schema(self.filepath)
+        table_arrow_schema = pq.read_schema(self.filepath).remove_metadata()
         ac = ArrowConverter()
-        metadata_arrow_schema = ac.generate_from_meta(self.metadata)
+        metadata_arrow_schema = ac.generate_from_meta(self.metadata).remove_metadata()
         metas_match = table_arrow_schema.equals(metadata_arrow_schema)
 
         cols_in_meta_not_in_file = list(
@@ -43,10 +43,10 @@ class ParquetValidator(BaseTableValidator):
 
         cols_with_different_types = {
             c.name: {
-                "meta_field": metadata_arrow_schema[c.name],
-                "table_field": table_arrow_schema[c.name],
+                "meta_field": metadata_arrow_schema[i].type,
+                "table_field": table_arrow_schema[i].type,
             }
-            for c in metadata_arrow_schema
+            for i, c in enumerate(metadata_arrow_schema)
         }
 
         result_dict = {
