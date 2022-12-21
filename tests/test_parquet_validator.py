@@ -14,5 +14,4 @@ def test_parquet_validator(meta_file, expected_pass):
     file_path = "tests/data/parquet_validator/table1.parquet"
     pv = ParquetValidator(filepath=file_path, table_params={}, metadata=meta)
     pv.read_data_and_validate()
-    print(pv.response.result)
     assert pv.response.result["valid"] == expected_pass
