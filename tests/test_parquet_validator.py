@@ -5,7 +5,12 @@ from mojap_metadata import Metadata
 
 
 @pytest.mark.parametrize(
-    "meta_file,expected_pass", [("table1_pass.json", True), ("table1_fail.json", False)]
+    "meta_file,expected_pass",
+    [
+        ("table1_pass.json", True),
+        ("table1_fail.json", False),
+        ("table1_missing_columns.json", False),
+    ],
 )
 def test_parquet_validator(meta_file, expected_pass):
     meta = Metadata.from_json(
