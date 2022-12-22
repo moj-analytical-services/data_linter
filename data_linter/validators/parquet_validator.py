@@ -47,6 +47,7 @@ class ParquetValidator(BaseTableValidator):
                 "table_field": table_arrow_schema[i].type,
             }
             for i, c in enumerate(metadata_arrow_schema)
+            if not metadata_arrow_schema[i].equals(table_arrow_schema[i])
         }
 
         result_dict = {
