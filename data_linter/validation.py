@@ -46,7 +46,10 @@ from data_linter.utils import (
     get_file_lengths
 )
 
-from data_linter.validators import PandasValidator, ParquetValidator
+from data_linter.validators import (
+    PandasValidator,
+    ParquetValidator,
+)
 
 from data_linter.validators.base import ValidatorResult
 
