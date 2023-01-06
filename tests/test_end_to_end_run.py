@@ -293,7 +293,7 @@ def test_read_all_file_body(s3, land_path):
 @pytest.mark.parametrize(
     "meta, engine_choice",
     [
-        ("table1", "pandas"), 
+        ("table1", "pandas"),
         ("table1_pq", "parquet"),
     ]
 )
