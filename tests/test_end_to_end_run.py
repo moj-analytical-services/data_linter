@@ -290,7 +290,14 @@ def test_read_all_file_body(s3, land_path):
     assert table_1_body == table_1_body_actual
 
 
-def test_parquet_linting(s3):
+@pytest.mark.parametrize(
+    "meta, engine_choice",
+    [
+        ("table1", "pandas"), 
+        ("table1_pq", "parquet"),
+    ]
+)
+def test_parquet_linting(s3, meta, engine_choice):
 
     from data_linter.validation import run_validation
 
@@ -301,11 +308,12 @@ def test_parquet_linting(s3):
         "log-base-path": "s3://log/",
         "compress-data": True,
         "remove-tables-on-pass": False,
+        "validator-engine": engine_choice,
         "all-must-pass": True,
         "tables": {
             "table1": {
                 "required": True,
-                "metadata": "tests/data/end_to_end2/metadata/table1.json",
+                "metadata": f"tests/data/end_to_end2/metadata/{meta}.json",
                 "expect-header": True,
             }
         },

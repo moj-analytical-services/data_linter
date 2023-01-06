@@ -44,10 +44,6 @@ class PandasValidator(BaseTableValidator):
         global_log_verbosity = table_params.get("log_verbosity", log_verbosity)
         self.ignore_missing_cols = ignore_missing_cols
 
-    @property
-    def valid(self):
-        return self.response.result["valid"]
-
     def write_validation_errors_to_log(self):
         table_result = self.response.get_result()
         if not table_result["valid"]:
@@ -83,9 +79,6 @@ class PandasValidator(BaseTableValidator):
             except Exception:
                 self.response.add_table_test("overall_validation", fail_response_dict)
                 log.error(traceback.format_exc())
-
-    def get_response_dict(self):
-        return self.response.get_result()
 
     def validate_df(self, df):
         for m in self.metadata.columns:

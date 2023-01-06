@@ -43,8 +43,8 @@ class ParquetValidator(BaseTableValidator):
 
         cols_with_different_types = {
             c.name: {
-                "meta_field": metadata_arrow_schema[i].type,
-                "table_field": table_arrow_schema[i].type,
+                "meta_field": str(metadata_arrow_schema[i].type),
+                "table_field": str(table_arrow_schema[i].type),
             }
             for i, c in enumerate(metadata_arrow_schema)
             if not metadata_arrow_schema[i].equals(table_arrow_schema[i])
@@ -58,3 +58,15 @@ class ParquetValidator(BaseTableValidator):
         }
 
         self.response.add_table_test("check_schema_conforms", result_dict)
+
+    def write_validation_errors_to_log(self):
+        table_result = self.response.get_result()
+        if not table_result["valid"]:
+            failed_cols = self.response.get_names_of_column_failures()
+            err_msg = (
+                "Table failed validation. "
+                f"Col failures: {failed_cols}. "
+                "See response error log for more details."
+            )
+            log.error(err_msg, extra={"context": "VALIDATION"})
+            log.debug(str(table_result), extra={"context": "VALIDATION"})

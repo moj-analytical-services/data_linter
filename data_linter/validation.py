@@ -46,13 +46,16 @@ from data_linter.utils import (
     get_file_lengths
 )
 
-from data_linter.validators import PandasValidator
+from data_linter.validators import PandasValidator, ParquetValidator
 
 from data_linter.validators.base import ValidatorResult
 
 log, log_stringio = logging_setup()
 
-get_validator = {"pandas": PandasValidator}
+get_validator = {
+    "pandas": PandasValidator,
+    "parquet": ParquetValidator,
+}
 
 
 def load_and_validate_config(config: Union[str, dict] = "config.yaml") -> dict:
