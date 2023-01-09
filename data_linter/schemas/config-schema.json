@@ -35,11 +35,13 @@
             "default": "pandas",
             "examples": [
                 "pandas",
+                "parquet",
                 "great-expectations",
                 "frictionless"
             ],
             "enum": [
                 "pandas",
+                "parquet",
                 "great-expectations",
                 "frictionless"
             ]
@@ -52,11 +54,13 @@
             "default": "pandas",
             "examples": [
                 "pandas",
+                "parquet",
                 "great-expectations",
                 "frictionless"
             ],
             "enum": [
                 "pandas",
+                "parquet",
                 "great-expectations",
                 "frictionless"
             ]
