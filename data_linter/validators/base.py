@@ -129,6 +129,10 @@ class BaseTableValidator:
             validator_valid_key_name=kwargs.get("validator_valid_key_name"),
         )
 
+    @property
+    def valid(self):
+        return self.response.result["valid"]
+
     def write_validation_result_to_log(self, log: logging.Logger):
         """Writes a the validators response to log provided.
         Default behavior is to just write str representation
@@ -140,7 +144,7 @@ class BaseTableValidator:
         """
         log.error(str(self.response), extra={"context": "VALIDATION"})
 
-    def write_validation_errors_to_log(self, log: logging.Logger):
+    def write_validation_errors_to_log(self):
         raise NotImplementedError("Needs to be overwritten")
 
     def read_data_and_validate(self):
@@ -164,4 +168,4 @@ class BaseTableValidator:
         """
         Returns the response object as a dictionary
         """
-        return deepcopy(self.response)
+        return self.response.get_result()
