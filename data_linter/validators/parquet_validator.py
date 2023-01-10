@@ -16,6 +16,10 @@ default_datetime_format = "%Y-%m-%d %H:%M:%S"
 
 
 class ParquetValidator(BaseTableValidator):
+    """
+    Validator for checking that a parquet file's schema matches a given Metadata.
+    For validating the data itself, use the Pandas validator.
+    """
     def __init__(
         self,
         filepath: str,
