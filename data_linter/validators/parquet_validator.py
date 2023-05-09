@@ -1,18 +1,22 @@
 import logging
+import os
+from typing import Union
 
-
-from data_linter.validators.base import (
-    BaseTableValidator,
-)
+import pyarrow.parquet as pq
+from dataengineeringutils3.s3 import s3_path_to_bucket_key
 from mojap_metadata import Metadata
 from mojap_metadata.converters.arrow_converter import ArrowConverter
-from typing import Union
-import pyarrow.parquet as pq
+from pyarrow import Schema
+from pyarrow.fs import S3FileSystem
 
+from data_linter.validators.base import BaseTableValidator
 
 log = logging.getLogger("root")
 default_date_format = "%Y-%m-%d"
 default_datetime_format = "%Y-%m-%d %H:%M:%S"
+aws_default_region = os.getenv(
+    "AWS_DEFAULT_REGION", os.getenv("AWS_REGION", "eu-west-1")
+)
 
 
 class ParquetValidator(BaseTableValidator):
@@ -20,17 +24,30 @@ class ParquetValidator(BaseTableValidator):
     Validator for checking that a parquet file's schema matches a given Metadata.
     For validating the data itself, use the Pandas validator.
     """
+
     def __init__(
         self,
         filepath: str,
         table_params: dict,
         metadata: Union[dict, str, Metadata],
-        **kwargs
+        **kwargs,
     ):
         super().__init__(filepath, table_params, metadata)
 
+    @staticmethod
+    def _read_schema(filepath: str) -> Schema:
+        if filepath.startswith("s3://"):
+            s3fs = S3FileSystem(region=aws_default_region)
+            b, k = s3_path_to_bucket_key(filepath)
+            pa_pth = os.path.join(b, k)
+            with s3fs.open_input_file(pa_pth) as file:
+                schema = pq.read_schema(file).remove_metadata()
+        else:
+            schema = pq.read_schema(filepath)
+        return schema
+
     def read_data_and_validate(self):
-        table_arrow_schema = pq.read_schema(self.filepath).remove_metadata()
+        table_arrow_schema = self._read_schema(self.filepath)
         ac = ArrowConverter()
         metadata_arrow_schema = ac.generate_from_meta(self.metadata).remove_metadata()
         metas_match = table_arrow_schema.equals(metadata_arrow_schema)

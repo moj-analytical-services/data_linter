@@ -1,7 +1,10 @@
-import os
 import io
-import boto3
+import os
+import pathlib
 from contextlib import contextmanager
+from tempfile import NamedTemporaryFile
+
+import boto3
 from dataengineeringutils3.s3 import s3_path_to_bucket_key
 
 
@@ -67,6 +70,15 @@ class MockS3FilesystemReadInputStream:
             yield obj_io_bytes
         finally:
             obj_io_bytes.close()
+
+    @staticmethod
+    @contextmanager
+    def open_input_file(s3_file_path_in: str):
+        s3_client = boto3.client("s3")
+        bucket, key = s3_path_to_bucket_key(s3_file_path_in)
+        tmp_file = NamedTemporaryFile(suffix=pathlib.Path(key).suffix)
+        s3_client.download_file(bucket, key, tmp_file.name)
+        yield tmp_file.name
 
 
 def mock_get_file(*args, **kwargs):
