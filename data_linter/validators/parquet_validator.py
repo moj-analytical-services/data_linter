@@ -43,7 +43,7 @@ class ParquetValidator(BaseTableValidator):
             with s3fs.open_input_file(pa_pth) as file:
                 schema = pq.read_schema(file).remove_metadata()
         else:
-            schema = pq.read_schema(filepath)
+            schema = pq.read_schema(filepath).remove_metadata()
         return schema
 
     def read_data_and_validate(self):
