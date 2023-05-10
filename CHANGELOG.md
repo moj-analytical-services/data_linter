@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 6.2.1 2023-05-10
+
+- Updated parquet validator to read schemas from S3
+
 ## 6.2.0 2023-01-10
 
 - Added parquet validator for validating parquet schemas
@@ -90,20 +94,20 @@ allow there to be some misallignment between the meta and the data
 
 ```
 [ALL CLOSED ISSUES]
-- issue #140 
+- issue #140
 - issue #139
-- issue #133 
+- issue #133
 - issue #132
-- issue #131 
-- issue #130 
-- issue #129 
-- issue #128 
+- issue #131
+- issue #130
+- issue #129
+- issue #128
 - issue #125
-- issue #122 
-- issue #121 
-- issue #120 
-- issue #110 
-- issue #100 
+- issue #122
+- issue #121
+- issue #120
+- issue #110
+- issue #100
 - issue #98
 - issue #87
 - issue #70
