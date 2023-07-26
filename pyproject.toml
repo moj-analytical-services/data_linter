@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "data_linter"
-version = "6.2.1"
+version = "6.2.2"
 description = "data linter"
 authors = ["Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
@@ -13,7 +13,7 @@ repository = "https://github.com/moj-analytical-services/data_linter"
 homepage = "https://github.com/moj-analytical-services/data_linter"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.8,<4.0"
 dataengineeringutils3 = "^1.0.1"
 boto3 = "^1.14.7"
 jsonschema = "^4.10.0"
