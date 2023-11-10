@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "data_linter"
-version = "6.2.2"
+version = "6.2.3"
 description = "data linter"
 authors = ["Thomas Hirsch <thomas.hirsch@digital.justice.gov.uk>",
            "George Kelly <george.kelly@digital.justice.gov.uk>",
@@ -19,10 +19,10 @@ boto3 = "^1.14.7"
 jsonschema = "^4.10.0"
 PyYAML = "^6.0.1"
 iam_builder = "^4.1.0"
-pandas = "^1.2"
+pandas = ">=1.2"
 mojap-metadata = {version = "^1.10.0", extras = ["arrow"]}
 arrow-pd-parser = ">=1.3.0,<2"
-awswrangler = "^2.3.0"
+awswrangler = "^3"
 toml = "^0.10"
 
 [tool.poetry.dev-dependencies]
