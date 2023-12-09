@@ -1,0 +1,7 @@
+boto3
+dataengineeringutils3
+json
+mojap_metadata
+moto
+pyarrow
+pytest
