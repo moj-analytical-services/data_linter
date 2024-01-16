@@ -43,8 +43,9 @@ def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
     log.addHandler(console)
 
     cf = ContextFilter()
-    log.addFilter(cf)
-
+    for handler in log:
+        handler.addFilter(cf)
+        
     return log, log_stringio
 
 
