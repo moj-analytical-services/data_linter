@@ -22,7 +22,6 @@ class ContextFilter(logging.Filter):
 
 
 def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
-
     log = logging.getLogger("root")
     log.setLevel(logging.DEBUG)
 
@@ -45,7 +44,7 @@ def logging_setup() -> Tuple[logging.Logger, io.StringIO]:
     cf = ContextFilter()
     for handler in log:
         handler.addFilter(cf)
-        
+
     return log, log_stringio
 
 
