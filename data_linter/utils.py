@@ -130,6 +130,7 @@ def copy_s3_object(src_path: str, dst_path: str):
 
     return resp
 
+
 def copy_data(src_path: str, dst_path: str):
     src_path_is_s3 = src_path.startswith("s3://")
     dst_path_is_s3 = dst_path.startswith("s3://")
