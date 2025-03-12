@@ -7,11 +7,11 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Tuple, Union, List
 from pathlib import Path
+import awswrangler as wr
 
 from dataengineeringutils3.s3 import (
     s3_path_to_bucket_key,
     write_local_file_to_s3,
-    copy_s3_object,
     check_for_s3_file,
 )
 
@@ -110,6 +110,25 @@ def s3_to_local(s3_path: str, local_path: str):
 
     with open(local_path, "wb") as opened_file:
         s3_client.download_fileobj(bucket, key, opened_file)
+
+
+def copy_s3_object(src_path: str, dst_path: str):
+    src_dirname = os.path.dirname(src_path)
+    dst_dirname = os.path.dirname(dst_path)
+
+    src_key = os.path.basename(src_path)
+    dst_key = os.path.basename(dst_path)
+
+    resp = wr.s3.copy_objects(
+        paths=[src_path],
+        source_path=src_dirname,
+        target_path=dst_dirname,
+        replace_filenames={
+            src_key: dst_key,
+        },
+    )
+
+    return resp
 
 
 def copy_data(src_path: str, dst_path: str):
