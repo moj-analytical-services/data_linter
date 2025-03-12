@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 6.3.0 2025-03-12
+
+- Use awswrangler for copying post validation
+
 ## 6.2.4 2023-11-16
 
 - Relax arrow-pd-parser version requirement
