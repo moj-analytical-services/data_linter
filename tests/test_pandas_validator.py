@@ -364,7 +364,8 @@ def test_row_limits(file_name: str, row_limit: int, exp_row_limit: int):
     raised when the records are sampled.
     Args:
         file_name ([str]): The filename in the dir tests/data/headers/
-        row_limit (int): Number of rows to sample
+        row_limit (int): Number of rows supplied to function to sample
+        exp_row_limit (int): Expected actual number of rows sampled
     """
     test_folder = "tests/data/headers/"
     full_file_path = os.path.join(test_folder, file_name)
