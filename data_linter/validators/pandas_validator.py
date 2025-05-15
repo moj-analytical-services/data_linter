@@ -469,8 +469,10 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
         raise ColumnError(err_msg)
 
     # sample the data, if required
-    if table_params.get("row-limit"):
-        df = df.sample(table_params.get("row-limit"))
+    row_limit = table_params.get("row-limit", None)
+    if row_limit:
+        row_limit = row_limit if row_limit <= len(df) else len(df)
+        df = df.sample(row_limit)
 
     if metadata.file_format not in ["parquet", "snappy.parquet"]:
         df = cast_pandas_table_to_schema(df, metadata)
