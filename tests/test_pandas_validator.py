@@ -349,14 +349,37 @@ def test_check_pandas_series_is_str(s, expected):
 
 
 @pytest.mark.parametrize(
-    "file_name, row_limit, exp_row_limit",
+    "file_name, expect_header, row_limit, exp_row_limit",
     [
-        ("table1.csv", 9, 9),
-        ("table1.csv", 10, 10),
-        ("table1.csv", 100, 10),
+        (
+            "table1.csv",
+            True,
+            9,
+            9,
+        ),
+        ("table1.csv", True, 10, 10),
+        ("table1.csv", True, 100, 10),
+        (
+            "table1_no_header.csv",
+            False,
+            9,
+            9,
+        ),
+        ("table1_no_header.csv", False, 10, 10),
+        ("table1_no_header.csv", False, 100, 10),
+        (
+            "table2.jsonl",
+            False,
+            9,
+            9,
+        ),
+        ("table2.jsonl", False, 10, 10),
+        ("table2.jsonl", False, 100, 10),
     ],
 )
-def test_row_limits(file_name: str, row_limit: int, exp_row_limit: int):
+def test_row_limits(
+    file_name: str, expect_header: bool, row_limit: int, exp_row_limit: int
+):
     """
     Tests files against the _read_data_and_validate function.
     runs each file and corresponding meta (table1 or table2)
@@ -375,7 +398,7 @@ def test_row_limits(file_name: str, row_limit: int, exp_row_limit: int):
         os.path.join(test_folder, f"meta_data/{table_name}.json")
     )
 
-    table_params = {"expect-header": True, "row-limit": row_limit}
+    table_params = {"expect-header": expect_header, "row-limit": row_limit}
     df, _ = pv._parse_data_to_pandas(full_file_path, table_params, metadata)
 
     assert len(df) == exp_row_limit
