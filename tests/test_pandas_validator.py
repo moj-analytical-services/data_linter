@@ -1,9 +1,12 @@
+import os
 import pytest
 from data_linter.validators import pandas_validator as pv
 from datetime import datetime
 
 import numpy as np
 import pandas as pd
+
+from mojap_metadata.metadata.metadata import Metadata
 
 int_not_null = pd.Series([1, 2, 3, 4, 5], dtype=pd.Int64Dtype())
 int_is_null = pd.Series([1, 2, None, 4, 5], dtype=pd.Int64Dtype())
@@ -343,3 +346,35 @@ def test_validation_function_skips():
 )
 def test_check_pandas_series_is_str(s, expected):
     assert pv._check_pandas_series_is_str(s) == expected
+
+
+@pytest.mark.parametrize(
+    "file_name, row_limit, exp_row_limit",
+    [
+        ("table1.csv", 9, 9),
+        ("table1.csv", 10, 10),
+        ("table1.csv", 100, 10),
+    ],
+)
+def test_row_limits(file_name: str, row_limit: int, exp_row_limit: int):
+    """
+    Tests files against the _read_data_and_validate function.
+    runs each file and corresponding meta (table1 or table2)
+    with different row limits, to ensure no exceptions are
+    raised when the records are sampled.
+    Args:
+        file_name ([str]): The filename in the dir tests/data/headers/
+        row_limit (int): Number of rows to sample
+    """
+    test_folder = "tests/data/headers/"
+    full_file_path = os.path.join(test_folder, file_name)
+
+    table_name = file_name.split(".")[0].split("_")[0]
+    metadata = Metadata.from_json(
+        os.path.join(test_folder, f"meta_data/{table_name}.json")
+    )
+
+    table_params = {"expect-header": True, "row-limit": row_limit}
+    df, _ = pv._parse_data_to_pandas(full_file_path, table_params, metadata)
+
+    assert len(df) == exp_row_limit
