@@ -4,7 +4,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## 6.3.1. 2025-05-15
+## 6.3.2 2025-05-28
+
+- Update `validate_data` function to return None when no files are found, instead of 
+attempting to return a value, as this value will not have been set
+
+## 6.3.1 2025-05-15
 
 - Update `parse_data_to_pandas` to dynamically adjust row-limit argument to DataFrame.sample based whether provided row-limit value is greater than the length of the DataFrame
 

@@ -43,7 +43,7 @@ from data_linter.utils import (
     get_filepaths_from_local_folder,
     local_file_to_s3,
     read_all_file_body,
-    get_file_lengths
+    get_file_lengths,
 )
 
 from data_linter.validators import (
@@ -439,6 +439,7 @@ def validate_data(config: dict) -> ValidatorResult:
         else:
             msg4 = f"SKIPPING {table_name}. No files found."
             log.info(msg4)
+            return None
 
     if all_table_responses:
         save_completion_status(config, all_table_responses)
