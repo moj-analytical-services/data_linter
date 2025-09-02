@@ -424,7 +424,7 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
     else:
         df = reader.read(filepath, **pandas_kwargs)
 
-    df.columns = [re.sub(r"[\x00-\x1F\x7F-\x9F\uFEFF]", "", col) for col in df.columns]
+    df.columns = [re.sub(r"^(?:\ufeff|ï»¿)", "", col) for col in df.columns]
 
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):
