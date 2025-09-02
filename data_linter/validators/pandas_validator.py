@@ -436,9 +436,9 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
     allow_missing_cols = table_params.get("allow-missing-cols", False)
     allow_unexpected_data = table_params.get("allow-unexpected-data", False)
 
-    cols_in_meta_but_not_data = [c for c in meta_col_names if c not in cols]
-    cols_in_data_but_not_meta = [c for c in cols if c not in meta_col_names]
-    cols_in_data_and_meta = [c for c in cols if c in meta_col_names]
+    cols_in_meta_but_not_data = [c for c in meta_col_names if c not in df.columns]
+    cols_in_data_but_not_meta = [c for c in df.columns if c not in meta_col_names]
+    cols_in_data_and_meta = [c for c in df.columns if c in meta_col_names]
 
     # error if there are no common columns
     if not cols_in_data_and_meta:
