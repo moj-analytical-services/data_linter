@@ -424,6 +424,8 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
     else:
         df = reader.read(filepath, **pandas_kwargs)
 
+    df.columns = [re.sub(r"^(?:\ufeff|ï»¿)", "", col) for col in df.columns]
+
     # eliminate case sensitivity, if requested
     if table_params.get("headers-ignore-case"):
         for c in metadata.columns:
@@ -433,8 +435,6 @@ def _parse_data_to_pandas(filepath: str, table_params: dict, metadata: Metadata)
 
     allow_missing_cols = table_params.get("allow-missing-cols", False)
     allow_unexpected_data = table_params.get("allow-unexpected-data", False)
-
-    cols = [re.sub(r"^(?:\ufeff|ï»¿)", "", col) for col in df.columns]
 
     cols_in_meta_but_not_data = [c for c in meta_col_names if c not in cols]
     cols_in_data_but_not_meta = [c for c in cols if c not in meta_col_names]
