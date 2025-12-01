@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 6.3.3 2025-10-29
+- Update `pandas_validator` to clean specific non-printable characters from column names, as these have been introduced into some source datasets
+
 ## 6.3.2 2025-05-28
 
 - Update `validate_data` function to return None when no files are found, instead of 
